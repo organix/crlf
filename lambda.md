@@ -29,7 +29,8 @@ The `ast` represents an _expression_, which may be one of the following:
 ```javascript
 {
     "kind": "abstraction",
-    ...
+    "parameter": <string>,
+    "body": <expression>
 }
 ```
 
@@ -38,6 +39,7 @@ The `ast` represents an _expression_, which may be one of the following:
 ```javascript
 {
     "kind": "application",
-    ...
+    "operation": <expression>,
+    "operand": <expression>
 }
 ```
