@@ -2,10 +2,12 @@
 
 The untyped [Lambda-calculus](http://en.wikipedia.org/wiki/Lambda_calculus) is a universal notation for defining partial-recursive functions.
 
+## Syntax
+
 ```javascript
 {
     "lang": "lambda",
-    "ast": <abstract syntax tree>
+    "ast": <expression>
 }
 ```
 
@@ -15,7 +17,7 @@ The `ast` represents an _expression_, which may be one of the following:
   * Abstraction
   * Application
 
-## Variable
+### Variable
 
 ```javascript
 {
@@ -24,7 +26,7 @@ The `ast` represents an _expression_, which may be one of the following:
 }
 ```
 
-## Abstraction
+### Abstraction
 
 ```javascript
 {
@@ -34,12 +36,12 @@ The `ast` represents an _expression_, which may be one of the following:
 }
 ```
 
-## Application
+### Application
 
 ```javascript
 {
     "kind": "application",
-    "operation": <expression>,
+    "operator": <expression>,
     "operand": <expression>
 }
 ```
