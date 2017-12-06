@@ -8,9 +8,15 @@ Use `JSON` encoding to communicate language-specific abstract syntax trees. Poss
 
 ```javascript
 {
-    "lang": <language identifier>
+    "lang": <language identifier>,
     "ast": <abstract syntax tree>
 }
 ```
 
 The value of the `lang` property specifies the interpretation of the value of the `ast` property.
+
+`lang` value | Description
+-------------|------------
+`lambda` | Untyped Lambda-calculus
+`PEG` | Parsing Expression Grammars
+`actor` | Primitive actions for the Actor-model of computation
