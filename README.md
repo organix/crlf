@@ -17,6 +17,6 @@ The value of the `lang` property specifies the interpretation of the value of th
 
 `lang` value | Description
 -------------|------------
-`lambda` | Untyped Lambda-calculus
-`PEG` | Parsing Expression Grammars
-`actor` | Primitive actions for the Actor-model of computation
+[lambda](lambda.md) | Untyped Lambda-calculus
+[PEG](PEG.md) | Parsing Expression Grammars
+[actor](actor.md) | Primitive actions for the Actor-model of computation
