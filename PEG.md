@@ -119,7 +119,7 @@ Many common (and useful) parsing expressions can be defined in terms of the prim
 Name | Description | Derivation
 -----|-------------|-----------
 anything | matches any single _value_ | alternative( _...all possible values..._ )
-star(expr) | zero-or-more repetition | alternative(sequence(expr, star(expr)), empty)
-plus(expr) | one-or-more repetition | sequence(expr, star(expr))
-optional(expr) | zero-or-one occurance | alternative(expr, empty)
-suffix(expr) | positive look-ahead | negation(negation(expr))
+star(_expr_) | zero-or-more repetition | alternative(sequence(_expr_, star(_expr_)), empty)
+plus(_expr_) | one-or-more repetition | sequence(_expr_, star(_expr_))
+optional(_expr_) | zero-or-one occurance | alternative(_expr_, empty)
+suffix(_expr_) | positive look-ahead | negation(negation(_expr_))
