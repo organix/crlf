@@ -3,10 +3,10 @@
 An actor behavior describes the effects of an actor receiving a message. The effects include new actors created, new messages sent, and the behavior to be used for handling subsequent messages. The initial value of the abstract _effects_ object is:
 
 ```javascript
-{
-    "create": [],
-    "send": [],
-    "become": <current behavior>
+effects = {
+    create: [],
+    send: [],
+    become: <current behavior>
 }
 ```
 
