@@ -111,3 +111,15 @@ Attempt to match each of the _expressions_ in _of_ in order until one matches th
 ```
 
 Matches, with a result value `null` and _remainder_ = _source_, if _next_ **fails** to match.
+
+## Derived Expressions
+
+Many common (and useful) parsing expressions can be defined in terms of the primitives already specified.
+
+Name | Description | Derivation
+-----|-------------|-----------
+anything | matches any single _value_ | alternative( _...all possible values..._ )
+star(expr) | zero-or-more repetition | alternative(sequence(expr, star(expr)), empty)
+plus(expr) | one-or-more repetition | sequence(expr, star(expr))
+optional(expr) | zero-or-one occurance | alternative(expr, empty)
+suffix(expr) | positive look-ahead | negation(negation(expr))
