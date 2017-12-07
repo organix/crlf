@@ -2,15 +2,15 @@
 
 An actor behavior describes the effects of an actor receiving a message. The effects include new actors created, new messages sent, and the behavior to be used for handling subsequent messages. The initial value of the abstract _effects_ object is:
 
-```javascript
-effects = {
+```
+effects := {
     create: [],
     send: [],
     become: <current behavior>
 }
 ```
 
-## Syntax
+## Primitive Actions
 
 ```javascript
 {
@@ -19,7 +19,7 @@ effects = {
 }
 ```
 
-The `ast` represents an _behavior_, which contains a list of _actions_:
+The `ast` represents a _behavior_, which contains a list of _actions_:
 
 ```javascript
 {
@@ -56,7 +56,7 @@ effects := effects ^ { create: effects.create ^ [ <address> ] }
 
 ### Send
 
-The _send_ primitive constructs a new send-event to deliver a specific _message_ to a target _address_.
+The _send_ primitive constructs a new send-event to deliver a specific _message_ to a _target_ actor.
 
 ```javascript
 {
@@ -74,7 +74,7 @@ effects := effects ^ { send: effects.send ^ [ { target: <address>, message: <any
 
 ### Become
 
-The _become_ primitive specified a replacement behavior for handling subsequent messages to the current actor.
+The _become_ primitive specifies a replacement _behavior_ for handling subsequent messages to the current actor.
 
 ```javascript
 {
