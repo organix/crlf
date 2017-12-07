@@ -20,3 +20,56 @@ The value of the `lang` property specifies the interpretation of the value of th
 [lambda](lambda.md) | Untyped Lambda-calculus
 [PEG](PEG.md) | Parsing Expression Grammars
 [actor](actor.md) | Primitive actions for the Actor-model of computation
+
+## Semantic Notation
+
+The abstract semantics of these languages are decribed using a few common notational conventions. We start with the data-types which can be represented by `JSON`, which are:
+
+  * String
+  * Number
+  * Object
+  * Array
+  * Boolean (`true` and `false`)
+  * `null`
+
+Named meta-variables may be given any value, using assigment notation:
+
+```
+<name> := <value>
+```
+
+Object fields may be accessed by name:
+
+```
+<object>.<name>
+```
+
+Objects fields may also be accessed by string key:
+
+```
+<object>[<string>]
+```
+
+Array elements may be accessed by number index (0-based):
+
+```
+<array>[<number>]
+```
+
+Array length may be accessed as a named field:
+
+```
+<array>.length
+```
+
+New array values may be created by concatenation:
+
+```
+<prefix> ^ <suffix>
+```
+
+New object values may be created by concatenation:
+
+```
+<original> ^ <updates>
+```
