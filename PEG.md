@@ -2,7 +2,7 @@
 
 A [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEG) is a pattern matching language.
 
-## Syntax
+## Primitive Expressions
 
 ```javascript
 {
@@ -11,7 +11,7 @@ A [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_
 }
 ```
 
-The `ast` represents an _grammar_, which contains a set of named _rules_:
+The `ast` represents a _grammar_, which contains a set of named _rules_:
 
 ```javascript
 {
@@ -20,6 +20,15 @@ The `ast` represents an _grammar_, which contains a set of named _rules_:
         <name>: <expression>,
         ...
     }
+}
+```
+
+A parsing _expression_ is applied to an _source_ array value. If the expression fails to match, it produces a `false` _result_ value. If the expression matches, it produces a match _result_ object with an arbitrary _value_ and a _remainder_ array containing the unmatched portion of the source array:
+
+```
+{
+    value: <any>,
+    remainder: <array>
 }
 ```
 
@@ -40,6 +49,8 @@ A primitive parsing expression may be any of the following:
 }
 ```
 
+Matches without consuming any input. The result _value_ is `[]`.
+
 ### Terminal symbol
 
 ```javascript
@@ -49,6 +60,8 @@ A primitive parsing expression may be any of the following:
 }
 ```
 
+If _source_ is empty, fail. Otherwise consume the first element of _source_ and match if it equals _value_. The result _value_ is the _value_ matched.
+
 ### Rule reference
 
 ```javascript
@@ -57,6 +70,8 @@ A primitive parsing expression may be any of the following:
     "name": <string>
 }
 ```
+
+Apply the named rule to _source_. If matched, the result _value_ is the _value_ matched by the rule.
 
 ### Sequence
 
@@ -70,6 +85,8 @@ A primitive parsing expression may be any of the following:
 }
 ```
 
+Match all of the _expressions_ in _of_ to successive portions of the _source_. If matched, the result _value_ is an array of the _values_ matched by each expression.
+
 ### Alternative (ordered choice)
 
 ```javascript
@@ -82,6 +99,8 @@ A primitive parsing expression may be any of the following:
 }
 ```
 
+Attempt to match each of the _expressions_ in _of_ in order until one matches the current _source_. If matched, the result _value_ is the _value_ matched.
+
 ### Negation (look-ahead)
 
 ```javascript
@@ -90,3 +109,5 @@ A primitive parsing expression may be any of the following:
     "next": <expression>
 }
 ```
+
+Matches, with a result value `null` and _remainder_ = _source_, if _next_ **fails** to match.
