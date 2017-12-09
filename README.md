@@ -23,7 +23,7 @@ The value of the `lang` property specifies the interpretation of the value of th
 
 ## Semantic Notation
 
-The abstract semantics of these languages are decribed using a few common notational conventions. We start with the data-types which can be represented by `JSON`, which are:
+The abstract semantics of these languages are decribed using a few common notational conventions. We start with the data-types which can be represented by [JSON](JSON.md), which are:
 
   * String
   * Number
