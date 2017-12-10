@@ -84,6 +84,20 @@ An abstract _string_ value is an ordered sequence of zero or more Unicode charac
 
 ### Number type
 
+An abstract _number_ value is an arbitrary-precision integer or decimal floating-point value. It may denote a precise (in the case of integers) or imprecise (in the case of floating-point) mathematical object. Numbers are equal if they denote the same mathematical object.
+
+```javascript
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            "Number": { "kind": "terminal", "value": <number> }
+        }
+    }
+}
+```
+
 ### Array type
 
 ### Object type
