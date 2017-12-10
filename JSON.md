@@ -45,6 +45,31 @@ The abstract values `true` and `false` are the two values of used in [Boolean lo
 
 ### String type
 
+An abstract _string_ value is an ordered sequence of zero or more Unicode characters (code points). The String type contains an arbitrarily large number of values, since there is no bound on the length of the string. Strings are equal if they have the same length, and contain the same Unicode characters in the same order.
+
+```javascript
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            "String": {
+                "kind": "star",
+                "expr": {
+                    "kind": "alternative",
+                    "of": [
+                        { "kind": "terminal", "value": 0 },
+                        { "kind": "terminal", "value": 1 },
+                        ...
+                        { "kind": "terminal", "value": <maximum-Unicode-value> }
+                    ]
+                }
+            }
+        }
+    }
+}
+```
+
 ### Number type
 
 ### Array type
