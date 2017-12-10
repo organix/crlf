@@ -13,7 +13,7 @@ The `ast` string is the transportable representation of a single JSON value.
 
 ## JSON Data
 
-A JSON value can be an _object_, _array_, _number_, _string_, `true`, `false`, or `null`.
+A JSON value can be an _object_, _array_, _number_, _string_, `true`, `false`, or `null`. The abstract value represented by a JSON-encoded string is defined by the [standards for JSON parsers](http://ftp.ripe.net/rfc/authors/rfc8259.txt). The JSON-encoded string representing abstract values is also specified by those same standards. These provide a bi-directional representation relation between abstract values and concrete Unicode character-sequences. Many commonly-used abstract values are representable in JSON, but there are also un-representable values (such as Infinity). The [crlf](README.md) project uses the abstract values of JSON as foundation for _representation_ of abstract values in other domains.
 
 ### `null` value
 
