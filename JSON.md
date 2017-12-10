@@ -100,4 +100,32 @@ An abstract _string_ value is an ordered sequence of zero or more Unicode charac
 
 ### Array type
 
+An abstract _array_ value is an ordered sequence of zero or more JSON values. The Array type contains an arbitrarily large number of values, since there is no bound on the length of the array. Arrays are equal if they have the same length, and contain the same JSON values in the same order.
+
+```javascript
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            "Array": {
+                "kind": "star",
+                "expr": { "kind": "rule", "name": "Value" }
+            },
+            "Value": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "Null" },
+                    { "kind": "rule", "name": "Boolean" },
+                    { "kind": "rule", "name": "Number" },
+                    { "kind": "rule", "name": "String" },
+                    { "kind": "rule", "name": "Array" },
+                    { "kind": "rule", "name": "Object" }
+                ]
+            }
+        }
+    }
+}
+```
+
 ### Object type
