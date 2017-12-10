@@ -25,6 +25,21 @@ From a pattern-matching perspective, we take the set of all JSON values to be th
 
 The abstract values `true` and `false` are the two values of used in [Boolean logic](https://en.wikipedia.org/wiki/Boolean_algebra). Predicates (such as comparing two values for equality) produce a Boolean-type `true` or `false` result.
 
+```javascript
+{
+    "kind": "grammar",
+    "rules": {
+        "Boolean": {
+            "kind": "alternative",
+            "of": [
+                { "kind": "terminal", "value": true },
+                { "kind": "terminal", "value": false }
+            ]
+        }
+    }
+}
+```
+
 ### String type
 
 ### Number type
