@@ -21,6 +21,18 @@ From a pattern-matching perspective, we take the set of all JSON values to be th
 
 `null` is a singular unique abstract value, often used to indicate the concept of "nothing". It is equal only to itself.
 
+```javascript
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            "Null": { "kind": "terminal", "value": null }
+        }
+    }
+}
+```
+
 ### Boolean type (`true` and `false` values)
 
 The abstract values `true` and `false` are the two values of used in [Boolean logic](https://en.wikipedia.org/wiki/Boolean_algebra). Predicates (such as comparing two values for equality) produce a Boolean-type `true` or `false` result.
