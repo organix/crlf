@@ -15,6 +15,29 @@ The `ast` string is the JSON-encoded transportable representation of a single JS
 
 A JSON value can be an _object_, _array_, _number_, _string_, `true`, `false`, or `null`. The abstract value represented by a JSON-encoded string is defined by the [standards for JSON parsers](http://ftp.ripe.net/rfc/authors/rfc8259.txt). The JSON-encoded string representing abstract values is also specified by those same standards. These provide a bi-directional representation relation between abstract values and concrete Unicode character-sequences. Many commonly-used abstract values are representable in JSON, but there are also un-representable values (such as Infinity). The [crlf project](README.md) uses the abstract values of JSON as foundation for _representation_ of abstract values in other domains.
 
+```javascript
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            "Value": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "Null" },
+                    { "kind": "rule", "name": "Boolean" },
+                    { "kind": "rule", "name": "Number" },
+                    { "kind": "rule", "name": "String" },
+                    { "kind": "rule", "name": "Array" },
+                    { "kind": "rule", "name": "Object" }
+                ]
+            },
+            ...
+        }
+    }
+}
+```
+
 From a pattern-matching perspective, we take the set of all JSON values to be the alphabet of Terminal symbols.
 
 ### `null` value
@@ -27,7 +50,9 @@ From a pattern-matching perspective, we take the set of all JSON values to be th
     "ast": {
         "kind": "grammar",
         "rules": {
-            "Null": { "kind": "terminal", "value": null }
+            ...
+            "Null": { "kind": "terminal", "value": null },
+            ...
         }
     }
 }
@@ -43,13 +68,15 @@ The abstract values `true` and `false` are the two values of used in [Boolean lo
     "ast": {
         "kind": "grammar",
         "rules": {
+            ...
             "Boolean": {
                 "kind": "alternative",
                 "of": [
                     { "kind": "terminal", "value": true },
                     { "kind": "terminal", "value": false }
                 ]
-            }
+            },
+            ...
         }
     }
 }
@@ -65,7 +92,9 @@ An abstract _number_ value is an arbitrary-precision integer or decimal floating
     "ast": {
         "kind": "grammar",
         "rules": {
-            "Number": { "kind": "terminal", "value": <number> }
+            ...
+            "Number": { "kind": "terminal", "value": <number> },
+            ...
         }
     }
 }
@@ -81,6 +110,7 @@ An abstract _string_ value is an ordered sequence of zero or more Unicode charac
     "ast": {
         "kind": "grammar",
         "rules": {
+            ...
             "String": {
                 "kind": "star",
                 "expr": {
@@ -92,7 +122,8 @@ An abstract _string_ value is an ordered sequence of zero or more Unicode charac
                         { "kind": "terminal", "value": <maximum-Unicode-value> }
                     ]
                 }
-            }
+            },
+            ...
         }
     }
 }
@@ -108,24 +139,39 @@ An abstract _array_ value is an ordered sequence of zero or more JSON values. Th
     "ast": {
         "kind": "grammar",
         "rules": {
+            ...
             "Array": {
                 "kind": "star",
                 "expr": { "kind": "rule", "name": "Value" }
             },
-            "Value": {
-                "kind": "alternative",
-                "of": [
-                    { "kind": "rule", "name": "Null" },
-                    { "kind": "rule", "name": "Boolean" },
-                    { "kind": "rule", "name": "Number" },
-                    { "kind": "rule", "name": "String" },
-                    { "kind": "rule", "name": "Array" },
-                    { "kind": "rule", "name": "Object" }
-                ]
-            }
+            ...
         }
     }
 }
 ```
 
 ### Object type
+
+An abstract _object_ value is an unordered collection of zero or more name/value pairs. Names are represented as strings. Name values should be unique within a given object. The value associated with a name can be any aribtrary JSON value. The Object type contains an arbitrarily large number of values, since there is no bound on the number of name/value pairs. Objects are equal if they have the same number of name/value pairs, and the values associated with equal names are also equal.
+
+```javascript
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            ...
+            "Object": {
+                "kind": "star",
+                "expr": {
+                    "kind": "sequence",
+                    "of": [
+                        { "kind": "rule", "name": "String" },
+                        { "kind": "rule", "name": "Value" }
+                    ]
+                }
+            }
+        }
+    }
+}
+```
