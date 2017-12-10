@@ -27,14 +27,17 @@ The abstract values `true` and `false` are the two values of used in [Boolean lo
 
 ```javascript
 {
-    "kind": "grammar",
-    "rules": {
-        "Boolean": {
-            "kind": "alternative",
-            "of": [
-                { "kind": "terminal", "value": true },
-                { "kind": "terminal", "value": false }
-            ]
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            "Boolean": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "terminal", "value": true },
+                    { "kind": "terminal", "value": false }
+                ]
+            }
         }
     }
 }
