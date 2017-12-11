@@ -196,6 +196,14 @@ Output: `<boolean>`
 
 Returns `true` if the `first` number is numerically less than the `second` number. Otherwise returns `false`.
 
+### `length`
+
+Input: `<string>`
+
+Output: `<number>`
+
+Returns the number of characters in the input string (>= 0).
+
 ### `string->JSON`
 
 Input: `<string>`
@@ -292,3 +300,42 @@ Returns an object value computed as follows:
     2. Otherwise, add the _name_ and associated _value_ from _second_ to the _result_
 3. Return the final _result_ object value
 
+## JSON Value Objects
+
+Each abstract JSON value can be viewed as an object, with properties and methods. However, properties can only be JSON values, and methods may only return JSON value (and not mutate an objects). Properties are indistinguishable from methods with no arguments. Arguments may be provided as an _array_ of values.
+
+### Value methods
+
+Some methods are common to all value types.
+
+#### `<value>.equals[<value>]`
+
+`true` if the target is equal to the parameter value, otherwise `false`.
+
+#### `<value>.isNull`
+
+`true` if the target is `null`, otherwise `false`.
+
+#### `<value>.toJSON`
+
+The `<string>` JSON-encoded representation of the target.
+
+### String methods
+
+#### `<string>.length`
+
+The `<number>` of characters in the target.
+
+#### `<string>.parseJSON`
+
+`{ "ok": true, "value": <value> }` on success, otherwise `{ "ok": false, "error": <value> }`.
+
+#### `<string>.concatenate[<string>]`
+
+The `<string>` consisting of the characters of target followed by the characters of parameter value.
+
+### Number methods
+
+#### `<number>.lessThan[<number>]`
+
+`true` if target is numerically less than the parameter value, otherwise `false`.
