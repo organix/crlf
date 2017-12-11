@@ -362,9 +362,9 @@ If target is `false`, return `false`, otherwise return the parameter value.
 
 If target is `true`, return `true`, otherwise return the parameter value.
 
-#### `<boolean>.if { then:<crlf>, else: <crlf> }`
+#### `<boolean>.if { then:<crlf>, else:<crlf> }`
 
-If target is `true`, evaluate `then`, otherwise evaluate `else`.
+If target is `true`, return `then.value`, otherwise `else.value` (see `<crlf>.value`).
 
 ### Number methods
 
