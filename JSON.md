@@ -302,7 +302,7 @@ Returns an object value computed as follows:
 
 ## JSON Value Objects
 
-Each abstract JSON value can be viewed as an object, with properties and methods. However, properties can only be JSON values, and methods may only return JSON value (and not mutate an objects). Properties are indistinguishable from methods with no arguments. Arguments may be provided as an _array_ of values.
+Each abstract JSON value can be viewed as an object, with properties and methods. However, properties can only be JSON values, and methods may only return a JSON value (and not mutate any objects). Methods with no arguments are indistinguishable from properties. Arguments may be provided either as an _array_ of values, or a parameter _object_.
 
 ### Value methods
 
@@ -324,6 +324,18 @@ The `<string>` JSON-encoded representation of the target.
 
 Signal an exceptional condition with an error `value` (see `<crlf>.try`).
 
+### Boolean methods
+
+#### `<boolean>.if { then:<crlf>, else: <crlf> }`
+
+If target is `true`, evaluate `then`, otherwise evaluate `else`.
+
+### Number methods
+
+#### `<number>.lessThan[<number>]`
+
+`true` if target is numerically less than the parameter value, otherwise `false`.
+
 ### String methods
 
 #### `<string>.length`
@@ -336,19 +348,19 @@ The `<number>` of characters in the target.
 
 #### `<string>.concatenate[<string>]`
 
-The `<string>` consisting of the characters of target followed by the characters of parameter value.
+The `<string>` consisting of the characters of target followed by the characters of the parameter value.
 
-### Number methods
+### Array methods
 
-#### `<number>.lessThan[<number>]`
+#### `<array>.concatenate[<array>]`
 
-`true` if target is numerically less than the parameter value, otherwise `false`.
+The `<array>` consisting of the elements of target followed by the elements of the parameter value.
 
-### Boolean methods
+### Object methods
 
-#### `<boolean>.if { then:<crlf>, else: <crlf> }`
+#### `<object>.concatenate[<object>]`
 
-If target is `true`, evaluate `then`, otherwise evaluate `else`.
+The `<object>` consisting of the properties of target, either augmented or replaced by properties of the parameter value.
 
 ### CRLF methods
 
