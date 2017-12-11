@@ -302,7 +302,7 @@ Returns an object value computed as follows:
 
 ## JSON Value Objects
 
-Each abstract JSON value can be viewed as an object, with properties and methods. However, properties can only be JSON values, and methods may only return a JSON value (and not mutate any objects). Methods with no arguments are indistinguishable from properties. Arguments may be provided either as an _array_ of values, or a parameter _object_.
+Each abstract JSON value can be viewed as an object, with properties and methods. However, properties can only be JSON values, and methods may only return a JSON value (and not mutate any objects). Methods with no parameters are indistinguishable from properties. Parameters may be provided either as an _array_ of values, or a parameter _object_.
 
 ### Value methods
 
@@ -338,7 +338,7 @@ Some methods are common to all value types.
 
 #### `<value>.toJSON`
 
-The `<string>` JSON-encoded representation of the target.
+The JSON-encoded `<string>` representation of the target.
 
 #### `<value>.throw[<value>]`
 
