@@ -344,6 +344,10 @@ The `<string>` JSON-encoded representation of the target.
 
 Signal an exceptional condition with an error `value` (see `<crlf>.try`).
 
+#### `<value>.ensure[<boolean>]`
+
+If the parameter value is `true`, return the target, otherwise throw an exception.
+
 ### Boolean methods
 
 #### `<boolean>.not`
