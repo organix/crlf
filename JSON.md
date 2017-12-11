@@ -386,17 +386,37 @@ The `<number>` of characters in the target.
 
 The `<string>` consisting of the characters of target followed by the characters of the parameter value.
 
+#### `<string>.extract[<number>, <number>]`
+
+The `<string>` consisting of the characters of target from the first parameter value to the second parameter value as a 0-based half-open interval.
+
 ### Array methods
+
+#### `<array>.length`
+
+The `<number>` of elements in the target.
 
 #### `<array>.concatenate[<array>]`
 
 The `<array>` consisting of the elements of target followed by the elements of the parameter value.
 
+#### `<array>.extract[<number>, <number>]`
+
+The `<array>` consisting of the elements of target from the first parameter value to the second parameter value as a 0-based half-open interval.
+
 ### Object methods
+
+#### `<object>.hasProperty[<string>]`
+
+`true` if the target has a property whose name matches the parameter value, otherwise `false`.
 
 #### `<object>.concatenate[<object>]`
 
 The `<object>` consisting of the properties of target, either augmented or replaced by properties of the parameter value.
+
+#### `<object>.extract[<string>, ...]`
+
+The `<object>` consisting of the properties of target named by the parameter value(s).
 
 ### CRLF methods
 
