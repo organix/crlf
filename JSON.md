@@ -320,6 +320,10 @@ Some methods are common to all value types.
 
 The `<string>` JSON-encoded representation of the target.
 
+#### `<value>.throw[<value>]`
+
+Signal an exceptional condition with an error `value` (see `<crlf>.try`).
+
 ### String methods
 
 #### `<string>.length`
@@ -339,3 +343,19 @@ The `<string>` consisting of the characters of target followed by the characters
 #### `<number>.lessThan[<number>]`
 
 `true` if target is numerically less than the parameter value, otherwise `false`.
+
+### Boolean methods
+
+#### `<boolean>.if { then:<crlf>, else: <crlf> }`
+
+If target is `true`, evaluate `then`, otherwise evaluate `else`.
+
+### CRLF methods
+
+#### `<crlf>.value`
+
+Evaluate the target (according to `lang`) to produce a value.
+
+#### `<crlf>.try { catch:<crlf>, default:<value> }`
+
+Evaluate the target (according to `lang`) to produce a value. If an exception is thrown, evaluate `catch` or return `default` value.
