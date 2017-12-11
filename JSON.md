@@ -182,7 +182,7 @@ The JSON standards describe a function from strings to JSON values and vice-vers
 
 ### `equal`
 
-Input: `{ first: <value>, second: <value> }`
+Input: `{ "first": <value>, "second": <value> }`
 
 Output: `<boolean>`
 
@@ -190,7 +190,7 @@ Returns `true` if the `first` value is equal (as defined above) to the `second` 
 
 ### `lessThan`
 
-Input: `{ first: <number>, second: <number> }`
+Input: `{ "first": <number>, "second": <number> }`
 
 Output: `<boolean>`
 
@@ -200,9 +200,9 @@ Returns `true` if the `first` number is numerically less than the `second` numbe
 
 Input: `<string>`
 
-Success: `{ ok: true, value: <value> }`
+Success: `{ "ok": true, "value": <value> }`
 
-Failure: `{ ok: false, error: <value> }`
+Failure: `{ "ok": false, "error": <value> }`
 
 Attempts to parse the input string as a valid JSON-encoding of an abstract value.
 
@@ -264,7 +264,7 @@ Returns `true` if the input value is an object. Otherwise returns `false`.
 
 ### `concatenate` (string)
 
-Input: `{ first: <string>, second: <string> }`
+Input: `{ "first": <string>, "second": <string> }`
 
 Output: `<string>`
 
@@ -272,7 +272,7 @@ Returns a string consisting of the characters of `first` followed by the charact
 
 ### `concatenate` (array)
 
-Input: `{ first: <array>, second: <array> }`
+Input: `{ "first": <array>, "second": <array> }`
 
 Output: `<array>`
 
@@ -280,7 +280,7 @@ Returns an array consisting of the elements of `first` followed by the elements 
 
 ### `concatenate` (object)
 
-Input: `{ first: <object>, second: <object> }`
+Input: `{ "first": <object>, "second": <object> }`
 
 Output: `<object>`
 
