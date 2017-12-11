@@ -378,6 +378,10 @@ The `<number>` that is the mathematical sum of the target and the parameter valu
 
 The `<number>` of characters in the target.
 
+#### `<string>.value[<number>]`
+
+The character `<number>` at the parameter value 0-based index in the target.
+
 #### `<string>.parseJSON`
 
 `{ "ok": true, "value": <value> }` on success, otherwise `{ "ok": false, "error": <value> }`.
@@ -396,6 +400,10 @@ The `<string>` consisting of the characters of target from the first parameter v
 
 The `<number>` of elements in the target.
 
+#### `<array>.value[<number>]`
+
+The element `<value>` at the parameter value 0-based index in the target.
+
 #### `<array>.concatenate[<array>]`
 
 The `<array>` consisting of the elements of target followed by the elements of the parameter value.
@@ -410,6 +418,10 @@ The `<array>` consisting of the elements of target from the first parameter valu
 
 `true` if the target has a property whose name matches the parameter value, otherwise `false`.
 
+#### `<object>.value[<string>]`
+
+The `<value>` associated with the parameter value name in the target.
+
 #### `<object>.concatenate[<object>]`
 
 The `<object>` consisting of the properties of target, either augmented or replaced by properties of the parameter value.
@@ -417,6 +429,10 @@ The `<object>` consisting of the properties of target, either augmented or repla
 #### `<object>.extract[<string>, ...]`
 
 The `<object>` consisting of the properties of target named by the parameter value(s).
+
+#### `<object>.names`
+
+The `<array>` of property names defined by the target.
 
 ### CRLF methods
 
