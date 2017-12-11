@@ -316,6 +316,26 @@ Some methods are common to all value types.
 
 `true` if the target is `null`, otherwise `false`.
 
+#### `<value>.isBoolean`
+
+`true` if the target is `true` or `false`, otherwise `false`.
+
+#### `<value>.isNumber`
+
+`true` if the target is a JSON `<number>` value, otherwise `false`.
+
+#### `<value>.isString`
+
+`true` if the target is a JSON `<string>` value, otherwise `false`.
+
+#### `<value>.isArray`
+
+`true` if the target is a JSON `<array>` value, otherwise `false`.
+
+#### `<value>.isObject`
+
+`true` if the target is a JSON `<object>` value, otherwise `false`.
+
 #### `<value>.toJSON`
 
 The `<string>` JSON-encoded representation of the target.
@@ -326,6 +346,18 @@ Signal an exceptional condition with an error `value` (see `<crlf>.try`).
 
 ### Boolean methods
 
+#### `<boolean>.not`
+
+If target is `true`, return `false`, otherwise `true`.
+
+#### `<boolean>.and[<boolean>]`
+
+If target is `false`, return `false`, otherwise return the parameter value.
+
+#### `<boolean>.or[<boolean>]`
+
+If target is `true`, return `true`, otherwise return the parameter value.
+
 #### `<boolean>.if { then:<crlf>, else: <crlf> }`
 
 If target is `true`, evaluate `then`, otherwise evaluate `else`.
@@ -335,6 +367,10 @@ If target is `true`, evaluate `then`, otherwise evaluate `else`.
 #### `<number>.lessThan[<number>]`
 
 `true` if target is numerically less than the parameter value, otherwise `false`.
+
+#### `<number>.plus[<number>]`
+
+The `<number>` that is the mathematical sum of the target and the parameter value.
 
 ### String methods
 
