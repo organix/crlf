@@ -296,7 +296,7 @@ Returns an object value computed as follows:
 
 1. Begin with a _result_ object value equal to `first`
 2. For each _name_ in the `second` object:
-    1. If the same _name_ exists in `first`, replace the associated _value_ with the _value_ from _second_
+    1. If the same _name_ exists in the _result_, replace the associated _value_ with the _value_ from _second_
     2. Otherwise, add the _name_ and associated _value_ from _second_ to the _result_
 3. Return the final _result_ object value
 
