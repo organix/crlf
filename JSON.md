@@ -200,9 +200,11 @@ Returns `true` if the `first` number is numerically less than the `second` numbe
 
 Input: `<string>`
 
-Output: `<value>`
+Success: `{ ok: true, value: <value> }`
 
-Returns the JSON value that is represented by the input string. **[FIXME: how do we handle parse failure?]**
+Failure: `{ ok: false, error: <value> }`
+
+Attempts to parse the input string as a valid JSON-encoding of an abstract value.
 
 ### `JSON->string`
 
