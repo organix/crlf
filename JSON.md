@@ -38,7 +38,7 @@ A JSON value can be an _object_, _array_, _number_, _string_, `true`, `false`, o
 }
 ```
 
-From a pattern-matching perspective, we take the set of all JSON values to be the alphabet of Terminal symbols.
+From a pattern-matching perspective, we take the set of all JSON values to be the alphabet of Terminal symbols. Also, each value belongs to exactly one of the six base types.
 
 ### `null` value
 
@@ -175,3 +175,118 @@ An abstract _object_ value is an unordered collection of zero or more name/value
     }
 }
 ```
+
+## JSON Functions
+
+The JSON standards describe a function from strings to JSON values and vice-versa. We would like to describe additional useful abstract functions which operate on JSON data values. All of these are "pure" functions. They never mutate any data, they only create new values. One such function has already been described within each datatype above, the _equal_ predicate.
+
+### `equal`
+
+Input: `{ first: <value>, second: <value> }`
+
+Output: `<boolean>`
+
+Returns `true` if the `first` value is equal (as defined above) to the `second` value. Otherwise returns `false`.
+
+### `lessThan`
+
+Input: `{ first: <number>, second: <number> }`
+
+Output: `<boolean>`
+
+Returns `true` if the `first` number is numerically less than the `second` number. Otherwise returns `false`.
+
+### `string->JSON`
+
+Input: `<string>`
+
+Output: `<value>`
+
+Returns the JSON value that is represented by the input string. **[FIXME: how do we handle parse failure?]**
+
+### `JSON->string`
+
+Input: `<value>`
+
+Output: `<string>`
+
+Returns the JSON-encoded string representing the input value.
+
+### `isNull`
+
+Input: `<value>`
+
+Output: `<boolean>`
+
+Returns `true` if the input value is `null`. Otherwise returns `false`.
+
+### `isBoolean`
+
+Input: `<value>`
+
+Output: `<boolean>`
+
+Returns `true` if the input value is one of the Boolean values, `true` or `false`. Otherwise returns `false`.
+
+### `isNumber`
+
+Input: `<value>`
+
+Output: `<boolean>`
+
+Returns `true` if the input value is a number. Otherwise returns `false`.
+
+### `isString`
+
+Input: `<value>`
+
+Output: `<boolean>`
+
+Returns `true` if the input value is a string. Otherwise returns `false`.
+
+### `isArray`
+
+Input: `<value>`
+
+Output: `<boolean>`
+
+Returns `true` if the input value is an array. Otherwise returns `false`.
+
+### `isObject`
+
+Input: `<value>`
+
+Output: `<boolean>`
+
+Returns `true` if the input value is an object. Otherwise returns `false`.
+
+### `concatenate` (string)
+
+Input: `{ first: <string>, second: <string> }`
+
+Output: `<string>`
+
+Returns a string consisting of the characters of `first` followed by the characters of `second`.
+
+### `concatenate` (array)
+
+Input: `{ first: <array>, second: <array> }`
+
+Output: `<array>`
+
+Returns an array consisting of the elements of `first` followed by the elements of `second`.
+
+### `concatenate` (object)
+
+Input: `{ first: <object>, second: <object> }`
+
+Output: `<object>`
+
+Returns an object value computed as follows:
+
+1. Begin with a _result_ object value equal to `first`
+2. For each _name_ in the `second` object:
+    1. If the same _name_ exists in `first`, replace the associated _value_ with the _value_ from _second_
+    2. Otherwise, add the _name_ and associated _value_ from _second_ to the _result_
+3. Return the final _result_ object value
+
