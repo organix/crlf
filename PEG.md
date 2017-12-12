@@ -123,3 +123,15 @@ star(_expr_) | zero-or-more repetition | alternative(sequence(_expr_, star(_expr
 plus(_expr_) | one-or-more repetition | sequence(_expr_, star(_expr_))
 optional(_expr_) | zero-or-one occurance | alternative(_expr_, empty)
 suffix(_expr_) | positive look-ahead | negation(negation(_expr_))
+
+## Examples
+
+Illustrations of PEG grammars represented in CRLF format applied to real-world examples.
+
+### JSON
+
+[RFC 8259](http://ftp.ripe.net/rfc/authors/rfc8259.txt) and [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf) describe _The JavaScript Object Notation (JSON) Data Interchange Format_.
+
+### ABNF
+
+[RFC 5234](https://www.ietf.org/rfc/rfc5234.txt) describes _Augmented BNF for Syntax Specifications_.
