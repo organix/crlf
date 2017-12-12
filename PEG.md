@@ -210,6 +210,203 @@ quotation-mark = %x22      ; "
 unescaped = %x20-21 / %x23-5B / %x5D-10FFFF
 ```
 
+An equivalent grammar expressed in crlf/PEG is:
+
+```
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            "JSON-text": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "ws" },
+                    { "kind": "rule", "name": "value" },
+                    { "kind": "rule", "name": "ws" }
+                ]
+            },
+            "value": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "null" },
+                    { "kind": "rule", "name": "true" },
+                    { "kind": "rule", "name": "false" },
+                    { "kind": "rule", "name": "number" },
+                    { "kind": "rule", "name": "string" },
+                    { "kind": "rule", "name": "array" },
+                    { "kind": "rule", "name": "object" }
+                ]
+            },
+            "ws": {
+                "kind": "star",
+                "expr": {
+                    "kind": "alternative",
+                    "of": [
+                        { "kind": "terminal", "value": 32 },
+                        { "kind": "terminal", "value": 9 },
+                        { "kind": "terminal", "value": 13 },
+                        { "kind": "terminal", "value": 10 }
+                    ]
+                }
+            },
+            "null": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 110 },
+                    { "kind": "terminal", "value": 117 },
+                    { "kind": "terminal", "value": 108 },
+                    { "kind": "terminal", "value": 108 }
+                ]
+            },
+            "true": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 116 },
+                    { "kind": "terminal", "value": 114 },
+                    { "kind": "terminal", "value": 117 },
+                    { "kind": "terminal", "value": 101 }
+                ]
+            },
+            "false": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 102 },
+                    { "kind": "terminal", "value": 97 },
+                    { "kind": "terminal", "value": 108 },
+                    { "kind": "terminal", "value": 115 },
+                    { "kind": "terminal", "value": 101 }
+                ]
+            },
+# int = zero / ( digit1-9 *DIGIT )
+            "int": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "terminal", "value": 48 },
+                    "kind": "sequence",
+                    "of": [
+                        { "kind": "range", "from": 49, "to": 57 },
+                        {
+                            "kind": "star",
+                            "expr": { "kind": "range", "from": 48, "to": 57 }
+                        }
+                    ]
+                ]
+            },
+# ...
+            "array": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "begin-array" },
+                    {
+                        "kind": "optional",
+                        "expr": {
+                            "kind": "sequence",
+                            "of": [
+                                { "kind": "rule", "name": "value" },
+                                {
+                                    "kind": "star",
+                                    "expr": {
+                                        "kind": "sequence",
+                                        "of": [
+                                            { "kind": "rule", "name": "value-separator" },
+                                            { "kind": "rule", "name": "value" }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    { "kind": "rule", "name": "end-array" }
+                ]
+            },
+            "begin-array": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "ws" },
+                    { "kind": "terminal", "value": 91 },
+                    { "kind": "rule", "name": "ws" }
+                ]
+            },
+            "value-separator": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "ws" },
+                    { "kind": "terminal", "value": 44 },
+                    { "kind": "rule", "name": "ws" }
+                ]
+            },
+            "end-array": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "ws" },
+                    { "kind": "terminal", "value": 93 },
+                    { "kind": "rule", "name": "ws" }
+                ]
+            },
+            "object": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "begin-object" },
+                    {
+                        "kind": "optional",
+                        "expr": {
+                            "kind": "sequence",
+                            "of": [
+                                { "kind": "rule", "name": "member" },
+                                {
+                                    "kind": "star",
+                                    "expr": {
+                                        "kind": "sequence",
+                                        "of": [
+                                            { "kind": "rule", "name": "value-separator" },
+                                            { "kind": "rule", "name": "member" }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    { "kind": "rule", "name": "end-object" }
+                ]
+            },
+            "begin-object": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "ws" },
+                    { "kind": "terminal", "value": 123 },
+                    { "kind": "rule", "name": "ws" }
+                ]
+            },
+            "member": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "string" },
+                    { "kind": "rule", "name": "name-separator" },
+                    { "kind": "rule", "name": "value" }
+                ]
+            },
+            "name-separator": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "ws" },
+                    { "kind": "terminal", "value": 58 },
+                    { "kind": "rule", "name": "ws" }
+                ]
+            },
+            "end-object": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "ws" },
+                    { "kind": "terminal", "value": 125 },
+                    { "kind": "rule", "name": "ws" }
+                ]
+            }
+        }
+    }
+}
+```
+
 ### ABNF
 
 [RFC 5234](https://www.ietf.org/rfc/rfc5234.txt) describes _Augmented BNF for Syntax Specifications_. Within this standard a set of "Core" rules are defined, which are often assumed by other standards (such as JSON).
