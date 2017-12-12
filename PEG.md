@@ -123,6 +123,7 @@ star(_expr_) | zero-or-more repetition | alternative(sequence(_expr_, star(_expr
 plus(_expr_) | one-or-more repetition | sequence(_expr_, star(_expr_))
 optional(_expr_) | zero-or-one occurance | alternative(_expr_, empty)
 suffix(_expr_) | positive look-ahead | negation(negation(_expr_))
+range(_from_, _to_) | matches any single _value_, where _from_ &#x2266; _value_ &#x2266; _to_ | alternative(_from_, ..., _to_)
 
 ## Examples
 
