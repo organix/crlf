@@ -114,13 +114,9 @@ An abstract _string_ value is an ordered sequence of zero or more Unicode charac
             "String": {
                 "kind": "star",
                 "expr": {
-                    "kind": "alternative",
-                    "of": [
-                        { "kind": "terminal", "value": 0 },
-                        { "kind": "terminal", "value": 1 },
-                        ...
-                        { "kind": "terminal", "value": <maximum-Unicode-value> }
-                    ]
+                    "kind": "range",
+                    "from": 0,
+                    "to": <maximum-Unicode-value>
                 }
             },
             ...
