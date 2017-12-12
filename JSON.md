@@ -304,6 +304,18 @@ Returns an object value computed as follows:
 
 Each abstract JSON value can be viewed as an object, with properties and methods. However, properties can only be JSON values, and methods may only return a JSON value (and not mutate any objects). Methods with no parameters are indistinguishable from properties. Parameters may be provided either as an _array_ of values, or a parameter _object_.
 
+```javascript
+{
+    "lang": "JSON-VO",
+    "ast": {
+        "kind": "call",
+        "target": <value>,
+        "selector": <string>,
+        "parameters": <array/object>
+    }
+}
+```
+
 ### Value methods
 
 Some methods are common to all value types.
