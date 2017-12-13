@@ -766,3 +766,135 @@ prose-val      =  "<" *(%x20-3D / %x3F-7E) ">"
                     ; prose description, to be used as
                     ;  last resort
 ```
+
+An equivalent grammar expressed in crlf/PEG is:
+
+```JSON
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+# rulelist       =  1*( rule / (*c-wsp c-nl) )
+            "rulelist": {
+                "kind": "plus",
+                "expr": {
+                    "kind": "alternative",
+                    "of": [
+                        { "kind": "rule", "name": "rule" },
+                        {
+                            "kind": "sequence",
+                            "of": [
+                                {
+                                    "kind": "star",
+                                    "expr": { "kind": "rule", "name": "c-wsp" }
+                                },
+                                { "kind": "rule", "name": "c-nl" }
+                            ]
+                        }
+                    ]
+                }
+            },
+# rule           =  rulename defined-as elements c-nl
+            "rule": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "rulename" },
+                    { "kind": "rule", "name": "defined-as" },
+                    { "kind": "rule", "name": "elements" },
+                    { "kind": "rule", "name": "c-nl" }
+                ]
+            },
+# rulename       =  ALPHA *(ALPHA / DIGIT / "-")
+            "rule": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "ALPHA" },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                { "kind": "rule", "name": "ALPHA" },
+                                { "kind": "rule", "name": "DIGIT" },
+                                { "kind": "terminal", "value": 45 }
+                            ]
+                        }
+                    }
+                ]
+            },
+# defined-as     =  *c-wsp ("=" / "=/") *c-wsp
+# defined-as     =  *c-wsp "=" [ "/" ] *c-wsp
+            "defined-as": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    },
+                    { "kind": "terminal", "value": 61 },
+                    {
+                        "kind": "optional",
+                        "expr": { "kind": "terminal", "value": 47 }
+                    },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    }
+                ]
+            },
+# elements       =  alternation *c-wsp
+# c-wsp          =  WSP / (c-nl WSP)
+# c-nl           =  comment / CRLF
+# comment        =  ";" *(WSP / VCHAR) CRLF
+# alternation    =  concatenation *(*c-wsp "/" *c-wsp concatenation)
+# concatenation  =  repetition *(1*c-wsp repetition)
+# repetition     =  [repeat] element
+# repeat         =  1*DIGIT / (*DIGIT "*" *DIGIT)
+# element        =  rulename / group / option / char-val / num-val / prose-val
+# group          =  "(" *c-wsp alternation *c-wsp ")"
+# option         =  "[" *c-wsp alternation *c-wsp "]"
+# char-val       =  DQUOTE *(%x20-21 / %x23-7E) DQUOTE
+            "char-val": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "DQUOTE" },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                { "kind": "range", "from": 32, "to": 33 },
+                                { "kind": "range", "from": 35, "to": 126 }
+                            ]
+                        }
+                    },
+                    { "kind": "rule", "name": "DQUOTE" }
+                ]
+            },
+# num-val        =  "%" (bin-val / dec-val / hex-val)
+# bin-val        =  "b" 1*BIT [ 1*("." 1*BIT) / ("-" 1*BIT) ]
+# dec-val        =  "d" 1*DIGIT [ 1*("." 1*DIGIT) / ("-" 1*DIGIT) ]
+# hex-val        =  "x" 1*HEXDIG [ 1*("." 1*HEXDIG) / ("-" 1*HEXDIG) ]
+# prose-val      =  "<" *(%x20-3D / %x3F-7E) ">"
+            "prose-val": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 60 },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                { "kind": "range", "from": 32, "to": 61 },
+                                { "kind": "range", "from": 63, "to": 126 }
+                            ]
+                        }
+                    },
+                    { "kind": "terminal", "value": 62 }
+                ]
+            }
+        }
+    }
+}
+```
