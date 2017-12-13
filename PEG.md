@@ -304,14 +304,16 @@ An equivalent grammar expressed in crlf/PEG is:
                 "kind": "alternative",
                 "of": [
                     { "kind": "rule", "name": "zero" },
-                    "kind": "sequence",
-                    "of": [
-                        { "kind": "rule", "name": "digit1-9" },
-                        {
-                            "kind": "star",
-                            "expr": { "kind": "rule", "name": "DIGIT" }
-                        }
-                    ]
+                    {
+                        "kind": "sequence",
+                        "of": [
+                            { "kind": "rule", "name": "digit1-9" },
+                            {
+                                "kind": "star",
+                                "expr": { "kind": "rule", "name": "DIGIT" }
+                            }
+                        ]
+                    }
                 ]
             },
 # zero = %x30                ; 0
@@ -362,22 +364,6 @@ An equivalent grammar expressed in crlf/PEG is:
             },
 # plus = %x2B                ; +
             "minus": { "kind": "terminal", "value": 43 },
-# ...
-# int = zero / ( digit1-9 *DIGIT )
-            "int": {
-                "kind": "alternative",
-                "of": [
-                    { "kind": "terminal", "value": 48 },
-                    "kind": "sequence",
-                    "of": [
-                        { "kind": "range", "from": 49, "to": 57 },
-                        {
-                            "kind": "star",
-                            "expr": { "kind": "range", "from": 48, "to": 57 }
-                        }
-                    ]
-                ]
-            },
 # ...
             "string": {
                 "kind": "sequence",
