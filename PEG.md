@@ -474,7 +474,22 @@ An equivalent grammar expressed in crlf/PEG is:
     "ast": {
         "kind": "grammar",
         "rules": {
-# ...
+            "ALPHA": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "range", "from": 65, "to": 90 },
+                    { "kind": "range", "from": 97, "to": 122 }
+                ]
+            },
+            "BIT": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "terminal", "value": 48 },
+                    { "kind": "terminal", "value": 49 }
+                ]
+            },
+            "CHAR": { "kind": "range", "from": 1, "to": 127 },
+            "CR": { "kind": "terminal", "value": 13 },
             "CRLF": {
                 "kind": "sequence",
                 "of": [
@@ -482,7 +497,13 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "rule", "name": "LF" }
                 ]
             },
-# ...
+            "CTL": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "range", "from": 0, "to": 31 },
+                    { "kind": "terminal", "value": 127 }
+                ]
+            },
             "DIGIT": { "kind": "range", "from": 48, "to": 57 },
             "DQUOTE": { "kind": "terminal", "value": 34 },
             "HEXDIG": {
@@ -533,7 +554,8 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# ...
+            "HTAB": { "kind": "terminal", "value": 9 },
+            "LF": { "kind": "terminal", "value": 10 },
             "LWSP": {
                 "kind": "star",
                 "expr": {
@@ -550,7 +572,9 @@ An equivalent grammar expressed in crlf/PEG is:
                     ]
                 }
             },
-# ...
+            "OCTET": { "kind": "range", "from": 0, "to": 255 },
+            "SP": { "kind": "terminal", "value": 32 },
+            "VCHAR": { "kind": "range", "from": 33, "to": 126 },
             "WSP": {
                 "kind": "alternative",
                 "of": [
@@ -562,7 +586,6 @@ An equivalent grammar expressed in crlf/PEG is:
     }
 }
 ```
-
 
 The definition of ABNF syntax in ABNF (building on the Core rules) is:
 
