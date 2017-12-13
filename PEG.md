@@ -844,16 +844,182 @@ An equivalent grammar expressed in crlf/PEG is:
                 ]
             },
 # elements       =  alternation *c-wsp
+            "elements": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "alternation" },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    }
+                ]
+            },
 # c-wsp          =  WSP / (c-nl WSP)
+            "c-wsp": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "WSP" },
+                    {
+                        "kind": "sequence",
+                        "of": [
+                            { "kind": "rule", "name": "c-nl" },
+                            { "kind": "rule", "name": "WSP" }
+                        ]
+                    }
+                ]
+            },
 # c-nl           =  comment / CRLF
+            "c-nl": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "comment" },
+                    { "kind": "rule", "name": "CRLF" }
+                ]
+            },
 # comment        =  ";" *(WSP / VCHAR) CRLF
+            "comment": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 59 },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                { "kind": "rule", "name": "WSP" },
+                                { "kind": "rule", "name": "VCHAR" }
+                            ]
+                        }
+                    },
+                    { "kind": "rule", "name": "CRLF" }
+                ]
+            },
 # alternation    =  concatenation *(*c-wsp "/" *c-wsp concatenation)
+            "alternation": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "concatenation" },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "sequence",
+                            "of": [
+                                {
+                                    "kind": "star",
+                                    "expr": { "kind": "rule", "name": "c-wsp" }
+                                },
+                                { "kind": "terminal", "value": 59 },
+                                {
+                                    "kind": "star",
+                                    "expr": { "kind": "rule", "name": "c-wsp" }
+                                },
+                                { "kind": "rule", "name": "concatenation" }
+                            ]
+                        }
+                    }
+                ]
+            },
 # concatenation  =  repetition *(1*c-wsp repetition)
+            "concatenation": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "repetition" },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "sequence",
+                            "of": [
+                                {
+                                    "kind": "plus",
+                                    "expr": { "kind": "rule", "name": "c-wsp" }
+                                },
+                                { "kind": "rule", "name": "repetition" }
+                            ]
+                        }
+                    }
+                ]
+            },
 # repetition     =  [repeat] element
+            "repetition": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "optional",
+                        "expr": { "kind": "rule", "name": "repeat" }
+                    },
+                    { "kind": "rule", "name": "element" }
+                ]
+            },
 # repeat         =  1*DIGIT / (*DIGIT "*" *DIGIT)
+            "repeat": {
+                "kind": "alternative",
+                "of": [
+                    {
+                        "kind": "plus",
+                        "expr": { "kind": "rule", "name": "DIGIT" }
+                    },
+                    {
+                        "kind": "sequence",
+                        "of": [
+                            {
+                                "kind": "star",
+                                "expr": { "kind": "rule", "name": "DIGIT" }
+                            },
+                            { "kind": "terminal", "value": 42 },
+                            {
+                                "kind": "star",
+                                "expr": { "kind": "rule", "name": "DIGIT" }
+                            }
+                        ]
+                    }
+                ]
+            },
 # element        =  rulename / group / option / char-val / num-val / prose-val
+            "element": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "rulename" },
+                    { "kind": "rule", "name": "group" },
+                    { "kind": "rule", "name": "option" },
+                    { "kind": "rule", "name": "char-val" },
+                    { "kind": "rule", "name": "num-val" },
+                    { "kind": "rule", "name": "prose-val" }
+                ]
+            },
 # group          =  "(" *c-wsp alternation *c-wsp ")"
+            "group": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 40 },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    },
+                    { "kind": "rule", "name": "alternation" },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    },
+                    { "kind": "terminal", "value": 41 }
+                ]
+            },
 # option         =  "[" *c-wsp alternation *c-wsp "]"
+            "option": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 91 },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    },
+                    { "kind": "rule", "name": "alternation" },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    },
+                    { "kind": "terminal", "value": 93 }
+                ]
+            },
 # char-val       =  DQUOTE *(%x20-21 / %x23-7E) DQUOTE
             "char-val": {
                 "kind": "sequence",
@@ -873,9 +1039,164 @@ An equivalent grammar expressed in crlf/PEG is:
                 ]
             },
 # num-val        =  "%" (bin-val / dec-val / hex-val)
+            "num-val": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 37 },
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "rule", "name": "bin-val" },
+                            { "kind": "rule", "name": "dec-val" },
+                            { "kind": "rule", "name": "hex-val" }
+                        ]
+                    }
+                ]
+            },
 # bin-val        =  "b" 1*BIT [ 1*("." 1*BIT) / ("-" 1*BIT) ]
+            "bin-val": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 98 },
+                            { "kind": "terminal", "value": 66 }
+                        ]
+                    },
+                    {
+                        "kind": "plus",
+                        "expr": { "kind": "rule", "name": "BIT" }
+                    },
+                    {
+                        "kind": "optional",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                {
+                                    "kind": "plus",
+                                    "expr": {
+                                        "kind": "sequence",
+                                        "of": [
+                                            { "kind": "terminal", "value": 46 },
+                                            {
+                                                "kind": "plus",
+                                                "expr": { "kind": "rule", "name": "BIT" }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "kind": "sequence",
+                                    "of": [
+                                        { "kind": "terminal", "value": 45 },
+                                        {
+                                            "kind": "plus",
+                                            "expr": { "kind": "rule", "name": "BIT" }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
 # dec-val        =  "d" 1*DIGIT [ 1*("." 1*DIGIT) / ("-" 1*DIGIT) ]
+            "dec-val": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 100 },
+                            { "kind": "terminal", "value": 68 }
+                        ]
+                    },
+                    {
+                        "kind": "plus",
+                        "expr": { "kind": "rule", "name": "DIGIT" }
+                    },
+                    {
+                        "kind": "optional",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                {
+                                    "kind": "plus",
+                                    "expr": {
+                                        "kind": "sequence",
+                                        "of": [
+                                            { "kind": "terminal", "value": 46 },
+                                            {
+                                                "kind": "plus",
+                                                "expr": { "kind": "rule", "name": "DIGIT" }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "kind": "sequence",
+                                    "of": [
+                                        { "kind": "terminal", "value": 45 },
+                                        {
+                                            "kind": "plus",
+                                            "expr": { "kind": "rule", "name": "DIGIT" }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
 # hex-val        =  "x" 1*HEXDIG [ 1*("." 1*HEXDIG) / ("-" 1*HEXDIG) ]
+            "hex-val": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 120 },
+                            { "kind": "terminal", "value": 88 }
+                        ]
+                    },
+                    {
+                        "kind": "plus",
+                        "expr": { "kind": "rule", "name": "HEXDIG" }
+                    },
+                    {
+                        "kind": "optional",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                {
+                                    "kind": "plus",
+                                    "expr": {
+                                        "kind": "sequence",
+                                        "of": [
+                                            { "kind": "terminal", "value": 46 },
+                                            {
+                                                "kind": "plus",
+                                                "expr": { "kind": "rule", "name": "HEXDIG" }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "kind": "sequence",
+                                    "of": [
+                                        { "kind": "terminal", "value": 45 },
+                                        {
+                                            "kind": "plus",
+                                            "expr": { "kind": "rule", "name": "HEXDIG" }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
 # prose-val      =  "<" *(%x20-3D / %x3F-7E) ">"
             "prose-val": {
                 "kind": "sequence",
