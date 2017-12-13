@@ -294,6 +294,63 @@ An equivalent grammar expressed in crlf/PEG is:
                 ]
             },
 # ...
+# ...
+            "string": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "quotation-mark" },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "char" }
+                    },
+                    { "kind": "rule", "name": "quotation-mark" }
+                ]
+            },
+            "char": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "unescaped" },
+                    {
+                        "kind": "sequence",
+                        "of": [
+                            { "kind": "rule", "name": "escape" },
+                            {
+                                "kind": "alternative",
+                                "of": [
+                                    { "kind": "terminal", "value": 34 },
+                                    { "kind": "terminal", "value": 92 },
+                                    { "kind": "terminal", "value": 47 },
+                                    { "kind": "terminal", "value": 98 },
+                                    { "kind": "terminal", "value": 102 },
+                                    { "kind": "terminal", "value": 110 },
+                                    { "kind": "terminal", "value": 114 },
+                                    { "kind": "terminal", "value": 116 },
+                                    {
+                                        "kind": "sequence",
+                                        "of": [
+                                            { "kind": "terminal", "value": 117 },
+                                            { "kind": "rule", "name": "HEXDIG" },
+                                            { "kind": "rule", "name": "HEXDIG" },
+                                            { "kind": "rule", "name": "HEXDIG" },
+                                            { "kind": "rule", "name": "HEXDIG" }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "escape": { "kind": "terminal", "value": 92 },
+            "quotation-mark": { "kind": "terminal", "value": 34 },
+            "unescaped": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "range", "from": 32, "to": 33 },
+                    { "kind": "range", "from": 35, "to": 91 },
+                    { "kind": "range", "from": 93, "to": 1114111 }
+                ]
+            },
             "array": {
                 "kind": "sequence",
                 "of": [
