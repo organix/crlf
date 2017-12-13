@@ -212,7 +212,7 @@ unescaped = %x20-21 / %x23-5B / %x5D-10FFFF
 
 An equivalent grammar expressed in crlf/PEG is:
 
-```
+```JSON
 {
     "lang": "PEG",
     "ast": {
@@ -465,6 +465,104 @@ VCHAR          =  %x21-7E
 WSP            =  SP / HTAB
                     ; white space
 ```
+
+An equivalent grammar expressed in crlf/PEG is:
+
+```JSON
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+# ...
+            "CRLF": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "CR" },
+                    { "kind": "rule", "name": "LF" }
+                ]
+            },
+# ...
+            "DIGIT": { "kind": "range", "from": 48, "to": 57 },
+            "DQUOTE": { "kind": "terminal", "value": 34 },
+            "HEXDIG": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "DIGIT" },
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 65 },
+                            { "kind": "terminal", "value": 97 }
+                        ]
+                    },
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 66 },
+                            { "kind": "terminal", "value": 98 }
+                        ]
+                    },
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 67 },
+                            { "kind": "terminal", "value": 99 }
+                        ]
+                    },
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 68 },
+                            { "kind": "terminal", "value": 100 }
+                        ]
+                    },
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 69 },
+                            { "kind": "terminal", "value": 101 }
+                        ]
+                    },
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 70 },
+                            { "kind": "terminal", "value": 102 }
+                        ]
+                    }
+                ]
+            },
+# ...
+            "LWSP": {
+                "kind": "star",
+                "expr": {
+                    "kind": "alternative",
+                    "of": [
+                        { "kind": "rule", "name": "WSP" },
+                        {
+                            "kind": "sequence",
+                            "of": [
+                                { "kind": "rule", "name": "CRLF" },
+                                { "kind": "rule", "name": "WSP" }
+                            ]
+                        }
+                    ]
+                }
+            },
+# ...
+            "WSP": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "SP" },
+                    { "kind": "rule", "name": "HTAB" }
+                ]
+            }
+        }
+    }
+}
+```
+
 
 The definition of ABNF syntax in ABNF (building on the Core rules) is:
 
