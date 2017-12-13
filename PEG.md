@@ -775,7 +775,6 @@ An equivalent grammar expressed in crlf/PEG is:
     "ast": {
         "kind": "grammar",
         "rules": {
-# rulelist       =  1*( rule / (*c-wsp c-nl) )
             "rulelist": {
                 "kind": "plus",
                 "expr": {
@@ -795,7 +794,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     ]
                 }
             },
-# rule           =  rulename defined-as elements c-nl
             "rule": {
                 "kind": "sequence",
                 "of": [
@@ -805,8 +803,7 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "rule", "name": "c-nl" }
                 ]
             },
-# rulename       =  ALPHA *(ALPHA / DIGIT / "-")
-            "rule": {
+            "rulename": {
                 "kind": "sequence",
                 "of": [
                     { "kind": "rule", "name": "ALPHA" },
@@ -823,8 +820,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# defined-as     =  *c-wsp ("=" / "=/") *c-wsp
-# defined-as     =  *c-wsp "=" [ "/" ] *c-wsp
             "defined-as": {
                 "kind": "sequence",
                 "of": [
@@ -843,7 +838,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# elements       =  alternation *c-wsp
             "elements": {
                 "kind": "sequence",
                 "of": [
@@ -854,7 +848,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# c-wsp          =  WSP / (c-nl WSP)
             "c-wsp": {
                 "kind": "alternative",
                 "of": [
@@ -868,7 +861,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# c-nl           =  comment / CRLF
             "c-nl": {
                 "kind": "alternative",
                 "of": [
@@ -876,7 +868,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "rule", "name": "CRLF" }
                 ]
             },
-# comment        =  ";" *(WSP / VCHAR) CRLF
             "comment": {
                 "kind": "sequence",
                 "of": [
@@ -894,7 +885,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "rule", "name": "CRLF" }
                 ]
             },
-# alternation    =  concatenation *(*c-wsp "/" *c-wsp concatenation)
             "alternation": {
                 "kind": "sequence",
                 "of": [
@@ -919,7 +909,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# concatenation  =  repetition *(1*c-wsp repetition)
             "concatenation": {
                 "kind": "sequence",
                 "of": [
@@ -939,7 +928,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# repetition     =  [repeat] element
             "repetition": {
                 "kind": "sequence",
                 "of": [
@@ -950,7 +938,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "rule", "name": "element" }
                 ]
             },
-# repeat         =  1*DIGIT / (*DIGIT "*" *DIGIT)
             "repeat": {
                 "kind": "alternative",
                 "of": [
@@ -974,7 +961,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# element        =  rulename / group / option / char-val / num-val / prose-val
             "element": {
                 "kind": "alternative",
                 "of": [
@@ -986,7 +972,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "rule", "name": "prose-val" }
                 ]
             },
-# group          =  "(" *c-wsp alternation *c-wsp ")"
             "group": {
                 "kind": "sequence",
                 "of": [
@@ -1003,7 +988,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "terminal", "value": 41 }
                 ]
             },
-# option         =  "[" *c-wsp alternation *c-wsp "]"
             "option": {
                 "kind": "sequence",
                 "of": [
@@ -1020,7 +1004,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "terminal", "value": 93 }
                 ]
             },
-# char-val       =  DQUOTE *(%x20-21 / %x23-7E) DQUOTE
             "char-val": {
                 "kind": "sequence",
                 "of": [
@@ -1038,7 +1021,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "rule", "name": "DQUOTE" }
                 ]
             },
-# num-val        =  "%" (bin-val / dec-val / hex-val)
             "num-val": {
                 "kind": "sequence",
                 "of": [
@@ -1053,7 +1035,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# bin-val        =  "b" 1*BIT [ 1*("." 1*BIT) / ("-" 1*BIT) ]
             "bin-val": {
                 "kind": "sequence",
                 "of": [
@@ -1101,7 +1082,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# dec-val        =  "d" 1*DIGIT [ 1*("." 1*DIGIT) / ("-" 1*DIGIT) ]
             "dec-val": {
                 "kind": "sequence",
                 "of": [
@@ -1149,7 +1129,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# hex-val        =  "x" 1*HEXDIG [ 1*("." 1*HEXDIG) / ("-" 1*HEXDIG) ]
             "hex-val": {
                 "kind": "sequence",
                 "of": [
@@ -1197,7 +1176,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# prose-val      =  "<" *(%x20-3D / %x3F-7E) ">"
             "prose-val": {
                 "kind": "sequence",
                 "of": [
