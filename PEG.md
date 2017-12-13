@@ -278,7 +278,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "terminal", "value": 101 }
                 ]
             },
-# number = [ minus ] int [ frac ] [ exp ]
             "number": {
                 "kind": "sequence",
                 "of": [
@@ -297,9 +296,7 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# minus = %x2D               ; -
             "minus": { "kind": "terminal", "value": 45 },
-# int = zero / ( digit1-9 *DIGIT )
             "int": {
                 "kind": "alternative",
                 "of": [
@@ -316,11 +313,8 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# zero = %x30                ; 0
             "zero": { "kind": "terminal", "value": 48 },
-# digit1-9 = %x31-39         ; 1-9
             "digit1-9": { "kind": "range", "from": 49, "to": 57 },
-# frac = decimal-point 1*DIGIT
             "frac": {
                 "kind": "sequence",
                 "of": [
@@ -331,9 +325,7 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# decimal-point = %x2E       ; .
             "decimal-point": { "kind": "terminal", "value": 46 },
-# exp = e [ minus / plus ] 1*DIGIT
             "exp": {
                 "kind": "sequence",
                 "of": [
@@ -354,7 +346,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     }
                 ]
             },
-# e = %x65 / %x45            ; e E
             "e": {
                 "kind": "alternative",
                 "of": [
@@ -362,9 +353,7 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "terminal", "value": 69 }
                 ]
             },
-# plus = %x2B                ; +
-            "minus": { "kind": "terminal", "value": 43 },
-# ...
+            "plus": { "kind": "terminal", "value": 43 },
             "string": {
                 "kind": "sequence",
                 "of": [
