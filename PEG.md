@@ -278,6 +278,91 @@ An equivalent grammar expressed in crlf/PEG is:
                     { "kind": "terminal", "value": 101 }
                 ]
             },
+# number = [ minus ] int [ frac ] [ exp ]
+            "number": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "optional",
+                        "expr": { "kind": "rule", "name": "minus" }
+                    },
+                    { "kind": "rule", "name": "int" },
+                    {
+                        "kind": "optional",
+                        "expr": { "kind": "rule", "name": "frac" }
+                    },
+                    {
+                        "kind": "optional",
+                        "expr": { "kind": "rule", "name": "exp" }
+                    }
+                ]
+            },
+# minus = %x2D               ; -
+            "minus": { "kind": "terminal", "value": 45 },
+# int = zero / ( digit1-9 *DIGIT )
+            "int": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "zero" },
+                    "kind": "sequence",
+                    "of": [
+                        { "kind": "rule", "name": "digit1-9" },
+                        {
+                            "kind": "star",
+                            "expr": { "kind": "rule", "name": "DIGIT" }
+                        }
+                    ]
+                ]
+            },
+# zero = %x30                ; 0
+            "zero": { "kind": "terminal", "value": 48 },
+# digit1-9 = %x31-39         ; 1-9
+            "digit1-9": { "kind": "range", "from": 49, "to": 57 },
+# frac = decimal-point 1*DIGIT
+            "frac": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "decimal-point" },
+                    {
+                        "kind": "plus",
+                        "expr": { "kind": "rule", "name": "DIGIT" }
+                    }
+                ]
+            },
+# decimal-point = %x2E       ; .
+            "decimal-point": { "kind": "terminal", "value": 46 },
+# exp = e [ minus / plus ] 1*DIGIT
+            "exp": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "e" },
+                    {
+                        "kind": "optional",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                { "kind": "rule", "name": "minus" },
+                                { "kind": "rule", "name": "plus" }
+                            ]
+                        }
+                    },
+                    {
+                        "kind": "plus",
+                        "expr": { "kind": "rule", "name": "DIGIT" }
+                    }
+                ]
+            },
+# e = %x65 / %x45            ; e E
+            "e": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "terminal", "value": 101 },
+                    { "kind": "terminal", "value": 69 }
+                ]
+            },
+# plus = %x2B                ; +
+            "minus": { "kind": "terminal", "value": 43 },
+# ...
 # int = zero / ( digit1-9 *DIGIT )
             "int": {
                 "kind": "alternative",
@@ -293,7 +378,6 @@ An equivalent grammar expressed in crlf/PEG is:
                     ]
                 ]
             },
-# ...
 # ...
             "string": {
                 "kind": "sequence",
