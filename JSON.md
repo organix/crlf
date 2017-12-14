@@ -300,14 +300,65 @@ Returns an object value computed as follows:
 
 Each abstract JSON value can be viewed as an object, with properties and methods. However, properties can only be JSON values, and methods may only return a JSON value (and not mutate any objects). Methods with no parameters are indistinguishable from properties. Parameters may be provided either as an _array_ of values, or a parameter _object_.
 
+### JSON-VO
+
+_JSON-VO_ is an encoding for expressions involving JSON value-objects.
+
+#### value-vo
+
+Value-objects are wrappers for native JSON values. These are constant expressions.
+
 ```javascript
 {
     "lang": "JSON-VO",
     "ast": {
-        "kind": "call",
-        "target": <value>,
+        "kind": "value-vo",
+        "data": <value>
+    }
+}
+```
+
+#### call-vo
+
+Value-object method calls invoke a selected behavior and either return a result value or throw an exception.
+
+```javascript
+{
+    "lang": "JSON-VO",
+    "ast": {
+        "kind": "call-vo",
+        "target": <value-vo>,
         "selector": <string>,
         "parameters": <array/object>
+    }
+}
+```
+
+#### dict-vo
+
+A dictionary provides a mapping from <string> _names_ to value-objects.
+
+```javascript
+{
+    "lang": "JSON-VO",
+    "ast": {
+        "kind": "dict-vo",
+        "dict": <object>,
+        "parent": <dict-vo>
+    }
+}
+```
+
+#### var-vo
+
+A variable expression is a named reference to a value-object.
+
+```javascript
+{
+    "lang": "JSON-VO",
+    "ast": {
+        "kind": "var-vo",
+        "name": <string>
     }
 }
 ```
