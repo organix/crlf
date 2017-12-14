@@ -313,6 +313,7 @@ Value-objects are wrappers for native JSON values. These are constant expression
     "lang": "JSON-VO",
     "ast": {
         "kind": "value-vo",
+        "methods": <dict-vo>,
         "data": <value>
     }
 }
@@ -336,7 +337,7 @@ Value-object method calls invoke a selected behavior and either return a result 
 
 #### dict-vo
 
-A dictionary provides a mapping from <string> _names_ to value-objects.
+A dictionary provides a mapping from &lt;string&gt; _names_ to value-objects.
 
 ```javascript
 {
