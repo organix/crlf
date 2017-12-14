@@ -313,7 +313,7 @@ Value-objects are wrappers for native JSON values. These are constant expression
     "lang": "JSON-VO",
     "ast": {
         "kind": "value-vo",
-        "methods": <dict-vo>,
+        "methods": <dictionary-vo>,
         "data": <value>
     }
 }
@@ -335,7 +335,7 @@ Value-object method calls invoke a selected behavior and either return a result 
 }
 ```
 
-#### dict-vo
+#### dictionary-vo
 
 A dictionary provides a mapping from &lt;string&gt; _names_ to value-objects.
 
@@ -343,14 +343,14 @@ A dictionary provides a mapping from &lt;string&gt; _names_ to value-objects.
 {
     "lang": "JSON-VO",
     "ast": {
-        "kind": "dict-vo",
-        "dict": <object>,
-        "parent": <dict-vo>
+        "kind": "dictionary-vo",
+        "data": <array/object>,
+        "parent": <dictionary-vo>
     }
 }
 ```
 
-#### var-vo
+#### variable-vo
 
 A variable expression is a named reference to a value-object.
 
@@ -358,8 +358,23 @@ A variable expression is a named reference to a value-object.
 {
     "lang": "JSON-VO",
     "ast": {
-        "kind": "var-vo",
+        "kind": "variable-vo",
         "name": <string>
+    }
+}
+```
+
+#### function-vo
+
+Function expressions evaluate _expression_ in the context of _environment_ and either return a result value or throw an exception.
+
+```javascript
+{
+    "lang": "JSON-VO",
+    "ast": {
+        "kind": "function-vo",
+        "expression": <JSON-VO>,
+        "environment": <dictionary-vo>
     }
 }
 ```
