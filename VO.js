@@ -112,6 +112,17 @@ VO.Boolean = (function (self) {
 
 VO.Number = (function (self) {
     self = self || new VO.Value();
+    self.equals = function equals(other) {
+        if (this === other) {
+            return VO.true;
+        }
+        if ((this.isNumber() === VO.true) && (other.isNumber() === VO.true)) {
+            if (this._value === other._value) {
+                return VO.true;
+            }
+        }
+        return VO.false;
+    };
     self.isNumber = function isNumber() {
         return VO.true;
     };
