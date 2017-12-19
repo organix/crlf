@@ -62,9 +62,13 @@ VO.Value = (function (self) {
     self.isObject = function isObject() {
         return VO.false;
     };
+    self.throw = function error(value) {
+        throw new Error(value);
+    };
+    VO.throw = self.throw;  // allow top-level exceptions
     self.ensure = function ensure(predicate) {
         if (predicate !== VO.true) {
-            throw new Error("VO.ensure FAILED!");
+            VO.throw(predicate);
         }
     };
     VO.ensure = self.ensure;  // allow top-level assertions
