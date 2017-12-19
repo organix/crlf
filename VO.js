@@ -95,3 +95,15 @@ VO.Boolean = (function (self) {
 
 VO.true = new VO.Boolean(true);
 VO.false = new VO.Boolean(false);
+
+VO.Number = (function (self) {
+    self = self || new VO.Value();
+    self.isNumber = function isNumber() {
+        return VO.true;
+    };
+    var constructor = function Number(value) {
+        this._value = value;
+    };
+    constructor.prototype = self;
+    return constructor;
+})();
