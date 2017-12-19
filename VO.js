@@ -100,6 +100,22 @@ VO.Boolean = (function (self) {
         }
         return VO.false;
     };
+    self.and = function and(boolean) {
+        this.ensure(this.isBoolean());
+        if (this === VO.false) {
+            return VO.false;
+        }
+        this.ensure(boolean.isBoolean());
+        return boolean;
+    };
+    self.or = function or(boolean) {
+        this.ensure(this.isBoolean());
+        if (this === VO.true) {
+            return VO.true;
+        }
+        this.ensure(boolean.isBoolean());
+        return boolean;
+    };
     var constructor = function Boolean(value) {
         this._value = value;
     };
