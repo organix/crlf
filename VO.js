@@ -63,7 +63,7 @@ VO.Value = (function (self) {
         return VO.false;
     };
     self.ensure = function ensure(predicate) {
-        if (this !== VO.true) {
+        if (predicate !== VO.true) {
             throw new Error("VO.ensure FAILED!");
         }
     };
@@ -116,6 +116,7 @@ VO.Number = (function (self) {
         return VO.true;
     };
     var constructor = function Number(value) {
+        this.ensure(VO.Boolean(typeof value === "number"));
         this._value = value;
     };
     constructor.prototype = self;
