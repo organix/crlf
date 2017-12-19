@@ -73,7 +73,7 @@ VO.Null = (function (self) {
         return VO.true;
     };
     var constructor = function Null() {
-        this.value = null;
+        this._value = null;
     };
     constructor.prototype = self;
     return constructor;
@@ -87,7 +87,7 @@ VO.Boolean = (function (self) {
         return VO.true;
     };
     var constructor = function Boolean(value) {
-        this.value = value;
+        this._value = value;
     };
     constructor.prototype = self;
     return constructor;
