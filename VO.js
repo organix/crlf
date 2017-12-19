@@ -38,7 +38,7 @@ VO.log = function () {};
 
 VO.Value = (function (self) {
     self = self || {};
-    self.equal = function equal(other) {
+    self.equals = function equals(other) {
         if (this === other) {
             return VO.true;
         }
