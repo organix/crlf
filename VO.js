@@ -81,10 +81,11 @@ VO.Null = (function (self) {
         this._value = null;
     };
     constructor.prototype = self;
-    return constructor;
+    VO.null = new constructor();
+    return function Null() {
+        return VO.Null;
+    };
 })();
-
-VO.null = new VO.Null();
 
 VO.Boolean = (function (self) {
     self = self || new VO.Value();
@@ -102,11 +103,12 @@ VO.Boolean = (function (self) {
         this._value = value;
     };
     constructor.prototype = self;
-    return constructor;
+    VO.true = new constructor(true);
+    VO.false = new constructor(false);
+    return function Boolean(value) {
+        return (value ? VO.true : VO.false);
+    };
 })();
-
-VO.true = new VO.Boolean(true);
-VO.false = new VO.Boolean(false);
 
 VO.Number = (function (self) {
     self = self || new VO.Value();
