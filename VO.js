@@ -115,6 +115,16 @@ VO.Number = (function (self) {
     self.isNumber = function isNumber() {
         return VO.true;
     };
+    self.lessThan = function lessThan(number) {
+        this.ensure(this.isNumber());
+        this.ensure(number.isNumber());
+        return VO.Boolean(this._value < number._value);
+    };
+    self.plus = function plus(number) {
+        this.ensure(this.isNumber());
+        this.ensure(number.isNumber());
+        return new VO.Number(this._value + number._value);
+    };
     var constructor = function Number(value) {
         this.ensure(VO.Boolean(typeof value === "number"));
         this._value = value;
