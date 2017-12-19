@@ -62,6 +62,11 @@ VO.Value = (function (self) {
     self.isObject = function isObject() {
         return VO.false;
     };
+    self.ensure = function ensure(predicate) {
+        if (this !== VO.true) {
+            throw new Error("VO.ensure FAILED!");
+        }
+    };
     var constructor = function Value() {};
     constructor.prototype = self;
     return constructor;
@@ -85,6 +90,13 @@ VO.Boolean = (function (self) {
     self = self || new VO.Value();
     self.isBoolean = function isBoolean() {
         return VO.true;
+    };
+    self.not = function not() {
+        this.ensure(this.isBoolean());
+        if (this === VO.false) {
+            return VO.true;
+        }
+        return VO.false;
     };
     var constructor = function Boolean(value) {
         this._value = value;
