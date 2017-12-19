@@ -67,6 +67,7 @@ VO.Value = (function (self) {
             throw new Error("VO.ensure FAILED!");
         }
     };
+    VO.ensure = self.ensure;  // allow top-level assertions
     var constructor = function Value() {};
     constructor.prototype = self;
     return constructor;
@@ -137,7 +138,7 @@ VO.Number = (function (self) {
         return new VO.Number(this._value + number._value);
     };
     var constructor = function Number(value) {
-        this.ensure(VO.Boolean(typeof value === "number"));
+        VO.ensure(VO.Boolean(typeof value === "number"));
         this._value = value;
     };
     constructor.prototype = self;
