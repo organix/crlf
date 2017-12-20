@@ -212,6 +212,8 @@ VO.String = (function (self) {
     self.value = function value(offset) {
         this.ensure(this.isString());
         this.ensure(offset.isNumber());
+        this.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
+        this.ensure(offset.lessThan(this.length()));  // offset < length
         return new VO.Number(this._value.charCodeAt(offset._value));  // FIXME: use .codePointAt() when available
     };
     self.concatenate = function concatenate(string) {
@@ -226,12 +228,73 @@ VO.String = (function (self) {
         this.ensure(VO.zero.lessEqual(from));  // 0 <= from
         this.ensure(from.lessEqual(upto));  // from <= upto
         this.ensure(upto.lessEqual(this.length()));  // upto <= length
-        return new VO.String(this._value.substring(from._value, upto._value));
+        return new VO.String(this._value.slice(from._value, upto._value));
     };
     var constructor = function String(value) {
         VO.ensure(VO.Boolean(typeof value === "string"));
         this._value = value;
     };
     constructor.prototype = self;
+    VO.emptyString = new constructor("");
+    return constructor;
+})();
+
+VO.Array = (function (self) {
+    self = self || new VO.Value();
+    self.equals = function equals(other) {
+        if (this === other) {
+            return VO.true;
+        }
+        if ((this.isArray() === VO.true) && (other.isArray() === VO.true)) {
+            var a = this._value;
+            var b = other._value;
+            if (a.length === b.length) {
+                for (var i = 0; i < a.length; ++i) {
+                    if (a[i].equals(b[i]) === VO.false) {
+                        return VO.false;
+                    }
+                }
+                return VO.true;
+            }
+        }
+        return VO.false;
+    };
+    self.isArray = function isArray() {
+        return VO.true;
+    };
+    self.length = function length() {
+        this.ensure(this.isArray());
+        return new VO.Number(this._value.length);
+    };
+    self.value = function value(offset) {
+        this.ensure(this.isArray());
+        this.ensure(offset.isNumber());
+        this.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
+        this.ensure(offset.lessThan(this.length()));  // offset < length
+        return new VO.Number(this._value[offset._value]);
+    };
+    self.concatenate = function concatenate(array) {
+        this.ensure(this.isArray());
+        this.ensure(array.isArray());
+        return new VO.Array(this._value.concat(array._value));
+    };
+    self.extract = function extract(from, upto) {
+        this.ensure(this.isArray());
+        this.ensure(from.isNumber());
+        this.ensure(upto.isNumber());
+        this.ensure(VO.zero.lessEqual(from));  // 0 <= from
+        this.ensure(from.lessEqual(upto));  // from <= upto
+        this.ensure(upto.lessEqual(this.length()));  // upto <= length
+        return new VO.Array(this._value.slice(from._value, upto._value));
+    };
+    var isArray = Array.isArray || function isArray(object) {
+        return (Object.prototype.toString.call(object) === '[object Array]');
+    };
+    var constructor = function Array(value) {
+        VO.ensure(VO.Boolean(isArray(value)));
+        this._value = value;
+    };
+    constructor.prototype = self;
+    VO.emptyArray = new constructor([]);
     return constructor;
 })();
