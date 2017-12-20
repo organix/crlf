@@ -73,6 +73,7 @@ VO.Value = (function (self) {
     };
     VO.ensure = self.ensure;  // allow top-level assertions
     var constructor = function Value() {};
+    self.constructor = constructor;
     constructor.prototype = self;
     return constructor;
 })();
@@ -85,6 +86,7 @@ VO.Null = (function (self) {
     var constructor = function Null() {
         this._value = null;
     };
+    self.constructor = constructor;
     constructor.prototype = self;
     VO.null = new constructor();
     return function Null() {
@@ -123,6 +125,7 @@ VO.Boolean = (function (self) {
     var constructor = function Boolean(value) {
         this._value = value;
     };
+    self.constructor = constructor;
     constructor.prototype = self;
     VO.true = new constructor(true);
     VO.false = new constructor(false);
@@ -181,6 +184,7 @@ VO.Number = (function (self) {
         VO.ensure(VO.Boolean(typeof value === "number"));
         this._value = value;
     };
+    self.constructor = constructor;
     constructor.prototype = self;
     VO.minusOne = new constructor(-1);
     VO.zero = new constructor(0);
@@ -234,6 +238,7 @@ VO.String = (function (self) {
         VO.ensure(VO.Boolean(typeof value === "string"));
         this._value = value;
     };
+    self.constructor = constructor;
     constructor.prototype = self;
     VO.emptyString = new constructor("");
     return constructor;
@@ -294,6 +299,7 @@ VO.Array = (function (self) {
         VO.ensure(VO.Boolean(isArray(value)));
         this._value = value;
     };
+    self.constructor = constructor;
     constructor.prototype = self;
     VO.emptyArray = new constructor([]);
     return constructor;
@@ -372,6 +378,7 @@ VO.Object = (function (self) {
         VO.ensure(VO.Boolean(isObject(value)));
         this._value = value;
     };
+    self.constructor = constructor;
     constructor.prototype = self;
     VO.emptyObject = new constructor({});
     return constructor;
