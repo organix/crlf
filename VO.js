@@ -271,7 +271,7 @@ VO.Array = (function (self) {
         this.ensure(offset.isNumber());
         this.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
         this.ensure(offset.lessThan(this.length()));  // offset < length
-        return new VO.Number(this._value[offset._value]);
+        return this._value[offset._value];
     };
     self.concatenate = function concatenate(array) {
         this.ensure(this.isArray());
@@ -296,5 +296,83 @@ VO.Array = (function (self) {
     };
     constructor.prototype = self;
     VO.emptyArray = new constructor([]);
+    return constructor;
+})();
+
+VO.Object = (function (self) {
+    self = self || new VO.Value();
+    self.equals = function equals(other) {
+        if (this === other) {
+            return VO.true;
+        }
+        if ((this.isObject() === VO.true) && (other.isObject() === VO.true)) {
+            var a = this._value;
+            var b = other._value;
+            var keys = Object.keys(a);
+            if (keys.length === Object.keys(b).length) {
+                for (var i = 0; i < keys.length; ++i) {
+                    var key = keys[i];
+                    if (a[key].equals(b[key]) === VO.false) {
+                        return VO.false;
+                    }
+                }
+                return VO.true;
+            }
+        }
+        return VO.false;
+    };
+    self.isObject = function isObject() {
+        return VO.true;
+    };
+    self.hasProperty = function hasProperty(name) {
+        this.ensure(this.isObject());
+        this.ensure(name.isString());
+        return VO.Boolean(this._value.hasOwnProperty(name._value));
+    };
+    self.value = function value(name) {
+        this.ensure(this.isObject());
+        this.ensure(name.isString());
+        return this._value[name._value];
+    };
+    self.concatenate = function concatenate(object) {
+        this.ensure(this.isObject());
+        this.ensure(object.isObject());
+        var result = {};
+        Object.keys(this._value).forEach(function (key) {
+            result[key] = this._value[key];  // copy properties from this
+        });
+        Object.keys(object._value).forEach(function (key) {
+            result[key] = object._value[key];  // argument/replace with properties from object
+        });
+        return new VO.Object(result);
+    };
+    self.extract = function extract(/* ...arguments */) {
+        this.ensure(this.isObject());
+        VO.ensure(VO.Boolean(arguments.length > 0));
+        var result = {};
+        for (var i = 0; i < arguments.length; ++i) {
+            var name = arguments[i];
+            VO.ensure(name.isString());
+            result[name._value] = this._value[name._value];
+        }
+        return new VO.Object(result);
+    };
+    self.names = function names() {
+        this.ensure(this.isObject());
+        var keys = Object.keys(this._value);
+        for (var i = 0; i < keys.length; ++i) {
+            keys[i] = new VO.String(keys[i]);  // convert to VO.String
+        }
+        return new VO.Array(keys);
+    };
+    var isObject = function isObject(object) {
+        return (Object.prototype.toString.call(object) === '[object Object]');
+    };
+    var constructor = function Object(value) {
+        VO.ensure(VO.Boolean(isObject(value)));
+        this._value = value;
+    };
+    constructor.prototype = self;
+    VO.emptyObject = new constructor({});
     return constructor;
 })();
