@@ -152,6 +152,21 @@ VO.Number = (function (self) {
         this.ensure(number.isNumber());
         return VO.Boolean(this._value < number._value);
     };
+    self.lessEqual = function lessEqual(number) {
+        this.ensure(this.isNumber());
+        this.ensure(number.isNumber());
+        return VO.Boolean(this._value <= number._value);
+    };
+    self.greaterEqual = function greaterEqual(number) {
+        this.ensure(this.isNumber());
+        this.ensure(number.isNumber());
+        return VO.Boolean(this._value >= number._value);
+    };
+    self.greaterThan = function greaterThan(number) {
+        this.ensure(this.isNumber());
+        this.ensure(number.isNumber());
+        return VO.Boolean(this._value > number._value);
+    };
     self.plus = function plus(number) {
         this.ensure(this.isNumber());
         this.ensure(number.isNumber());
@@ -208,9 +223,9 @@ VO.String = (function (self) {
         this.ensure(this.isString());
         this.ensure(from.isNumber());
         this.ensure(upto.isNumber());
-        this.ensure(from.lessThan(VO.zero).not());  // 0 <= from
-        this.ensure(upto.lessThan(from).not());  // from <= upto
-        this.ensure(this.length().lessThan(upto).not());  // upto <= length
+        this.ensure(VO.zero.lessEqual(from));  // 0 <= from
+        this.ensure(from.lessEqual(upto));  // from <= upto
+        this.ensure(upto.lessEqual(this.length()));  // upto <= length
         return new VO.String(this._value.substring(from._value, upto._value));
     };
     var constructor = function String(value) {
