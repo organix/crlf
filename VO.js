@@ -157,8 +157,64 @@ VO.Number = (function (self) {
         this.ensure(number.isNumber());
         return new VO.Number(this._value + number._value);
     };
+    self.times = function times(number) {
+        this.ensure(this.isNumber());
+        this.ensure(number.isNumber());
+        return new VO.Number(this._value * number._value);
+    };
     var constructor = function Number(value) {
         VO.ensure(VO.Boolean(typeof value === "number"));
+        this._value = value;
+    };
+    constructor.prototype = self;
+    VO.minusOne = new constructor(-1);
+    VO.zero = new constructor(0);
+    VO.one = new constructor(1);
+    VO.two = new constructor(2);
+    return constructor;
+})();
+
+VO.String = (function (self) {
+    self = self || new VO.Value();
+    self.equals = function equals(other) {
+        if (this === other) {
+            return VO.true;
+        }
+        if ((this.isString() === VO.true) && (other.isString() === VO.true)) {
+            if (this._value === other._value) {
+                return VO.true;
+            }
+        }
+        return VO.false;
+    };
+    self.isString = function isString() {
+        return VO.true;
+    };
+    self.length = function length() {
+        this.ensure(this.isString());
+        return new VO.Number(this._value.length);
+    };
+    self.value = function value(offset) {
+        this.ensure(this.isString());
+        this.ensure(offset.isNumber());
+        return new VO.Number(this._value.charCodeAt(offset._value));  // FIXME: use .codePointAt() when available
+    };
+    self.concatenate = function concatenate(string) {
+        this.ensure(this.isString());
+        this.ensure(string.isString());
+        return new VO.String(this._value + string._value);
+    };
+    self.extract = function extract(from, upto) {
+        this.ensure(this.isString());
+        this.ensure(from.isNumber());
+        this.ensure(upto.isNumber());
+        this.ensure(from.lessThan(VO.zero).not());  // 0 <= from
+        this.ensure(upto.lessThan(from).not());  // from <= upto
+        this.ensure(this.length().lessThan(upto).not());  // upto <= length
+        return new VO.String(this._value.substring(from._value, upto._value));
+    };
+    var constructor = function String(value) {
+        VO.ensure(VO.Boolean(typeof value === "string"));
         this._value = value;
     };
     constructor.prototype = self;
