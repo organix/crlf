@@ -346,7 +346,7 @@ VO.Object = (function (self) {
         var result = {};
         Object.keys(this._value).forEach(function (key) {
             result[key] = this._value[key];  // copy properties from this
-        });
+        }, this);
         Object.keys(object._value).forEach(function (key) {
             result[key] = object._value[key];  // argument/replace with properties from object
         });
@@ -354,7 +354,7 @@ VO.Object = (function (self) {
     };
     self.extract = function extract(/* ...arguments */) {
         this.ensure(this.isObject());
-        VO.ensure(VO.Boolean(arguments.length > 0));
+        VO.ensure(VO.Boolean(arguments.length >= 0));
         var result = {};
         for (var i = 0; i < arguments.length; ++i) {
             var name = arguments[i];
@@ -587,6 +587,31 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyObject.isString().not());
         VO.ensure(VO.emptyObject.isArray().not());
         VO.ensure(VO.emptyObject.isObject());
+
+        VO.ensure(VO.emptyObject.names().equals(VO.emptyArray));
+        VO.ensure(sampleObject.names().length().equals(new VO.Number(8)));
+        VO.ensure(VO.emptyObject.hasProperty(new VO.String("zero")).not());
+        VO.ensure(sampleObject.hasProperty(new VO.String("zero")));
+        VO.ensure(sampleObject.hasProperty(new VO.String("none")).not());
+        VO.ensure(sampleObject.value(new VO.String("zero")).equals(VO.zero));
+        VO.ensure(sampleObject.value(new VO.String("one")).equals(new VO.Number(1)));
+        VO.ensure(sampleObject.value(new VO.String("emptyObject")).equals(VO.emptyObject));
+        VO.ensure(sampleObject.extract().equals(VO.emptyObject));
+        VO.ensure(sampleObject.extract(new VO.String("zero")).names().length().equals(VO.one));
+        VO.ensure(sampleObject.extract(new VO.String("zero"), new VO.String("one"))
+                  .names().length().equals(VO.two));
+        VO.ensure(sampleObject.extract(new VO.String("zero"), new VO.String("one"))
+                  .value(new VO.String("zero")).equals(VO.zero));
+        VO.ensure(sampleObject.extract(new VO.String("zero"), new VO.String("one"))
+                  .value(new VO.String("one")).equals(VO.one));
+        VO.ensure(sampleObject.extract.apply(sampleObject, sampleObject.names()._value)
+                  .equals(sampleObject));
+        VO.ensure(VO.emptyObject.concatenate(VO.emptyObject).equals(VO.emptyObject));
+        VO.ensure(sampleObject.concatenate(VO.emptyObject).equals(sampleObject));
+        VO.ensure(VO.emptyObject.concatenate(sampleObject).equals(sampleObject));
+        VO.ensure(sampleObject.extract(new VO.String("zero"))
+                  .concatenate(sampleObject.extract(new VO.String("one")))
+                  .equals(sampleObject.extract(new VO.String("one"), new VO.String("zero"))));
 
 //        VO.ensure(VO.emptyObject.equals(VO.Object({})));  // ERROR: VO.Object({}) === undefined
         VO.ensure(VO.emptyObject.equals(new VO.Object({})));
