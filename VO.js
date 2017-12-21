@@ -422,6 +422,7 @@ VO.selfTest = (function () {
 
         VO.ensure(VO.null.equals(VO.Null()));
         VO.ensure(VO.null.equals(new VO.Null()));
+        VO.ensure(VO.Boolean(VO.null === new VO.Null()));
 
         // Boolean
         VO.ensure(VO.true.equals(VO.null).not());
@@ -457,8 +458,10 @@ VO.selfTest = (function () {
 
         VO.ensure(VO.true.equals(VO.Boolean(true)));
         VO.ensure(VO.true.equals(new VO.Boolean(true)));
+        VO.ensure(VO.Boolean(VO.true === new VO.Boolean(true)));
         VO.ensure(VO.false.equals(VO.Boolean(false)));
         VO.ensure(VO.false.equals(new VO.Boolean(false)));
+        VO.ensure(VO.Boolean(VO.false === new VO.Boolean(false)));
 
         // Number
         VO.ensure(VO.zero.equals(VO.zero));
