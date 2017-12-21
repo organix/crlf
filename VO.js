@@ -90,7 +90,7 @@ VO.Null = (function (self) {
     constructor.prototype = self;
     VO.null = new constructor();
     return function Null() {
-        return VO.Null;
+        return VO.null;
     };
 })();
 
@@ -382,4 +382,106 @@ VO.Object = (function (self) {
     constructor.prototype = self;
     VO.emptyObject = new constructor({});
     return constructor;
+})();
+
+VO.selfTest = (function () {
+    var sampleString = new VO.String("Hello, World!");
+    var sampleArray = new VO.Array([
+        VO.null,
+        VO.true,
+        VO.false,
+        VO.zero,
+        VO.one,
+        VO.emptyString,
+        VO.emptyArray,
+        VO.emptyObject
+    ]);
+    var sampleObject = new VO.Object({
+        "null": VO.null,
+        "true": VO.true,
+        "false": VO.false,
+        "zero": VO.zero,
+        "one": VO.one,
+        "emptyString": VO.emptyString,
+        "emptyArray": VO.emptyArray,
+        "emptyObject": VO.emptyObject
+    });
+
+    return function selfTest() {
+        // Null
+        VO.ensure(VO.null.equals(VO.null));
+        VO.ensure(VO.null.equals(VO.true).not());
+        VO.ensure(VO.null.equals(VO.false).not());
+        VO.ensure(VO.null.equals(VO.zero).not());
+        VO.ensure(VO.null.isNull());
+        VO.ensure(VO.null.isBoolean().not());
+        VO.ensure(VO.null.isNumber().not());
+        VO.ensure(VO.null.isString().not());
+        VO.ensure(VO.null.isArray().not());
+        VO.ensure(VO.null.isObject().not());
+
+        VO.ensure(VO.null.equals(VO.Null()));
+        VO.ensure(VO.null.equals(new VO.Null()));
+
+        // Boolean
+        VO.ensure(VO.true.equals(VO.null).not());
+        VO.ensure(VO.true.equals(VO.true));
+        VO.ensure(VO.true.equals(VO.false).not());
+        VO.ensure(VO.true.equals(VO.zero).not());
+        VO.ensure(VO.true.isNull().not());
+        VO.ensure(VO.true.isBoolean());
+        VO.ensure(VO.true.isNumber().not());
+        VO.ensure(VO.true.isString().not());
+        VO.ensure(VO.true.isArray().not());
+        VO.ensure(VO.true.isObject().not());
+
+        VO.ensure(VO.false.equals(VO.null).not());
+        VO.ensure(VO.false.equals(VO.true).not());
+        VO.ensure(VO.false.equals(VO.false));
+        VO.ensure(VO.false.equals(VO.zero).not());
+        VO.ensure(VO.false.isNull().not());
+        VO.ensure(VO.false.isBoolean());
+        VO.ensure(VO.false.isNumber().not());
+        VO.ensure(VO.false.isString().not());
+        VO.ensure(VO.false.isArray().not());
+        VO.ensure(VO.false.isObject().not());
+
+        VO.ensure(VO.false.and(VO.false).not());
+        VO.ensure(VO.false.and(VO.true).not());
+        VO.ensure(VO.true.and(VO.false).not());
+        VO.ensure(VO.true.and(VO.true));
+        VO.ensure(VO.false.or(VO.false).not());
+        VO.ensure(VO.false.or(VO.true));
+        VO.ensure(VO.true.or(VO.false));
+        VO.ensure(VO.true.or(VO.true));
+
+        VO.ensure(VO.true.equals(VO.Boolean(true)));
+        VO.ensure(VO.true.equals(new VO.Boolean(true)));
+        VO.ensure(VO.false.equals(VO.Boolean(false)));
+        VO.ensure(VO.false.equals(new VO.Boolean(false)));
+
+        // Number
+        VO.ensure(VO.zero.equals(VO.zero));
+        VO.ensure(VO.zero.equals(VO.emptyString).not());
+        VO.ensure(VO.zero.equals(VO.emptyArray).not());
+        VO.ensure(VO.zero.equals(VO.emptyObject).not());
+
+        // String
+        VO.ensure(VO.emptyString.equals(VO.zero).not());
+        VO.ensure(VO.emptyString.equals(VO.emptyString));
+        VO.ensure(VO.emptyString.equals(VO.emptyArray).not());
+        VO.ensure(VO.emptyString.equals(VO.emptyObject).not());
+
+        // Array
+        VO.ensure(VO.emptyArray.equals(VO.zero).not());
+        VO.ensure(VO.emptyArray.equals(VO.emptyString).not());
+        VO.ensure(VO.emptyArray.equals(VO.emptyArray));
+        VO.ensure(VO.emptyArray.equals(VO.emptyObject).not());
+
+        // Object
+        VO.ensure(VO.emptyObject.equals(VO.zero).not());
+        VO.ensure(VO.emptyObject.equals(VO.emptyString).not());
+        VO.ensure(VO.emptyObject.equals(VO.emptyArray).not());
+        VO.ensure(VO.emptyObject.equals(VO.emptyObject));
+    };
 })();
