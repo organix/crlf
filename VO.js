@@ -520,6 +520,10 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyString.isArray().not());
         VO.ensure(VO.emptyString.isObject().not());
 
+//        VO.ensure(VO.emptyString.equals(VO.String("")));  // ERROR: VO.String("") === undefined
+        VO.ensure(VO.emptyString.equals(new VO.String("")));
+        VO.ensure(VO.Boolean(VO.emptyString !== new VO.String("")));
+
         // Array
         VO.ensure(VO.emptyArray.equals(VO.zero).not());
         VO.ensure(VO.emptyArray.equals(VO.emptyString).not());
@@ -532,6 +536,10 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyArray.isArray());
         VO.ensure(VO.emptyArray.isObject().not());
 
+//        VO.ensure(VO.emptyArray.equals(VO.Array([])));  // ERROR: VO.Array([]) === undefined
+        VO.ensure(VO.emptyArray.equals(new VO.Array([])));
+        VO.ensure(VO.Boolean(VO.emptyArray !== new VO.Array([])));
+
         // Object
         VO.ensure(VO.emptyObject.equals(VO.zero).not());
         VO.ensure(VO.emptyObject.equals(VO.emptyString).not());
@@ -543,5 +551,9 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyObject.isString().not());
         VO.ensure(VO.emptyObject.isArray().not());
         VO.ensure(VO.emptyObject.isObject());
+
+//        VO.ensure(VO.emptyObject.equals(VO.Object({})));  // ERROR: VO.Object({}) === undefined
+        VO.ensure(VO.emptyObject.equals(new VO.Object({})));
+        VO.ensure(VO.Boolean(VO.emptyObject !== new VO.Object({})));
     };
 })();
