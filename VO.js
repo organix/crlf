@@ -406,6 +406,7 @@ VO.selfTest = (function () {
         "emptyArray": VO.emptyArray,
         "emptyObject": VO.emptyObject
     });
+    var tmp;
 
     return function selfTest() {
         // Null
@@ -612,6 +613,11 @@ VO.selfTest = (function () {
         VO.ensure(sampleObject.extract(new VO.String("zero"))
                   .concatenate(sampleObject.extract(new VO.String("one")))
                   .equals(sampleObject.extract(new VO.String("one"), new VO.String("zero"))));
+        tmp = new VO.Object({ a: VO.true, b: VO.false })
+            .concatenate(new VO.Object({ b: VO.true, c: VO.true }));
+        VO.ensure(tmp.value(new VO.String("a"))
+                  .and(tmp.value(new VO.String("b")))
+                  .and(tmp.value(new VO.String("c"))));
 
 //        VO.ensure(VO.emptyObject.equals(VO.Object({})));  // ERROR: VO.Object({}) === undefined
         VO.ensure(VO.emptyObject.equals(new VO.Object({})));
