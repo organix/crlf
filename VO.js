@@ -475,6 +475,39 @@ VO.selfTest = (function () {
         VO.ensure(VO.zero.isArray().not());
         VO.ensure(VO.zero.isObject().not());
 
+        VO.ensure(VO.zero.lessThan(VO.minusOne).not());
+        VO.ensure(VO.zero.lessThan(VO.zero).not());
+        VO.ensure(VO.zero.lessThan(VO.one));
+        VO.ensure(VO.zero.lessEqual(VO.minusOne).not());
+        VO.ensure(VO.zero.lessEqual(VO.zero));
+        VO.ensure(VO.zero.lessEqual(VO.one));
+        VO.ensure(VO.zero.greaterEqual(VO.minusOne));
+        VO.ensure(VO.zero.greaterEqual(VO.zero));
+        VO.ensure(VO.zero.greaterEqual(VO.one).not());
+        VO.ensure(VO.zero.greaterThan(VO.minusOne));
+        VO.ensure(VO.zero.greaterThan(VO.zero).not());
+        VO.ensure(VO.zero.greaterThan(VO.one).not());
+        VO.ensure(VO.one.lessThan(VO.zero).not());
+        VO.ensure(VO.one.lessThan(VO.two));
+        VO.ensure(VO.zero.lessThan(VO.two));
+        VO.ensure(VO.zero.plus(VO.zero).equals(VO.zero));
+        VO.ensure(VO.zero.plus(VO.one).equals(VO.one));
+        VO.ensure(VO.one.plus(VO.zero).equals(VO.one));
+        VO.ensure(VO.one.plus(VO.one).equals(VO.two));
+        VO.ensure(VO.one.plus(VO.minusOne).equals(VO.zero));
+        VO.ensure(VO.zero.times(VO.zero).equals(VO.zero));
+        VO.ensure(VO.zero.times(VO.one).equals(VO.zero));
+        VO.ensure(VO.one.times(VO.zero).equals(VO.zero));
+        VO.ensure(VO.one.times(VO.one).equals(VO.one));
+        VO.ensure(VO.one.times(VO.minusOne).equals(VO.minusOne));
+        VO.ensure(VO.two.times(VO.minusOne).equals(new VO.Number(-2)));
+
+//        VO.ensure(VO.zero.equals(VO.Number(0)));  // ERROR: VO.Number(0) === undefined
+        VO.ensure(VO.zero.equals(new VO.Number(0)));
+        VO.ensure(VO.Boolean(VO.zero !== new VO.Number(0)));
+        VO.ensure(VO.one.equals(new VO.Number(1)));
+        VO.ensure(VO.Boolean(VO.one !== new VO.Number(1)));
+
         // String
         VO.ensure(VO.emptyString.equals(VO.zero).not());
         VO.ensure(VO.emptyString.equals(VO.emptyString));
