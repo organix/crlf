@@ -520,6 +520,26 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyString.isArray().not());
         VO.ensure(VO.emptyString.isObject().not());
 
+        VO.ensure(VO.emptyString.length().equals(VO.zero));
+        VO.ensure(sampleString.length().equals(new VO.Number(13)));
+        VO.ensure(sampleString.value(VO.zero).equals(new VO.Number(72)));  // "H"
+        VO.ensure(sampleString.value(new VO.Number(6)).equals(new VO.Number(32)));  // " "
+        VO.ensure(sampleString.value(sampleString.length().plus(VO.minusOne)).equals(new VO.Number(33)));  // "!"
+        VO.ensure(sampleString.extract(VO.zero, VO.zero).equals(VO.emptyString));
+        VO.ensure(sampleString.extract(VO.zero, VO.one).length().equals(VO.one));
+        VO.ensure(sampleString.extract(VO.one, VO.one).length().equals(VO.zero));
+        VO.ensure(sampleString.extract(VO.zero, sampleString.length()).equals(sampleString));
+        VO.ensure(sampleString.extract(VO.zero, new VO.Number(5))
+                  .equals(new VO.String("Hello")));
+        VO.ensure(sampleString.extract(new VO.Number(7), sampleString.length().plus(VO.minusOne))
+                  .equals(new VO.String("World")));
+        VO.ensure(VO.emptyString.concatenate(VO.emptyString).equals(VO.emptyString));
+        VO.ensure(sampleString.concatenate(VO.emptyString).equals(sampleString));
+        VO.ensure(VO.emptyString.concatenate(sampleString).equals(sampleString));
+        VO.ensure(sampleString.extract(VO.zero, new VO.Number(6))
+                  .concatenate(sampleString.extract(new VO.Number(6), sampleString.length()))
+                  .equals(sampleString));
+
 //        VO.ensure(VO.emptyString.equals(VO.String("")));  // ERROR: VO.String("") === undefined
         VO.ensure(VO.emptyString.equals(new VO.String("")));
         VO.ensure(VO.Boolean(VO.emptyString !== new VO.String("")));
