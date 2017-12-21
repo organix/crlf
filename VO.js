@@ -468,23 +468,47 @@ VO.selfTest = (function () {
         VO.ensure(VO.zero.equals(VO.emptyString).not());
         VO.ensure(VO.zero.equals(VO.emptyArray).not());
         VO.ensure(VO.zero.equals(VO.emptyObject).not());
+        VO.ensure(VO.zero.isNull().not());
+        VO.ensure(VO.zero.isBoolean().not());
+        VO.ensure(VO.zero.isNumber());
+        VO.ensure(VO.zero.isString().not());
+        VO.ensure(VO.zero.isArray().not());
+        VO.ensure(VO.zero.isObject().not());
 
         // String
         VO.ensure(VO.emptyString.equals(VO.zero).not());
         VO.ensure(VO.emptyString.equals(VO.emptyString));
         VO.ensure(VO.emptyString.equals(VO.emptyArray).not());
         VO.ensure(VO.emptyString.equals(VO.emptyObject).not());
+        VO.ensure(VO.emptyString.isNull().not());
+        VO.ensure(VO.emptyString.isBoolean().not());
+        VO.ensure(VO.emptyString.isNumber().not());
+        VO.ensure(VO.emptyString.isString());
+        VO.ensure(VO.emptyString.isArray().not());
+        VO.ensure(VO.emptyString.isObject().not());
 
         // Array
         VO.ensure(VO.emptyArray.equals(VO.zero).not());
         VO.ensure(VO.emptyArray.equals(VO.emptyString).not());
         VO.ensure(VO.emptyArray.equals(VO.emptyArray));
         VO.ensure(VO.emptyArray.equals(VO.emptyObject).not());
+        VO.ensure(VO.emptyArray.isNull().not());
+        VO.ensure(VO.emptyArray.isBoolean().not());
+        VO.ensure(VO.emptyArray.isNumber().not());
+        VO.ensure(VO.emptyArray.isString().not());
+        VO.ensure(VO.emptyArray.isArray());
+        VO.ensure(VO.emptyArray.isObject().not());
 
         // Object
         VO.ensure(VO.emptyObject.equals(VO.zero).not());
         VO.ensure(VO.emptyObject.equals(VO.emptyString).not());
         VO.ensure(VO.emptyObject.equals(VO.emptyArray).not());
         VO.ensure(VO.emptyObject.equals(VO.emptyObject));
+        VO.ensure(VO.emptyObject.isNull().not());
+        VO.ensure(VO.emptyObject.isBoolean().not());
+        VO.ensure(VO.emptyObject.isNumber().not());
+        VO.ensure(VO.emptyObject.isString().not());
+        VO.ensure(VO.emptyObject.isArray().not());
+        VO.ensure(VO.emptyObject.isObject());
     };
 })();
