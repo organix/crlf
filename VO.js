@@ -556,6 +556,22 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyArray.isArray());
         VO.ensure(VO.emptyArray.isObject().not());
 
+        VO.ensure(VO.emptyArray.length().equals(VO.zero));
+        VO.ensure(sampleArray.length().equals(new VO.Number(8)));
+        VO.ensure(sampleArray.value(VO.zero).equals(VO.null));
+        VO.ensure(sampleArray.value(new VO.Number(4)).equals(new VO.Number(1)));
+        VO.ensure(sampleArray.value(sampleArray.length().plus(VO.minusOne)).equals(VO.emptyObject));
+        VO.ensure(sampleArray.extract(VO.zero, VO.zero).equals(VO.emptyArray));
+        VO.ensure(sampleArray.extract(VO.zero, VO.one).length().equals(VO.one));
+        VO.ensure(sampleArray.extract(VO.one, VO.one).length().equals(VO.zero));
+        VO.ensure(sampleArray.extract(VO.zero, sampleArray.length()).equals(sampleArray));
+        VO.ensure(VO.emptyArray.concatenate(VO.emptyArray).equals(VO.emptyArray));
+        VO.ensure(sampleArray.concatenate(VO.emptyArray).equals(sampleArray));
+        VO.ensure(VO.emptyArray.concatenate(sampleArray).equals(sampleArray));
+        VO.ensure(sampleArray.extract(VO.zero, new VO.Number(4))
+                  .concatenate(sampleArray.extract(new VO.Number(4), sampleArray.length()))
+                  .equals(sampleArray));
+
 //        VO.ensure(VO.emptyArray.equals(VO.Array([])));  // ERROR: VO.Array([]) === undefined
         VO.ensure(VO.emptyArray.equals(new VO.Array([])));
         VO.ensure(VO.Boolean(VO.emptyArray !== new VO.Array([])));
