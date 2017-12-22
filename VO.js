@@ -36,6 +36,20 @@ VO.version = "0.0.0";
 //VO.log = console.log;
 VO.log = function () {};
 
+var deepFreeze = (typeof Object.freeze !== "function")
+    ? function deepFreeze(obj) { return obj; }  // freeze not supported
+    : function deepFreeze(obj) {
+        Object.getOwnPropertyNames(obj).forEach(function(name) {
+            var value = obj[name];
+            if ((value !== null)
+            &&  (typeof value === 'object')
+            &&  (!Object.isFrozen(value))) {
+                deepFreeze(value);
+            }
+        });
+        return Object.freeze(obj);
+    };
+
 VO.Value = (function (self) {
     self = self || {};
     self.equals = function equals(other) {
@@ -72,7 +86,9 @@ VO.Value = (function (self) {
         }
     };
     VO.ensure = self.ensure;  // allow top-level assertions
-    var constructor = function Value() {};
+    var constructor = function Value() {
+//        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
+    };
     self.constructor = constructor;
     constructor.prototype = self;
     return constructor;
@@ -88,7 +104,7 @@ VO.Null = (function (self) {
     };
     self.constructor = constructor;
     constructor.prototype = self;
-    VO.null = new constructor();
+    VO.null = deepFreeze(new constructor());
     return function Null() {
         return VO.null;
     };
@@ -127,8 +143,8 @@ VO.Boolean = (function (self) {
     };
     self.constructor = constructor;
     constructor.prototype = self;
-    VO.true = new constructor(true);
-    VO.false = new constructor(false);
+    VO.true = deepFreeze(new constructor(true));
+    VO.false = deepFreeze(new constructor(false));
     return function Boolean(value) {
         return (value ? VO.true : VO.false);
     };
@@ -183,6 +199,7 @@ VO.Number = (function (self) {
     var constructor = function Number(value) {
         VO.ensure(VO.Boolean(typeof value === "number"));
         this._value = value;
+        deepFreeze(this);
     };
     self.constructor = constructor;
     constructor.prototype = self;
@@ -237,6 +254,7 @@ VO.String = (function (self) {
     var constructor = function String(value) {
         VO.ensure(VO.Boolean(typeof value === "string"));
         this._value = value;
+        deepFreeze(this);
     };
     self.constructor = constructor;
     constructor.prototype = self;
@@ -298,6 +316,7 @@ VO.Array = (function (self) {
     var constructor = function Array(value) {
         VO.ensure(VO.Boolean(isArray(value)));
         this._value = value;
+        deepFreeze(this);
     };
     self.constructor = constructor;
     constructor.prototype = self;
@@ -377,6 +396,7 @@ VO.Object = (function (self) {
     var constructor = function Object(value) {
         VO.ensure(VO.Boolean(isObject(value)));
         this._value = value;
+        deepFreeze(this);
     };
     self.constructor = constructor;
     constructor.prototype = self;
