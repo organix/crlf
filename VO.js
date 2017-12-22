@@ -252,6 +252,9 @@ VO.String = (function (self) {
         return new VO.String(this._value.slice(from._value, upto._value));
     };
     var constructor = function String(value) {
+        if (value === undefined) {
+            return VO.emptyString;
+        }
         VO.ensure(VO.Boolean(typeof value === "string"));
         this._value = value;
         deepFreeze(this);
@@ -314,6 +317,9 @@ VO.Array = (function (self) {
         return (Object.prototype.toString.call(object) === '[object Array]');
     };
     var constructor = function Array(value) {
+        if (value === undefined) {
+            return VO.emptyArray;
+        }
         VO.ensure(VO.Boolean(isArray(value)));
         this._value = value;
         deepFreeze(this);
@@ -394,6 +400,9 @@ VO.Object = (function (self) {
         return (Object.prototype.toString.call(object) === '[object Object]');
     };
     var constructor = function Object(value) {
+        if (value === undefined) {
+            return VO.emptyObject;
+        }
         VO.ensure(VO.Boolean(isObject(value)));
         this._value = value;
         deepFreeze(this);
@@ -564,6 +573,7 @@ VO.selfTest = (function () {
 //        VO.ensure(VO.emptyString.equals(VO.String("")));  // ERROR: VO.String("") === undefined
         VO.ensure(VO.emptyString.equals(new VO.String("")));
         VO.ensure(VO.Boolean(VO.emptyString !== new VO.String("")));
+        VO.ensure(VO.Boolean(VO.emptyString === new VO.String()));
 
         // Array
         VO.ensure(VO.emptyArray.equals(VO.zero).not());
@@ -596,6 +606,7 @@ VO.selfTest = (function () {
 //        VO.ensure(VO.emptyArray.equals(VO.Array([])));  // ERROR: VO.Array([]) === undefined
         VO.ensure(VO.emptyArray.equals(new VO.Array([])));
         VO.ensure(VO.Boolean(VO.emptyArray !== new VO.Array([])));
+        VO.ensure(VO.Boolean(VO.emptyArray === new VO.Array()));
 
         // Object
         VO.ensure(VO.emptyObject.equals(VO.zero).not());
@@ -642,5 +653,6 @@ VO.selfTest = (function () {
 //        VO.ensure(VO.emptyObject.equals(VO.Object({})));  // ERROR: VO.Object({}) === undefined
         VO.ensure(VO.emptyObject.equals(new VO.Object({})));
         VO.ensure(VO.Boolean(VO.emptyObject !== new VO.Object({})));
+        VO.ensure(VO.Boolean(VO.emptyObject === new VO.Object()));
     };
 })();
