@@ -199,15 +199,83 @@ An _expression_ can be _evaluated_ to produce a _value_. Various kinds of expres
 
 ### VO Method
 
-Method (call) expressions evaluate a _body_ expression in the context of a target _object_ (this/self) with argument _values_ bound to parameter (variable) _names_.
+Method (call) expressions retrieve a member _function_ from a target _object_ (this), and evaluate it with argument _values_ bound to parameter (variable) _names_. The parameter `this` is bound to the target object.
+
+```javascript
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            ...
+            "Method": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "Expression" },
+                    { "kind": "rule", "name": "String" },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "Expression" }
+                    }
+                ]
+            },
+           ...
+        }
+    }
+}
+```
 
 ### VO Function
 
 Function (application) expressions evaluate a _body_ expression with argument _values_ bound to parameter (variable) _names_.
 
+```javascript
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            ...
+            "Function": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "Expression" }
+                    },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "String" }
+                    },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "Expression" }
+                    }
+                ]
+            },
+           ...
+        }
+    }
+}
+```
+
 ### VO Variable
 
 Variables are symbolic names which represent values. Variables used in an expression evaluate to the value bound to the name.
+
+```javascript
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            ...
+            "Variable": { "kind": "rule", "name": "String" },
+            ...
+        }
+    }
+}
+```
 
 ### VO Value
 
