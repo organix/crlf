@@ -413,6 +413,34 @@ VO.Object = (function (self) {
     return constructor;
 })();
 
+VO.ValueExpr = (function (self) {
+    self = self || {};
+    self.evaluate = function evaluate(/* context */) {
+        return this._value;
+    };
+    var constructor = function ValueExpr(value) {
+        this._value = value;
+    };
+    self.constructor = constructor;
+    constructor.prototype = self;
+    return constructor;
+})();
+
+VO.VariableExpr = (function (self) {
+    self = self || {};
+    self.evaluate = function evaluate(context) {
+//        VO.ensure(context.isObject());
+        return context.value(this._name);
+    };
+    var constructor = function ValueExpr(name) {
+        VO.ensure(name.isString());
+        this._name = name;
+    };
+    self.constructor = constructor;
+    constructor.prototype = self;
+    return constructor;
+})();
+
 VO.selfTest = (function () {
     var sampleString = new VO.String("Hello, World!");
     var sampleArray = new VO.Array([
