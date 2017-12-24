@@ -172,6 +172,47 @@ An abstract _object_ value is an unordered collection of zero or more name/value
 }
 ```
 
+## VO Expressions
+
+An _expression_ can be _evaluated_ to produce a _value_. Various kinds of expression use different strategies to produce a value.
+
+```javascript
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            "Expression": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "Method" },
+                    { "kind": "rule", "name": "Function" },
+                    { "kind": "rule", "name": "Variable" },
+                    { "kind": "rule", "name": "Value" }
+                ]
+            },
+            ...
+        }
+    }
+}
+```
+
+### VO Method
+
+Method (call) expressions evaluate a _body_ expression in the context of a target _object_ (this/self) with argument _values_ bound to parameter (variable) _names_.
+
+### VO Function
+
+Function (application) expressions evaluate a _body_ expression with argument _values_ bound to parameter (variable) _names_.
+
+### VO Variable
+
+Variables are symbolic names which represent values. Variables used in an expression evaluate to the value bound to the name.
+
+### VO Value
+
+Values used in an expression evaluate to themselves.
+
 ## JSON Functions
 
 The JSON standards describe a function from strings to JSON values and vice-versa. We would like to describe additional useful abstract functions which operate on JSON data values. All of these are "pure" functions. They never mutate any data, they only create new values. One such function has already been described within each datatype above, the _equal_ predicate.
