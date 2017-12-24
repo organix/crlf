@@ -197,9 +197,13 @@ An _expression_ can be _evaluated_ to produce a _value_. Various kinds of expres
 }
 ```
 
-### VO Method
+### VO Value
 
-Method (call) expressions retrieve a member _function_ from a target _object_ (this), and evaluate it with argument _values_ bound to parameter (variable) _names_. The parameter `this` is bound to the target object.
+Values used in an expression evaluate to themselves.
+
+### VO Variable
+
+Variables are symbolic names which represent values. Variables used in an expression evaluate to the _value_ bound to the _name_.
 
 ```javascript
 {
@@ -208,18 +212,8 @@ Method (call) expressions retrieve a member _function_ from a target _object_ (t
         "kind": "grammar",
         "rules": {
             ...
-            "Method": {
-                "kind": "sequence",
-                "of": [
-                    { "kind": "rule", "name": "Expression" },
-                    { "kind": "rule", "name": "String" },
-                    {
-                        "kind": "star",
-                        "expr": { "kind": "rule", "name": "Expression" }
-                    }
-                ]
-            },
-           ...
+            "Variable": { "kind": "rule", "name": "String" },
+            ...
         }
     }
 }
@@ -259,9 +253,9 @@ Function (application) expressions evaluate a _body_ expression with argument _v
 }
 ```
 
-### VO Variable
+### VO Method
 
-Variables are symbolic names which represent values. Variables used in an expression evaluate to the value bound to the name.
+Method (call) expressions retrieve a member _function_ from a target _object_ (this), and evaluate it with argument _values_ bound to parameter (variable) _names_. The parameter `this` is bound to the target object.
 
 ```javascript
 {
@@ -270,16 +264,22 @@ Variables are symbolic names which represent values. Variables used in an expres
         "kind": "grammar",
         "rules": {
             ...
-            "Variable": { "kind": "rule", "name": "String" },
-            ...
+            "Method": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "Expression" },
+                    { "kind": "rule", "name": "String" },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "Expression" }
+                    }
+                ]
+            },
+           ...
         }
     }
 }
 ```
-
-### VO Value
-
-Values used in an expression evaluate to themselves.
 
 ## JSON Functions
 
