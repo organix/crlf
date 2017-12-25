@@ -426,6 +426,34 @@ VO.Object = (function (self) {
         }
         return new VO.Array(keys);
     };
+    self.append = function append(name, value) {
+        this.ensure(this.isObject());
+        VO.ensure(name.isString());
+        VO.ensure(VO.Boolean(value instanceof VO.Value));
+        var obj = {};
+        obj[name._value] = value;
+        return this.concatenate(new VO.Object(obj));
+    };
+    self.reduce = function reduce(func, value) {
+        this.ensure(this.isObject());
+        if (typeof func === "function") {
+            var keys = Object.keys(this._value);
+            for (var i = 0; i < keys.length; ++i) {
+                var key = keys[i];
+                value = func(new VO.String(key), this._value[key], value);
+            }
+            return value;
+        }
+        this.throw("Not Implemented");  // FIXME!
+    };
+/*
+    self.names = function names() {
+        this.ensure(this.isObject());
+        return this.reduce(function (n, v, x) {
+            return x.append(n);
+        }, VO.emptyArray);
+    };
+*/
     var isObject = function isObject(object) {
         return (Object.prototype.toString.call(object) === '[object Object]');
     };
@@ -713,14 +741,14 @@ VO.selfTest = (function () {
                   .equals(sampleArray));
 
         VO.ensure(sampleArray.reduce(
-                      function (n, x) {
+                      function (v, x) {
                           return x.plus(VO.one);
                       }, VO.zero)
                   .equals(sampleArray.length()));
         VO.ensure(VO.emptyArray.append(new VO.Number(72)).append(new VO.Number(105))
                   .reduce(
-                      function (n, x) {
-                          return x.append(n);
+                      function (v, x) {
+                          return x.append(v);
                       }, VO.emptyString)
                   .equals(new VO.String("Hi")));
 
@@ -770,6 +798,20 @@ VO.selfTest = (function () {
         VO.ensure(tmp.value(new VO.String("a"))
                   .and(tmp.value(new VO.String("b")))
                   .and(tmp.value(new VO.String("c"))));
+
+        VO.ensure(sampleObject.reduce(
+                      function (n, v, x) {
+                          return x.plus(VO.one);
+                      }, VO.zero)
+                  .equals(sampleObject.names().length()));
+        VO.ensure(VO.emptyObject
+                  .append(new VO.String("space"), new VO.Number(33))
+                  .append(new VO.String("bang"), new VO.Number(34))
+                  .reduce(
+                      function (n, v, x) {
+                          return x.times(v);
+                      }, VO.one)
+                  .equals(new VO.Number(33 * 34)));
 
 //        VO.ensure(VO.emptyObject.equals(VO.Object({})));  // ERROR: VO.Object({}) === undefined
         VO.ensure(VO.emptyObject.equals(new VO.Object({})));
