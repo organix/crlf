@@ -441,6 +441,49 @@ VO.VariableExpr = (function (self) {
     return constructor;
 })();
 
+VO.FunctionExpr = (function (self) {
+    self = self || {};
+    self.evaluate = function evaluate(context) {
+        VO.throw("Not Implemented");  // FIXME!
+    };
+    var constructor = function FunctionExpr(body, names, values) {
+        VO.ensure(body.isArray());
+        VO.ensure(names.isArray());
+        VO.ensure(values.isArray());
+        this._body = body;
+        this._names = names;
+        this._values = values;
+    };
+    self.constructor = constructor;
+    constructor.prototype = self;
+    return constructor;
+})();
+
+VO.MethodExpr = (function (self) {
+    self = self || {};
+    self.evaluate = function evaluate(context) {
+        var _this = this._expr.evaluate(context);  // determine target object
+        var _body = _this.value(this._name);  // retrieve method from target
+        var _env = context.append(new VO.String("this"), _this);  // bind target object to "this"
+        // ...
+        _body.reduce(function (expr, value) {
+            return expr.evaluate(_env);
+        }, VO.null);
+        // ...
+        VO.throw("Not Implemented");  // FIXME!
+    };
+    var constructor = function MethodExpr(expr, name, values) {
+        VO.ensure(name.isString());
+        VO.ensure(values.isArray());
+        this._expr = expr;
+        this._name = name;
+        this._values = values;
+    };
+    self.constructor = constructor;
+    constructor.prototype = self;
+    return constructor;
+})();
+
 VO.selfTest = (function () {
     var sampleString = new VO.String("Hello, World!");
     var sampleArray = new VO.Array([
