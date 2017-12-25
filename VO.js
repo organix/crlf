@@ -328,6 +328,21 @@ VO.Array = (function (self) {
         this.ensure(upto.lessEqual(this.length()));  // upto <= length
         return new VO.Array(this._value.slice(from._value, upto._value));
     };
+    self.append = function append(value) {
+        this.ensure(this.isArray());
+        VO.ensure(VO.Boolean(value instanceof VO.Value));
+        return new VO.Array(this._value.concat(value));
+    };
+    self.reduce = function reduce(func, value) {
+        this.ensure(this.isArray());
+        if (typeof func === "function") {
+            for (var i = 0; i < this._value.length; ++i) {
+                value = func(this._value[i], value);
+            }
+            return value;
+        }
+        this.throw("Not Implemented");  // FIXME!
+    };
     var isArray = Array.isArray || function isArray(object) {
         return (Object.prototype.toString.call(object) === '[object Array]');
     };
@@ -696,6 +711,18 @@ VO.selfTest = (function () {
         VO.ensure(sampleArray.extract(VO.zero, new VO.Number(4))
                   .concatenate(sampleArray.extract(new VO.Number(4), sampleArray.length()))
                   .equals(sampleArray));
+
+        VO.ensure(sampleArray.reduce(
+                      function (n, x) {
+                          return x.plus(VO.one);
+                      }, VO.zero)
+                  .equals(sampleArray.length()));
+        VO.ensure(VO.emptyArray.append(new VO.Number(72)).append(new VO.Number(105))
+                  .reduce(
+                      function (n, x) {
+                          return x.append(n);
+                      }, VO.emptyString)
+                  .equals(new VO.String("Hi")));
 
 //        VO.ensure(VO.emptyArray.equals(VO.Array([])));  // ERROR: VO.Array([]) === undefined
         VO.ensure(VO.emptyArray.equals(new VO.Array([])));
