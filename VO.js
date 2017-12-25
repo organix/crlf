@@ -251,6 +251,21 @@ VO.String = (function (self) {
         this.ensure(upto.lessEqual(this.length()));  // upto <= length
         return new VO.String(this._value.slice(from._value, upto._value));
     };
+    self.append = function append(value) {
+        this.ensure(this.isString());
+        this.ensure(value.isNumber());
+        return new VO.String(this._value + String.fromCharCode(value._value));  // FIXME: use .fromPointAt() when available
+    };
+    self.reduce = function reduce(func, value) {
+        this.ensure(this.isString());
+        if (typeof func === "function") {
+            for (var i = 0; i < this._value.length; ++i) {
+                value = func(this._value.charCodeAt(i), value);  // FIXME: use .codePointAt() when available
+            }
+            return value;
+        }
+        this.throw("Not Implemented");  // FIXME!
+    };
     var constructor = function String(value) {
         if (value === undefined) {
             return VO.emptyString;
@@ -640,6 +655,14 @@ VO.selfTest = (function () {
         VO.ensure(sampleString.extract(VO.zero, new VO.Number(6))
                   .concatenate(sampleString.extract(new VO.Number(6), sampleString.length()))
                   .equals(sampleString));
+
+        VO.ensure(VO.emptyString.append(new VO.Number(72)).append(new VO.Number(105))
+                  .equals(new VO.String("Hi")));
+        VO.ensure(sampleString.reduce(
+                      function (c, x) {
+                          return x.plus(VO.one);
+                      }, VO.zero)
+                  .equals(sampleString.length()));
 
 //        VO.ensure(VO.emptyString.equals(VO.String("")));  // ERROR: VO.String("") === undefined
         VO.ensure(VO.emptyString.equals(new VO.String("")));
