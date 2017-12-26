@@ -471,12 +471,27 @@ VO.Object = (function (self) {
     return constructor;
 })();
 
+VO.Expression = (function (self) {
+//    self = self || Object.create(VO.emptyObject);
+    self = self || new VO.Value();
+    self.evaluate = function evaluate(/* context */) {
+        this.throw("Not Implemented");
+    };
+    var constructor = function Expression() {
+//        deepFreeze(this);  // can't freeze Expressions because we need mutable prototypes
+    };
+    self.constructor = constructor;
+    constructor.prototype = self;
+    return constructor;
+})();
+
 VO.ValueExpr = (function (self) {
-    self = self || {};
+    self = self || new VO.Expression();
     self.evaluate = function evaluate(/* context */) {
         return this._value;
     };
     var constructor = function ValueExpr(value) {
+        VO.ensure(VO.Boolean(value instanceof VO.Value));
         this._value = value;
     };
     self.constructor = constructor;
@@ -485,7 +500,7 @@ VO.ValueExpr = (function (self) {
 })();
 
 VO.VariableExpr = (function (self) {
-    self = self || {};
+    self = self || new VO.Expression();
     self.evaluate = function evaluate(context) {
 //        VO.ensure(context.isObject());
         return context.value(this._name);
@@ -500,7 +515,7 @@ VO.VariableExpr = (function (self) {
 })();
 
 VO.FunctionExpr = (function (self) {
-    self = self || {};
+    self = self || new VO.Expression();
     self.evaluate = function evaluate(context) {
         VO.throw("Not Implemented");  // FIXME!
     };
@@ -518,7 +533,7 @@ VO.FunctionExpr = (function (self) {
 })();
 
 VO.MethodExpr = (function (self) {
-    self = self || {};
+    self = self || new VO.Expression();
     self.evaluate = function evaluate(context) {
         var _this = this._expr.evaluate(context);  // determine target object
         var _body = _this.value(this._name);  // retrieve method from target
