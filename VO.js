@@ -505,7 +505,7 @@ VO.VariableExpr = (function (self) {
 //        VO.ensure(context.isObject());
         return context.value(this._name);
     };
-    var constructor = function ValueExpr(name) {
+    var constructor = function VariableExpr(name) {
         VO.ensure(name.isString());
         this._name = name;
     };
@@ -832,5 +832,14 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyObject.equals(new VO.Object({})));
         VO.ensure(VO.Boolean(VO.emptyObject !== new VO.Object({})));
         VO.ensure(VO.Boolean(VO.emptyObject === new VO.Object()));
+
+        // Expression
+        VO.ensure(new VO.ValueExpr(new VO.Null()).evaluate(sampleObject).equals(VO.null));
+        VO.ensure(new VO.ValueExpr(new VO.Number(2)).evaluate(sampleObject).equals(VO.two));
+        VO.ensure(new VO.ValueExpr(sampleArray).evaluate(sampleObject).equals(sampleArray));
+        VO.ensure(new VO.ValueExpr(sampleObject).evaluate(sampleObject).equals(sampleObject));
+
+        VO.ensure(new VO.VariableExpr(new VO.String("one")).evaluate(sampleObject).equals(VO.one));
+        VO.ensure(new VO.VariableExpr(new VO.String("emptyObject")).evaluate(sampleObject).equals(VO.emptyObject));
     };
 })();
