@@ -633,6 +633,10 @@ VO.selfTest = (function () {
         "emptyArray": VO.emptyArray,
         "emptyObject": VO.emptyObject
     });
+    var sampleContext = sampleObject.concatenate(new VO.Object({
+        "quote": VO.quoteOper,
+        "arrayOf": VO.arrayOper
+    }));
     var tmp;
 
     return function selfTest() {
@@ -900,7 +904,9 @@ VO.selfTest = (function () {
 
         VO.ensure(new VO.VariableExpr(new VO.String("one")).evaluate(sampleObject).equals(VO.one));
         VO.ensure(new VO.VariableExpr(new VO.String("emptyObject"))
-                  .evaluate(sampleObject).equals(VO.emptyObject));
+                  .evaluate(sampleContext).equals(VO.emptyObject));
+        VO.ensure(new VO.VariableExpr(new VO.String("arrayOf"))
+                  .evaluate(sampleContext).equals(VO.arrayOper));
 
         VO.ensure(new VO.CombineExpr(VO.quoteOper, sampleArray)
                   .evaluate(VO.emptyObject).equals(sampleArray));
@@ -909,5 +915,10 @@ VO.selfTest = (function () {
                                          return x.append(new VO.VariableExpr(n));
                                      }, VO.emptyArray))
                   .evaluate(sampleObject).equals(sampleArray));
+        VO.ensure(new VO.CombineExpr(new VO.VariableExpr(new VO.String("arrayOf")), 
+                                     sampleObject.reduce(function (n, v, x) {
+                                         return x.append(new VO.VariableExpr(n));
+                                     }, VO.emptyArray))
+                  .evaluate(sampleContext).equals(sampleArray));
     };
 })();
