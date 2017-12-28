@@ -514,6 +514,60 @@ VO.VariableExpr = (function (self) {
     return constructor;
 })();
 
+VO.CombineExpr = (function (self) {
+    self = self || new VO.Expression();
+    self.evaluate = function evaluate(context) {
+//        VO.ensure(context.isObject());
+        var combiner = this._expr.evaluate(context);
+//        VO.ensure(VO.Boolean(typeof combiner.combine === "function"));
+        VO.ensure(VO.Boolean(combiner instanceof VO.Combiner));
+        return combiner.combine(this._data, context);
+    };
+    var constructor = function CombineExpr(combiner, value) {
+        VO.ensure(VO.Boolean(combiner instanceof VO.Expression));
+        VO.ensure(VO.Boolean(value instanceof VO.Value));
+        this._expr = combiner;
+        this._data = value;
+    };
+    self.constructor = constructor;
+    constructor.prototype = self;
+    return constructor;
+})();
+
+VO.Combiner = (function (self) {
+    self = self || new VO.Expression();
+    self.evaluate = function evaluate(context) {
+//        VO.ensure(context.isObject());
+        return this;  // combiners evaluate to themselves
+    };
+    self.combine = function combine(value, context) {
+        VO.ensure(VO.Boolean(value instanceof VO.Value));
+//        VO.ensure(context.isObject());
+        return this._oper(value, context);
+    };
+    var constructor = function Combiner(operative) {
+        VO.ensure(VO.Boolean(typeof operative === "function"));
+        this._oper = operative;
+        deepFreeze(this);
+    };
+    self.constructor = constructor;
+    constructor.prototype = self;
+    /* return unevaluated argument */
+    VO.quoteOper = new constructor(function quoteOper(value/*, context*/) {
+        return value;
+    });
+    /* return array of evaluated arguments */
+    VO.arrayOper = new constructor(function arrayOper(array, context) {
+        VO.ensure(array.isArray());
+//        VO.ensure(context.isObject());
+        return array.reduce(function (v, x) {
+            VO.ensure(VO.Boolean(v instanceof VO.Expression));
+            return x.append(v.evaluate(context));
+        }, VO.emptyArray);
+    });
+    return constructor;
+})();
+
 VO.FunctionExpr = (function (self) {
     self = self || new VO.Expression();
     self.evaluate = function evaluate(context) {
@@ -819,6 +873,11 @@ VO.selfTest = (function () {
                           return x.plus(VO.one);
                       }, VO.zero)
                   .equals(sampleObject.names().length()));
+        VO.ensure(sampleObject.reduce(
+                      function (n, v, x) {
+                          return x.append(n);
+                      }, VO.emptyArray)
+                  .equals(sampleObject.names()));
         VO.ensure(VO.emptyObject
                   .append(new VO.String("space"), new VO.Number(33))
                   .append(new VO.String("bang"), new VO.Number(34))
@@ -834,12 +893,21 @@ VO.selfTest = (function () {
         VO.ensure(VO.Boolean(VO.emptyObject === new VO.Object()));
 
         // Expression
-        VO.ensure(new VO.ValueExpr(new VO.Null()).evaluate(sampleObject).equals(VO.null));
+        VO.ensure(new VO.ValueExpr(new VO.Null()).evaluate(VO.emptyObject).equals(VO.null));
         VO.ensure(new VO.ValueExpr(new VO.Number(2)).evaluate(sampleObject).equals(VO.two));
         VO.ensure(new VO.ValueExpr(sampleArray).evaluate(sampleObject).equals(sampleArray));
         VO.ensure(new VO.ValueExpr(sampleObject).evaluate(sampleObject).equals(sampleObject));
 
         VO.ensure(new VO.VariableExpr(new VO.String("one")).evaluate(sampleObject).equals(VO.one));
-        VO.ensure(new VO.VariableExpr(new VO.String("emptyObject")).evaluate(sampleObject).equals(VO.emptyObject));
+        VO.ensure(new VO.VariableExpr(new VO.String("emptyObject"))
+                  .evaluate(sampleObject).equals(VO.emptyObject));
+
+        VO.ensure(new VO.CombineExpr(VO.quoteOper, sampleArray)
+                  .evaluate(VO.emptyObject).equals(sampleArray));
+        VO.ensure(new VO.CombineExpr(VO.arrayOper, 
+                                     sampleObject.reduce(function (n, v, x) {
+                                         return x.append(new VO.VariableExpr(n));
+                                     }, VO.emptyArray))
+                  .evaluate(sampleObject).equals(sampleArray));
     };
 })();
