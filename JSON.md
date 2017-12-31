@@ -492,7 +492,7 @@ Function expressions evaluate _expression_ in the context of _environment_ and e
 
 Some methods are common to all value types.
 
-#### `<value>.equals[<value>]`
+#### `<value>.equals [<value>]`
 
 `true` if the target is equal to the parameter value, otherwise `false`.
 
@@ -524,11 +524,11 @@ Some methods are common to all value types.
 
 The JSON-encoded `<string>` representation of the target.
 
-#### `<value>.throw[<value>]`
+#### `<value>.throw [<value>]`
 
 Signal an exceptional condition with an error `value` (see `<crlf>.try`).
 
-#### `<value>.ensure[<boolean>]`
+#### `<value>.ensure [<boolean>]`
 
 If the parameter value is `true`, return the target, otherwise throw an exception.
 
@@ -538,11 +538,11 @@ If the parameter value is `true`, return the target, otherwise throw an exceptio
 
 If target is `true`, return `false`, otherwise `true`.
 
-#### `<boolean>.and[<boolean>]`
+#### `<boolean>.and [<boolean>]`
 
 If target is `false`, return `false`, otherwise return the parameter value.
 
-#### `<boolean>.or[<boolean>]`
+#### `<boolean>.or [<boolean>]`
 
 If target is `true`, return `true`, otherwise return the parameter value.
 
@@ -552,11 +552,11 @@ If target is `true`, return `then.value`, otherwise `else.value` (see `<crlf>.va
 
 ### Number methods
 
-#### `<number>.lessThan[<number>]`
+#### `<number>.lessThan [<number>]`
 
 `true` if target is numerically less than the parameter value, otherwise `false`.
 
-#### `<number>.plus[<number>]`
+#### `<number>.plus [<number>]`
 
 The `<number>` that is the mathematical sum of the target and the parameter value.
 
@@ -566,7 +566,7 @@ The `<number>` that is the mathematical sum of the target and the parameter valu
 
 The `<number>` of characters in the target.
 
-#### `<string>.value[<number>]`
+#### `<string>.value [<number>]`
 
 The character `<number>` at the parameter value 0-based index in the target.
 
@@ -574,11 +574,11 @@ The character `<number>` at the parameter value 0-based index in the target.
 
 `{ "ok": true, "value": <value> }` on success, otherwise `{ "ok": false, "error": <value> }`.
 
-#### `<string>.concatenate[<string>]`
+#### `<string>.concatenate [<string>]`
 
 The `<string>` consisting of the characters of target followed by the characters of the parameter value.
 
-#### `<string>.extract[<number>, <number>]`
+#### `<string>.extract [<number>, <number>]`
 
 The `<string>` consisting of the characters of target from the first parameter value to the second parameter value as a 0-based half-open interval.
 
@@ -588,33 +588,33 @@ The `<string>` consisting of the characters of target from the first parameter v
 
 The `<number>` of elements in the target.
 
-#### `<array>.value[<number>]`
+#### `<array>.value [<number>]`
 
 The element `<value>` at the parameter value 0-based index in the target.
 
-#### `<array>.concatenate[<array>]`
+#### `<array>.concatenate [<array>]`
 
 The `<array>` consisting of the elements of target followed by the elements of the parameter value.
 
-#### `<array>.extract[<number>, <number>]`
+#### `<array>.extract [<number>, <number>]`
 
 The `<array>` consisting of the elements of target from the first parameter value to the second parameter value as a 0-based half-open interval.
 
 ### Object methods
 
-#### `<object>.hasProperty[<string>]`
+#### `<object>.hasProperty [<string>]`
 
 `true` if the target has a property whose name matches the parameter value, otherwise `false`.
 
-#### `<object>.value[<string>]`
+#### `<object>.value [<string>]`
 
 The `<value>` associated with the parameter value name in the target.
 
-#### `<object>.concatenate[<object>]`
+#### `<object>.concatenate [<object>]`
 
 The `<object>` consisting of the properties of target, either augmented or replaced by properties of the parameter value.
 
-#### `<object>.extract[<string>, ...]`
+#### `<object>.extract [<string>, ...]`
 
 The `<object>` consisting of the properties of target named by the parameter value(s).
 
