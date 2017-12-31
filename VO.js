@@ -50,6 +50,10 @@ var deepFreeze = (typeof Object.freeze !== "function")
         return Object.freeze(obj);
     };
 
+VO.throw = function error(value) {  // signal an error
+    throw new Error(value);
+};
+
 VO.Value = (function (self) {
     self = self || {};
     self.equals = function equals(other) {
@@ -76,10 +80,6 @@ VO.Value = (function (self) {
     self.isObject = function isObject() {
         return VO.false;
     };
-    self.throw = function error(value) {
-        throw new Error(value);
-    };
-    VO.throw = self.throw;  // allow top-level exceptions
     self.ensure = function ensure(predicate) {
         if (predicate !== VO.true) {
             VO.throw(predicate);
@@ -264,7 +264,7 @@ VO.String = (function (self) {
             }
             return value;
         }
-        this.throw("Not Implemented");  // FIXME!
+        VO.throw("Not Implemented");  // FIXME!
     };
     var constructor = function String(value) {
         if (value === undefined) {
@@ -341,7 +341,7 @@ VO.Array = (function (self) {
             }
             return value;
         }
-        this.throw("Not Implemented");  // FIXME!
+        VO.throw("Not Implemented");  // FIXME!
     };
     var isArray = Array.isArray || function isArray(object) {
         return (Object.prototype.toString.call(object) === '[object Array]');
@@ -444,7 +444,7 @@ VO.Object = (function (self) {
             }
             return value;
         }
-        this.throw("Not Implemented");  // FIXME!
+        VO.throw("Not Implemented");  // FIXME!
     };
 /*
     self.names = function names() {
@@ -475,7 +475,7 @@ VO.Expression = (function (self) {
 //    self = self || Object.create(VO.emptyObject);
     self = self || new VO.Value();
     self.evaluate = function evaluate(/* context */) {
-        this.throw("Not Implemented");
+        VO.throw("Not Implemented");
     };
     var constructor = function Expression() {
 //        deepFreeze(this);  // can't freeze Expressions because we need mutable prototypes
