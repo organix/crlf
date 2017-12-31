@@ -254,7 +254,7 @@ VO.String = (function (self) {
     self.append = function append(value) {
         this.ensure(this.isString());
         this.ensure(value.isNumber());
-        return new VO.String(this._value + String.fromCharCode(value._value));  // FIXME: use .fromPointAt() when available
+        return new VO.String(this._value + String.fromCharCode(value._value));  // FIXME: use .fromCodePoint() when available
     };
     self.reduce = function reduce(func, value) {
         this.ensure(this.isString());
