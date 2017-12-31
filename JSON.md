@@ -494,6 +494,10 @@ Function expressions evaluate _expression_ in the context of _environment_ and e
 
 Signal an exceptional condition with an error `value` (see `<crlf>.try`).
 
+#### `VO.ensure [<boolean>]`
+
+If the parameter value is `true`, return the target, otherwise throw an exception.
+
 ### Value methods
 
 Some methods are common to all value types.
@@ -529,10 +533,6 @@ Some methods are common to all value types.
 #### `<value>.toJSON`
 
 The JSON-encoded `<string>` representation of the target.
-
-#### `<value>.ensure [<boolean>]`
-
-If the parameter value is `true`, return the target, otherwise throw an exception.
 
 ### Boolean methods
 

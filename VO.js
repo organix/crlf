@@ -54,6 +54,12 @@ VO.throw = function error(value) {  // signal an error
     throw new Error(value);
 };
 
+VO.ensure = function ensure(predicate) {  // express an invariant condition
+    if (predicate !== VO.true) {
+        VO.throw(predicate);
+    }
+};
+
 VO.Value = (function (self) {
     self = self || {};
     self.equals = function equals(other) {
@@ -80,12 +86,6 @@ VO.Value = (function (self) {
     self.isObject = function isObject() {
         return VO.false;
     };
-    self.ensure = function ensure(predicate) {
-        if (predicate !== VO.true) {
-            VO.throw(predicate);
-        }
-    };
-    VO.ensure = self.ensure;  // allow top-level assertions
     var constructor = function Value() {
 //        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
     };
@@ -116,26 +116,26 @@ VO.Boolean = (function (self) {
         return VO.true;
     };
     self.not = function not() {
-        this.ensure(this.isBoolean());
+        VO.ensure(this.isBoolean());
         if (this === VO.false) {
             return VO.true;
         }
         return VO.false;
     };
     self.and = function and(boolean) {
-        this.ensure(this.isBoolean());
+        VO.ensure(this.isBoolean());
         if (this === VO.false) {
             return VO.false;
         }
-        this.ensure(boolean.isBoolean());
+        VO.ensure(boolean.isBoolean());
         return boolean;
     };
     self.or = function or(boolean) {
-        this.ensure(this.isBoolean());
+        VO.ensure(this.isBoolean());
         if (this === VO.true) {
             return VO.true;
         }
-        this.ensure(boolean.isBoolean());
+        VO.ensure(boolean.isBoolean());
         return boolean;
     };
     var constructor = function Boolean(value) {
@@ -167,33 +167,33 @@ VO.Number = (function (self) {
         return VO.true;
     };
     self.lessThan = function lessThan(number) {
-        this.ensure(this.isNumber());
-        this.ensure(number.isNumber());
+        VO.ensure(this.isNumber());
+        VO.ensure(number.isNumber());
         return VO.Boolean(this._value < number._value);
     };
     self.lessEqual = function lessEqual(number) {
-        this.ensure(this.isNumber());
-        this.ensure(number.isNumber());
+        VO.ensure(this.isNumber());
+        VO.ensure(number.isNumber());
         return VO.Boolean(this._value <= number._value);
     };
     self.greaterEqual = function greaterEqual(number) {
-        this.ensure(this.isNumber());
-        this.ensure(number.isNumber());
+        VO.ensure(this.isNumber());
+        VO.ensure(number.isNumber());
         return VO.Boolean(this._value >= number._value);
     };
     self.greaterThan = function greaterThan(number) {
-        this.ensure(this.isNumber());
-        this.ensure(number.isNumber());
+        VO.ensure(this.isNumber());
+        VO.ensure(number.isNumber());
         return VO.Boolean(this._value > number._value);
     };
     self.plus = function plus(number) {
-        this.ensure(this.isNumber());
-        this.ensure(number.isNumber());
+        VO.ensure(this.isNumber());
+        VO.ensure(number.isNumber());
         return new VO.Number(this._value + number._value);
     };
     self.times = function times(number) {
-        this.ensure(this.isNumber());
-        this.ensure(number.isNumber());
+        VO.ensure(this.isNumber());
+        VO.ensure(number.isNumber());
         return new VO.Number(this._value * number._value);
     };
     var constructor = function Number(value) {
@@ -227,37 +227,37 @@ VO.String = (function (self) {
         return VO.true;
     };
     self.length = function length() {
-        this.ensure(this.isString());
+        VO.ensure(this.isString());
         return new VO.Number(this._value.length);
     };
     self.value = function value(offset) {
-        this.ensure(this.isString());
-        this.ensure(offset.isNumber());
-        this.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
-        this.ensure(offset.lessThan(this.length()));  // offset < length
+        VO.ensure(this.isString());
+        VO.ensure(offset.isNumber());
+        VO.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
+        VO.ensure(offset.lessThan(this.length()));  // offset < length
         return new VO.Number(this._value.charCodeAt(offset._value));  // FIXME: use .codePointAt() when available
     };
     self.concatenate = function concatenate(string) {
-        this.ensure(this.isString());
-        this.ensure(string.isString());
+        VO.ensure(this.isString());
+        VO.ensure(string.isString());
         return new VO.String(this._value + string._value);
     };
     self.extract = function extract(from, upto) {
-        this.ensure(this.isString());
-        this.ensure(from.isNumber());
-        this.ensure(upto.isNumber());
-        this.ensure(VO.zero.lessEqual(from));  // 0 <= from
-        this.ensure(from.lessEqual(upto));  // from <= upto
-        this.ensure(upto.lessEqual(this.length()));  // upto <= length
+        VO.ensure(this.isString());
+        VO.ensure(from.isNumber());
+        VO.ensure(upto.isNumber());
+        VO.ensure(VO.zero.lessEqual(from));  // 0 <= from
+        VO.ensure(from.lessEqual(upto));  // from <= upto
+        VO.ensure(upto.lessEqual(this.length()));  // upto <= length
         return new VO.String(this._value.slice(from._value, upto._value));
     };
     self.append = function append(value) {
-        this.ensure(this.isString());
-        this.ensure(value.isNumber());
+        VO.ensure(this.isString());
+        VO.ensure(value.isNumber());
         return new VO.String(this._value + String.fromCharCode(value._value));  // FIXME: use .fromCodePoint() when available
     };
     self.reduce = function reduce(func, value) {
-        this.ensure(this.isString());
+        VO.ensure(this.isString());
         if (typeof func === "function") {
             for (var i = 0; i < this._value.length; ++i) {
                 value = func(this._value.charCodeAt(i), value);  // FIXME: use .codePointAt() when available
@@ -304,37 +304,37 @@ VO.Array = (function (self) {
         return VO.true;
     };
     self.length = function length() {
-        this.ensure(this.isArray());
+        VO.ensure(this.isArray());
         return new VO.Number(this._value.length);
     };
     self.value = function value(offset) {
-        this.ensure(this.isArray());
-        this.ensure(offset.isNumber());
-        this.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
-        this.ensure(offset.lessThan(this.length()));  // offset < length
+        VO.ensure(this.isArray());
+        VO.ensure(offset.isNumber());
+        VO.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
+        VO.ensure(offset.lessThan(this.length()));  // offset < length
         return this._value[offset._value];
     };
     self.concatenate = function concatenate(array) {
-        this.ensure(this.isArray());
-        this.ensure(array.isArray());
+        VO.ensure(this.isArray());
+        VO.ensure(array.isArray());
         return new VO.Array(this._value.concat(array._value));
     };
     self.extract = function extract(from, upto) {
-        this.ensure(this.isArray());
-        this.ensure(from.isNumber());
-        this.ensure(upto.isNumber());
-        this.ensure(VO.zero.lessEqual(from));  // 0 <= from
-        this.ensure(from.lessEqual(upto));  // from <= upto
-        this.ensure(upto.lessEqual(this.length()));  // upto <= length
+        VO.ensure(this.isArray());
+        VO.ensure(from.isNumber());
+        VO.ensure(upto.isNumber());
+        VO.ensure(VO.zero.lessEqual(from));  // 0 <= from
+        VO.ensure(from.lessEqual(upto));  // from <= upto
+        VO.ensure(upto.lessEqual(this.length()));  // upto <= length
         return new VO.Array(this._value.slice(from._value, upto._value));
     };
     self.append = function append(value) {
-        this.ensure(this.isArray());
+        VO.ensure(this.isArray());
         VO.ensure(VO.Boolean(value instanceof VO.Value));
         return new VO.Array(this._value.concat(value));
     };
     self.reduce = function reduce(func, value) {
-        this.ensure(this.isArray());
+        VO.ensure(this.isArray());
         if (typeof func === "function") {
             for (var i = 0; i < this._value.length; ++i) {
                 value = func(this._value[i], value);
@@ -386,18 +386,18 @@ VO.Object = (function (self) {
         return VO.true;
     };
     self.hasProperty = function hasProperty(name) {
-        this.ensure(this.isObject());
-        this.ensure(name.isString());
+        VO.ensure(this.isObject());
+        VO.ensure(name.isString());
         return VO.Boolean(this._value.hasOwnProperty(name._value));
     };
     self.value = function value(name) {
-        this.ensure(this.isObject());
-        this.ensure(name.isString());
+        VO.ensure(this.isObject());
+        VO.ensure(name.isString());
         return this._value[name._value];
     };
     self.concatenate = function concatenate(object) {
-        this.ensure(this.isObject());
-        this.ensure(object.isObject());
+        VO.ensure(this.isObject());
+        VO.ensure(object.isObject());
         var result = {};
         Object.keys(this._value).forEach(function (key) {
             result[key] = this._value[key];  // copy properties from this
@@ -408,7 +408,7 @@ VO.Object = (function (self) {
         return new VO.Object(result);
     };
     self.extract = function extract(/* ...arguments */) {
-        this.ensure(this.isObject());
+        VO.ensure(this.isObject());
         VO.ensure(VO.Boolean(arguments.length >= 0));
         var result = {};
         for (var i = 0; i < arguments.length; ++i) {
@@ -419,7 +419,7 @@ VO.Object = (function (self) {
         return new VO.Object(result);
     };
     self.names = function names() {
-        this.ensure(this.isObject());
+        VO.ensure(this.isObject());
         var keys = Object.keys(this._value);
         for (var i = 0; i < keys.length; ++i) {
             keys[i] = new VO.String(keys[i]);  // convert to VO.String
@@ -427,7 +427,7 @@ VO.Object = (function (self) {
         return new VO.Array(keys);
     };
     self.append = function append(name, value) {
-        this.ensure(this.isObject());
+        VO.ensure(this.isObject());
         VO.ensure(name.isString());
         VO.ensure(VO.Boolean(value instanceof VO.Value));
         var obj = {};
@@ -435,7 +435,7 @@ VO.Object = (function (self) {
         return this.concatenate(new VO.Object(obj));
     };
     self.reduce = function reduce(func, value) {
-        this.ensure(this.isObject());
+        VO.ensure(this.isObject());
         if (typeof func === "function") {
             var keys = Object.keys(this._value);
             for (var i = 0; i < keys.length; ++i) {
@@ -448,7 +448,7 @@ VO.Object = (function (self) {
     };
 /*
     self.names = function names() {
-        this.ensure(this.isObject());
+        VO.ensure(this.isObject());
         return this.reduce(function (n, v, x) {
             return x.append(n);
         }, VO.emptyArray);
