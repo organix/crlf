@@ -159,7 +159,8 @@ VO.Number = (function (self) {
         if (this === other) {
             return VO.true;
         }
-        if ((this.isNumber() === VO.true) && (other.isNumber() === VO.true)) {
+        if ((this.hasType(VO.Number) === VO.true)
+        &&  (other.hasType(VO.Number) === VO.true)) {
             if (this._value === other._value) {
                 return VO.true;
             }
@@ -167,33 +168,33 @@ VO.Number = (function (self) {
         return VO.false;
     };
     self.lessThan = function lessThan(number) {
-        VO.ensure(this.isNumber());
-        VO.ensure(number.isNumber());
+        VO.ensure(this.hasType(VO.Number));
+        VO.ensure(number.hasType(VO.Number));
         return VO.Boolean(this._value < number._value);
     };
     self.lessEqual = function lessEqual(number) {
-        VO.ensure(this.isNumber());
-        VO.ensure(number.isNumber());
+        VO.ensure(this.hasType(VO.Number));
+        VO.ensure(number.hasType(VO.Number));
         return VO.Boolean(this._value <= number._value);
     };
     self.greaterEqual = function greaterEqual(number) {
-        VO.ensure(this.isNumber());
-        VO.ensure(number.isNumber());
+        VO.ensure(this.hasType(VO.Number));
+        VO.ensure(number.hasType(VO.Number));
         return VO.Boolean(this._value >= number._value);
     };
     self.greaterThan = function greaterThan(number) {
-        VO.ensure(this.isNumber());
-        VO.ensure(number.isNumber());
+        VO.ensure(this.hasType(VO.Number));
+        VO.ensure(number.hasType(VO.Number));
         return VO.Boolean(this._value > number._value);
     };
     self.plus = function plus(number) {
-        VO.ensure(this.isNumber());
-        VO.ensure(number.isNumber());
+        VO.ensure(this.hasType(VO.Number));
+        VO.ensure(number.hasType(VO.Number));
         return new VO.Number(this._value + number._value);
     };
     self.times = function times(number) {
-        VO.ensure(this.isNumber());
-        VO.ensure(number.isNumber());
+        VO.ensure(this.hasType(VO.Number));
+        VO.ensure(number.hasType(VO.Number));
         return new VO.Number(this._value * number._value);
     };
     var constructor = function Number(value) {
@@ -229,7 +230,7 @@ VO.String = (function (self) {
     };
     self.value = function value(offset) {
         VO.ensure(this.isString());
-        VO.ensure(offset.isNumber());
+        VO.ensure(offset.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
         VO.ensure(offset.lessThan(this.length()));  // offset < length
         return new VO.Number(this._value.charCodeAt(offset._value));  // FIXME: use .codePointAt() when available
@@ -241,8 +242,8 @@ VO.String = (function (self) {
     };
     self.extract = function extract(from, upto) {
         VO.ensure(this.isString());
-        VO.ensure(from.isNumber());
-        VO.ensure(upto.isNumber());
+        VO.ensure(from.hasType(VO.Number));
+        VO.ensure(upto.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(from));  // 0 <= from
         VO.ensure(from.lessEqual(upto));  // from <= upto
         VO.ensure(upto.lessEqual(this.length()));  // upto <= length
@@ -250,7 +251,7 @@ VO.String = (function (self) {
     };
     self.append = function append(value) {
         VO.ensure(this.isString());
-        VO.ensure(value.isNumber());
+        VO.ensure(value.hasType(VO.Number));
         return new VO.String(this._value + String.fromCharCode(value._value));  // FIXME: use .fromCodePoint() when available
     };
     self.reduce = function reduce(func, value) {
@@ -303,7 +304,7 @@ VO.Array = (function (self) {
     };
     self.value = function value(offset) {
         VO.ensure(this.isArray());
-        VO.ensure(offset.isNumber());
+        VO.ensure(offset.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
         VO.ensure(offset.lessThan(this.length()));  // offset < length
         return this._value[offset._value];
@@ -315,8 +316,8 @@ VO.Array = (function (self) {
     };
     self.extract = function extract(from, upto) {
         VO.ensure(this.isArray());
-        VO.ensure(from.isNumber());
-        VO.ensure(upto.isNumber());
+        VO.ensure(from.hasType(VO.Number));
+        VO.ensure(upto.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(from));  // 0 <= from
         VO.ensure(from.lessEqual(upto));  // from <= upto
         VO.ensure(upto.lessEqual(this.length()));  // upto <= length
