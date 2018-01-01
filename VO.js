@@ -327,7 +327,7 @@ VO.Array = (function (self) {
     };
     self.append = function append(value) {
         VO.ensure(this.isArray());
-        VO.ensure(VO.Boolean(value instanceof VO.Value));
+        VO.ensure(value.hasType(VO.Value));
         return new VO.Array(this._value.concat(value));
     };
     self.reduce = function reduce(func, value) {
@@ -423,7 +423,7 @@ VO.Object = (function (self) {
     self.append = function append(name, value) {
         VO.ensure(this.isObject());
         VO.ensure(name.isString());
-        VO.ensure(VO.Boolean(value instanceof VO.Value));
+        VO.ensure(value.hasType(VO.Value));
         var obj = {};
         obj[name._value] = value;
         return this.concatenate(new VO.Object(obj));
@@ -485,7 +485,7 @@ VO.ValueExpr = (function (self) {
         return this._value;
     };
     var constructor = function ValueExpr(value) {
-        VO.ensure(VO.Boolean(value instanceof VO.Value));
+        VO.ensure(value.hasType(VO.Value));
         this._value = value;
     };
     self.constructor = constructor;
@@ -514,14 +514,14 @@ VO.CombineExpr = (function (self) {
 //        VO.ensure(context.isObject());
         var combiner = this._expr.evaluate(context);
 //        VO.ensure(VO.Boolean(typeof combiner.combine === "function"));
-        VO.ensure(VO.Boolean(combiner instanceof VO.Combiner));
+        VO.ensure(combiner.hasType(VO.Combiner));
         return combiner.combine(this._data, context);
     };
-    var constructor = function CombineExpr(combiner, value) {
-        VO.ensure(VO.Boolean(combiner instanceof VO.Expression));
-        VO.ensure(VO.Boolean(value instanceof VO.Value));
-        this._expr = combiner;
-        this._data = value;
+    var constructor = function CombineExpr(expr, data) {
+        VO.ensure(expr.hasType(VO.Expression));
+        VO.ensure(data.hasType(VO.Value));
+        this._expr = expr;
+        this._data = data;
     };
     self.constructor = constructor;
     constructor.prototype = self;
@@ -535,7 +535,7 @@ VO.Combiner = (function (self) {
         return this;  // combiners evaluate to themselves
     };
     self.combine = function combine(value, context) {
-        VO.ensure(VO.Boolean(value instanceof VO.Value));
+        VO.ensure(value.hasType(VO.Value));
 //        VO.ensure(context.isObject());
         return this._oper(value, context);
     };
@@ -555,7 +555,7 @@ VO.Combiner = (function (self) {
         VO.ensure(array.isArray());
 //        VO.ensure(context.isObject());
         return array.reduce(function (v, x) {
-            VO.ensure(VO.Boolean(v instanceof VO.Expression));
+            VO.ensure(v.hasType(VO.Expression));
             return x.append(v.evaluate(context));
         }, VO.emptyArray);
     });
