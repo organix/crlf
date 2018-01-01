@@ -71,9 +71,6 @@ VO.Value = (function (self) {
     self.hasType = function hasType(type) {
         return VO.Boolean(this instanceof type);
     };
-    self.isBoolean = function isBoolean() {
-        return this.hasType(VO.Boolean);
-    };
     self.isNumber = function isNumber() {
         return this.hasType(VO.Number);
     };
@@ -112,26 +109,26 @@ VO.Null = (function (self) {
 VO.Boolean = (function (self) {
     self = self || new VO.Value();
     self.not = function not() {
-        VO.ensure(this.isBoolean());
+        VO.ensure(this.hasType(VO.Boolean));
         if (this === VO.false) {
             return VO.true;
         }
         return VO.false;
     };
     self.and = function and(boolean) {
-        VO.ensure(this.isBoolean());
+        VO.ensure(this.hasType(VO.Boolean));
         if (this === VO.false) {
             return VO.false;
         }
-        VO.ensure(boolean.isBoolean());
+        VO.ensure(boolean.hasType(VO.Boolean));
         return boolean;
     };
     self.or = function or(boolean) {
-        VO.ensure(this.isBoolean());
+        VO.ensure(this.hasType(VO.Boolean));
         if (this === VO.true) {
             return VO.true;
         }
-        VO.ensure(boolean.isBoolean());
+        VO.ensure(boolean.hasType(VO.Boolean));
         return boolean;
     };
     var constructor = function Boolean(value) {
