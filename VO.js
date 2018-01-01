@@ -363,7 +363,8 @@ VO.Object = (function (self) {
         if (this === other) {
             return VO.true;
         }
-        if ((this.isObject() === VO.true) && (other.isObject() === VO.true)) {
+        if ((this.hasType(VO.Object) === VO.true) 
+        &&  (other.hasType(VO.Object) === VO.true)) {
             var a = this._value;
             var b = other._value;
             var keys = Object.keys(a);
@@ -380,18 +381,18 @@ VO.Object = (function (self) {
         return VO.false;
     };
     self.hasProperty = function hasProperty(name) {
-        VO.ensure(this.isObject());
+        VO.ensure(this.hasType(VO.Object));
         VO.ensure(name.hasType(VO.String));
         return VO.Boolean(this._value.hasOwnProperty(name._value));
     };
     self.value = function value(name) {
-        VO.ensure(this.isObject());
+        VO.ensure(this.hasType(VO.Object));
         VO.ensure(name.hasType(VO.String));
         return this._value[name._value];
     };
     self.concatenate = function concatenate(object) {
-        VO.ensure(this.isObject());
-        VO.ensure(object.isObject());
+        VO.ensure(this.hasType(VO.Object));
+        VO.ensure(object.hasType(VO.Object));
         var result = {};
         Object.keys(this._value).forEach(function (key) {
             result[key] = this._value[key];  // copy properties from this
@@ -402,7 +403,7 @@ VO.Object = (function (self) {
         return new VO.Object(result);
     };
     self.extract = function extract(/* ...arguments */) {
-        VO.ensure(this.isObject());
+        VO.ensure(this.hasType(VO.Object));
         VO.ensure(VO.Boolean(arguments.length >= 0));
         var result = {};
         for (var i = 0; i < arguments.length; ++i) {
@@ -413,7 +414,7 @@ VO.Object = (function (self) {
         return new VO.Object(result);
     };
     self.names = function names() {
-        VO.ensure(this.isObject());
+        VO.ensure(this.hasType(VO.Object));
         var keys = Object.keys(this._value);
         for (var i = 0; i < keys.length; ++i) {
             keys[i] = new VO.String(keys[i]);  // convert to VO.String
@@ -421,7 +422,7 @@ VO.Object = (function (self) {
         return new VO.Array(keys);
     };
     self.append = function append(name, value) {
-        VO.ensure(this.isObject());
+        VO.ensure(this.hasType(VO.Object));
         VO.ensure(name.hasType(VO.String));
         VO.ensure(value.hasType(VO.Value));
         var obj = {};
@@ -429,7 +430,7 @@ VO.Object = (function (self) {
         return this.concatenate(new VO.Object(obj));
     };
     self.reduce = function reduce(func, value) {
-        VO.ensure(this.isObject());
+        VO.ensure(this.hasType(VO.Object));
         if (typeof func === "function") {
             var keys = Object.keys(this._value);
             for (var i = 0; i < keys.length; ++i) {
@@ -442,7 +443,7 @@ VO.Object = (function (self) {
     };
 /*
     self.names = function names() {
-        VO.ensure(this.isObject());
+        VO.ensure(this.hasType(VO.Object));
         return this.reduce(function (n, v, x) {
             return x.append(n);
         }, VO.emptyArray);
@@ -496,7 +497,7 @@ VO.ValueExpr = (function (self) {
 VO.VariableExpr = (function (self) {
     self = self || new VO.Expression();
     self.evaluate = function evaluate(context) {
-//        VO.ensure(context.isObject());
+//        VO.ensure(context.hasType(VO.Object));
         return context.value(this._name);
     };
     var constructor = function VariableExpr(name) {
@@ -511,7 +512,7 @@ VO.VariableExpr = (function (self) {
 VO.CombineExpr = (function (self) {
     self = self || new VO.Expression();
     self.evaluate = function evaluate(context) {
-//        VO.ensure(context.isObject());
+//        VO.ensure(context.hasType(VO.Object));
         var combiner = this._expr.evaluate(context);
 //        VO.ensure(VO.Boolean(typeof combiner.combine === "function"));
         VO.ensure(combiner.hasType(VO.Combiner));
@@ -531,12 +532,12 @@ VO.CombineExpr = (function (self) {
 VO.Combiner = (function (self) {
     self = self || new VO.Expression();
     self.evaluate = function evaluate(context) {
-//        VO.ensure(context.isObject());
+//        VO.ensure(context.hasType(VO.Object));
         return this;  // combiners evaluate to themselves
     };
     self.combine = function combine(value, context) {
         VO.ensure(value.hasType(VO.Value));
-//        VO.ensure(context.isObject());
+//        VO.ensure(context.hasType(VO.Object));
         return this._oper(value, context);
     };
     var constructor = function Combiner(operative) {
@@ -553,7 +554,7 @@ VO.Combiner = (function (self) {
     /* return array of evaluated arguments */
     VO.arrayOper = new constructor(function arrayOper(array, context) {
         VO.ensure(array.hasType(VO.Array));
-//        VO.ensure(context.isObject());
+//        VO.ensure(context.hasType(VO.Object));
         return array.reduce(function (v, x) {
             VO.ensure(v.hasType(VO.Expression));
             return x.append(v.evaluate(context));
