@@ -217,7 +217,8 @@ VO.String = (function (self) {
         if (this === other) {
             return VO.true;
         }
-        if ((this.isString() === VO.true) && (other.isString() === VO.true)) {
+        if ((this.hasType(VO.String) === VO.true) 
+        &&  (other.hasType(VO.String) === VO.true)) {
             if (this._value === other._value) {
                 return VO.true;
             }
@@ -225,23 +226,23 @@ VO.String = (function (self) {
         return VO.false;
     };
     self.length = function length() {
-        VO.ensure(this.isString());
+        VO.ensure(this.hasType(VO.String));
         return new VO.Number(this._value.length);
     };
     self.value = function value(offset) {
-        VO.ensure(this.isString());
+        VO.ensure(this.hasType(VO.String));
         VO.ensure(offset.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
         VO.ensure(offset.lessThan(this.length()));  // offset < length
         return new VO.Number(this._value.charCodeAt(offset._value));  // FIXME: use .codePointAt() when available
     };
     self.concatenate = function concatenate(string) {
-        VO.ensure(this.isString());
-        VO.ensure(string.isString());
+        VO.ensure(this.hasType(VO.String));
+        VO.ensure(string.hasType(VO.String));
         return new VO.String(this._value + string._value);
     };
     self.extract = function extract(from, upto) {
-        VO.ensure(this.isString());
+        VO.ensure(this.hasType(VO.String));
         VO.ensure(from.hasType(VO.Number));
         VO.ensure(upto.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(from));  // 0 <= from
@@ -250,12 +251,12 @@ VO.String = (function (self) {
         return new VO.String(this._value.slice(from._value, upto._value));
     };
     self.append = function append(value) {
-        VO.ensure(this.isString());
+        VO.ensure(this.hasType(VO.String));
         VO.ensure(value.hasType(VO.Number));
         return new VO.String(this._value + String.fromCharCode(value._value));  // FIXME: use .fromCodePoint() when available
     };
     self.reduce = function reduce(func, value) {
-        VO.ensure(this.isString());
+        VO.ensure(this.hasType(VO.String));
         if (typeof func === "function") {
             for (var i = 0; i < this._value.length; ++i) {
                 value = func(this._value.charCodeAt(i), value);  // FIXME: use .codePointAt() when available
@@ -379,12 +380,12 @@ VO.Object = (function (self) {
     };
     self.hasProperty = function hasProperty(name) {
         VO.ensure(this.isObject());
-        VO.ensure(name.isString());
+        VO.ensure(name.hasType(VO.String));
         return VO.Boolean(this._value.hasOwnProperty(name._value));
     };
     self.value = function value(name) {
         VO.ensure(this.isObject());
-        VO.ensure(name.isString());
+        VO.ensure(name.hasType(VO.String));
         return this._value[name._value];
     };
     self.concatenate = function concatenate(object) {
@@ -405,7 +406,7 @@ VO.Object = (function (self) {
         var result = {};
         for (var i = 0; i < arguments.length; ++i) {
             var name = arguments[i];
-            VO.ensure(name.isString());
+            VO.ensure(name.hasType(VO.String));
             result[name._value] = this._value[name._value];
         }
         return new VO.Object(result);
@@ -420,7 +421,7 @@ VO.Object = (function (self) {
     };
     self.append = function append(name, value) {
         VO.ensure(this.isObject());
-        VO.ensure(name.isString());
+        VO.ensure(name.hasType(VO.String));
         VO.ensure(value.hasType(VO.Value));
         var obj = {};
         obj[name._value] = value;
@@ -498,7 +499,7 @@ VO.VariableExpr = (function (self) {
         return context.value(this._name);
     };
     var constructor = function VariableExpr(name) {
-        VO.ensure(name.isString());
+        VO.ensure(name.hasType(VO.String));
         this._name = name;
     };
     self.constructor = constructor;
@@ -592,7 +593,7 @@ VO.MethodExpr = (function (self) {
         VO.throw("Not Implemented");  // FIXME!
     };
     var constructor = function MethodExpr(expr, name, values) {
-        VO.ensure(name.isString());
+        VO.ensure(name.hasType(VO.String));
         VO.ensure(values.isArray());
         this._expr = expr;
         this._name = name;
