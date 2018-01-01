@@ -68,20 +68,23 @@ VO.Value = (function (self) {
         }
         return VO.false;
     };
+    self.hasType = function hasType(type) {
+        return VO.Boolean(this instanceof type);
+    };
     self.isBoolean = function isBoolean() {
-        return VO.Boolean(this instanceof VO.Boolean);
+        return this.hasType(VO.Boolean);
     };
     self.isNumber = function isNumber() {
-        return VO.Boolean(this instanceof VO.Number);
+        return this.hasType(VO.Number);
     };
     self.isString = function isString() {
-        return VO.Boolean(this instanceof VO.String);
+        return this.hasType(VO.String);
     };
     self.isArray = function isArray() {
-        return VO.Boolean(this instanceof VO.Array);
+        return this.hasType(VO.Array);
     };
     self.isObject = function isObject() {
-        return VO.Boolean(this instanceof VO.Object);
+        return this.hasType(VO.Object);
     };
     var constructor = function Value() {
 //        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
@@ -953,8 +956,9 @@ VO.selfTest = (function () {
                                          return x.append(new VO.VariableExpr(n));
                                      }, VO.emptyArray))
                   .evaluate(sampleContext).equals(sampleArray));
+
+        return true;  // all tests passed
     };
 })();
 
 deepFreeze(VO);  // LOCK DOWN EVERYTHING!
-
