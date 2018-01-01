@@ -506,29 +506,9 @@ Some methods are common to all value types.
 
 `true` if the target is equal to the parameter value, otherwise `false`.
 
-#### `<value>.isNull`
+#### `<value>.hasType [<type>]`
 
-`true` if the target is `null`, otherwise `false`.
-
-#### `<value>.isBoolean`
-
-`true` if the target is `true` or `false`, otherwise `false`.
-
-#### `<value>.isNumber`
-
-`true` if the target is a JSON `<number>` value, otherwise `false`.
-
-#### `<value>.isString`
-
-`true` if the target is a JSON `<string>` value, otherwise `false`.
-
-#### `<value>.isArray`
-
-`true` if the target is a JSON `<array>` value, otherwise `false`.
-
-#### `<value>.isObject`
-
-`true` if the target is a JSON `<object>` value, otherwise `false`.
+`true` if the target is a member of the specified type, otherwise `false`.
 
 #### `<value>.toJSON`
 
@@ -576,6 +556,10 @@ The character `<number>` at the parameter value 0-based index in the target.
 
 `{ "ok": true, "value": <value> }` on success, otherwise `{ "ok": false, "error": <value> }`.
 
+#### `<string>.append [<number>]`
+
+The `<string>` consisting of the characters of target followed by the new character parameter.
+
 #### `<string>.concatenate [<string>]`
 
 The `<string>` consisting of the characters of target followed by the characters of the parameter value.
@@ -593,6 +577,10 @@ The `<number>` of elements in the target.
 #### `<array>.value [<number>]`
 
 The element `<value>` at the parameter value 0-based index in the target.
+
+#### `<array>.append [<value>]`
+
+The `<array>` consisting of the elemtns of target followed by the new element parameter.
 
 #### `<array>.concatenate [<array>]`
 
@@ -615,6 +603,10 @@ The `<value>` associated with the parameter value name in the target.
 #### `<object>.concatenate [<object>]`
 
 The `<object>` consisting of the properties of target, either augmented or replaced by properties of the parameter value.
+
+#### `<object>.append [<name>, <value>]`
+
+The `<object>` consisting of the properties of target followed by the new property name/value.
 
 #### `<object>.extract [<string>, ...]`
 
