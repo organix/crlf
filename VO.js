@@ -69,22 +69,22 @@ VO.Value = (function (self) {
         return VO.false;
     };
     self.isNull = function isNull() {
-        return VO.false;
+        return VO.Boolean(this instanceof VO.Null);
     };
     self.isBoolean = function isBoolean() {
-        return VO.false;
+        return VO.Boolean(this instanceof VO.Boolean);
     };
     self.isNumber = function isNumber() {
-        return VO.false;
+        return VO.Boolean(this instanceof VO.Number);
     };
     self.isString = function isString() {
-        return VO.false;
+        return VO.Boolean(this instanceof VO.String);
     };
     self.isArray = function isArray() {
-        return VO.false;
+        return VO.Boolean(this instanceof VO.Array);
     };
     self.isObject = function isObject() {
-        return VO.false;
+        return VO.Boolean(this instanceof VO.Object);
     };
     var constructor = function Value() {
 //        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
@@ -96,25 +96,21 @@ VO.Value = (function (self) {
 
 VO.Null = (function (self) {
     self = self || new VO.Value();
-    self.isNull = function isNull() {
-        return VO.true;
-    };
     var constructor = function Null() {
-        this._value = null;
+        if (VO.null === undefined) {
+            this._value = null;
+            VO.null = deepFreeze(this);
+        }
+        return VO.null;
     };
     self.constructor = constructor;
     constructor.prototype = self;
-    VO.null = deepFreeze(new constructor());
-    return function Null() {
-        return VO.null;
-    };
+    VO.null = new constructor();
+    return constructor;
 })();
 
 VO.Boolean = (function (self) {
     self = self || new VO.Value();
-    self.isBoolean = function isBoolean() {
-        return VO.true;
-    };
     self.not = function not() {
         VO.ensure(this.isBoolean());
         if (this === VO.false) {
@@ -139,15 +135,25 @@ VO.Boolean = (function (self) {
         return boolean;
     };
     var constructor = function Boolean(value) {
-        this._value = value;
+        if (value) {
+            if (VO.true === undefined) {
+                this._value = true;
+                VO.true = deepFreeze(this);
+            }
+            return VO.true;
+        } else {
+            if (VO.false === undefined) {
+                this._value = false;
+                VO.false = deepFreeze(this);
+            }
+            return VO.false;
+        }
     };
     self.constructor = constructor;
     constructor.prototype = self;
-    VO.true = deepFreeze(new constructor(true));
-    VO.false = deepFreeze(new constructor(false));
-    return function Boolean(value) {
-        return (value ? VO.true : VO.false);
-    };
+    VO.true = new constructor(true);
+    VO.false = new constructor(false);
+    return constructor;
 })();
 
 VO.Number = (function (self) {
@@ -162,9 +168,6 @@ VO.Number = (function (self) {
             }
         }
         return VO.false;
-    };
-    self.isNumber = function isNumber() {
-        return VO.true;
     };
     self.lessThan = function lessThan(number) {
         VO.ensure(this.isNumber());
@@ -222,9 +225,6 @@ VO.String = (function (self) {
             }
         }
         return VO.false;
-    };
-    self.isString = function isString() {
-        return VO.true;
     };
     self.length = function length() {
         VO.ensure(this.isString());
@@ -299,9 +299,6 @@ VO.Array = (function (self) {
             }
         }
         return VO.false;
-    };
-    self.isArray = function isArray() {
-        return VO.true;
     };
     self.length = function length() {
         VO.ensure(this.isArray());
@@ -381,9 +378,6 @@ VO.Object = (function (self) {
             }
         }
         return VO.false;
-    };
-    self.isObject = function isObject() {
-        return VO.true;
     };
     self.hasProperty = function hasProperty(name) {
         VO.ensure(this.isObject());
@@ -645,6 +639,11 @@ VO.selfTest = (function () {
         VO.ensure(VO.null.equals(VO.true).not());
         VO.ensure(VO.null.equals(VO.false).not());
         VO.ensure(VO.null.equals(VO.zero).not());
+/*
+        VO.ensure(VO.Boolean(VO.null instanceof VO.Value));
+        VO.ensure(VO.Boolean(VO.null instanceof VO.Null));
+        VO.ensure(VO.Boolean(VO.null instanceof VO.Boolean).not());
+*/
         VO.ensure(VO.null.isNull());
         VO.ensure(VO.null.isBoolean().not());
         VO.ensure(VO.null.isNumber().not());
@@ -691,9 +690,11 @@ VO.selfTest = (function () {
         VO.ensure(VO.true.equals(VO.Boolean(true)));
         VO.ensure(VO.true.equals(new VO.Boolean(true)));
         VO.ensure(VO.Boolean(VO.true === new VO.Boolean(true)));
+        VO.ensure(VO.Boolean(new VO.Boolean(true) === new VO.Boolean(true)));
         VO.ensure(VO.false.equals(VO.Boolean(false)));
         VO.ensure(VO.false.equals(new VO.Boolean(false)));
         VO.ensure(VO.Boolean(VO.false === new VO.Boolean(false)));
+        VO.ensure(VO.Boolean(new VO.Boolean(false) === new VO.Boolean(false)));
 
         // Number
         VO.ensure(VO.zero.equals(VO.zero));
@@ -922,3 +923,6 @@ VO.selfTest = (function () {
                   .evaluate(sampleContext).equals(sampleArray));
     };
 })();
+
+deepFreeze(VO);  // LOCK DOWN EVERYTHING!
+
