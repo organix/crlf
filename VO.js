@@ -639,13 +639,13 @@ VO.selfTest = (function () {
         VO.ensure(VO.null.equals(VO.true).not());
         VO.ensure(VO.null.equals(VO.false).not());
         VO.ensure(VO.null.equals(VO.zero).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Value));
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Null));
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Boolean).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Number).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.String).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Array).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Object).not());
+        VO.ensure(VO.null.hasType(VO.Value));
+        VO.ensure(VO.null.hasType(VO.Null));
+        VO.ensure(VO.null.hasType(VO.Boolean).not());
+        VO.ensure(VO.null.hasType(VO.Number).not());
+        VO.ensure(VO.null.hasType(VO.String).not());
+        VO.ensure(VO.null.hasType(VO.Array).not());
+        VO.ensure(VO.null.hasType(VO.Object).not());
 
         VO.ensure(VO.null.equals(VO.Null()));
         VO.ensure(VO.null.equals(new VO.Null()));
@@ -657,25 +657,25 @@ VO.selfTest = (function () {
         VO.ensure(VO.true.equals(VO.true));
         VO.ensure(VO.true.equals(VO.false).not());
         VO.ensure(VO.true.equals(VO.zero).not());
-        VO.ensure(VO.Boolean(VO.true instanceof VO.Value));
-        VO.ensure(VO.Boolean(VO.true instanceof VO.Null).not());
-        VO.ensure(VO.Boolean(VO.true instanceof VO.Boolean));
-        VO.ensure(VO.Boolean(VO.true instanceof VO.Number).not());
-        VO.ensure(VO.Boolean(VO.true instanceof VO.String).not());
-        VO.ensure(VO.Boolean(VO.true instanceof VO.Array).not());
-        VO.ensure(VO.Boolean(VO.true instanceof VO.Object).not());
+        VO.ensure(VO.true.hasType(VO.Value));
+        VO.ensure(VO.true.hasType(VO.Null).not());
+        VO.ensure(VO.true.hasType(VO.Boolean));
+        VO.ensure(VO.true.hasType(VO.Number).not());
+        VO.ensure(VO.true.hasType(VO.String).not());
+        VO.ensure(VO.true.hasType(VO.Array).not());
+        VO.ensure(VO.true.hasType(VO.Object).not());
 
         VO.ensure(VO.false.equals(VO.null).not());
         VO.ensure(VO.false.equals(VO.true).not());
         VO.ensure(VO.false.equals(VO.false));
         VO.ensure(VO.false.equals(VO.zero).not());
-        VO.ensure(VO.Boolean(VO.false instanceof VO.Value));
-        VO.ensure(VO.Boolean(VO.false instanceof VO.Null).not());
-        VO.ensure(VO.Boolean(VO.false instanceof VO.Boolean));
-        VO.ensure(VO.Boolean(VO.false instanceof VO.Number).not());
-        VO.ensure(VO.Boolean(VO.false instanceof VO.String).not());
-        VO.ensure(VO.Boolean(VO.false instanceof VO.Array).not());
-        VO.ensure(VO.Boolean(VO.false instanceof VO.Object).not());
+        VO.ensure(VO.false.hasType(VO.Value));
+        VO.ensure(VO.false.hasType(VO.Null).not());
+        VO.ensure(VO.false.hasType(VO.Boolean));
+        VO.ensure(VO.false.hasType(VO.Number).not());
+        VO.ensure(VO.false.hasType(VO.String).not());
+        VO.ensure(VO.false.hasType(VO.Array).not());
+        VO.ensure(VO.false.hasType(VO.Object).not());
 
         VO.ensure(VO.false.and(VO.false).not());
         VO.ensure(VO.false.and(VO.true).not());
@@ -700,21 +700,13 @@ VO.selfTest = (function () {
         VO.ensure(VO.zero.equals(VO.emptyString).not());
         VO.ensure(VO.zero.equals(VO.emptyArray).not());
         VO.ensure(VO.zero.equals(VO.emptyObject).not());
-/*
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Value));
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Null));
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Boolean).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Number).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.String).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Array).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Object).not());
-*/
-        VO.ensure(VO.Boolean(VO.zero instanceof VO.Null).not());
-        VO.ensure(VO.zero.isBoolean().not());
-        VO.ensure(VO.zero.isNumber());
-        VO.ensure(VO.zero.isString().not());
-        VO.ensure(VO.zero.isArray().not());
-        VO.ensure(VO.zero.isObject().not());
+        VO.ensure(VO.zero.hasType(VO.Value));
+        VO.ensure(VO.zero.hasType(VO.Null).not());
+        VO.ensure(VO.zero.hasType(VO.Boolean).not());
+        VO.ensure(VO.zero.hasType(VO.Number));
+        VO.ensure(VO.zero.hasType(VO.String).not());
+        VO.ensure(VO.zero.hasType(VO.Array).not());
+        VO.ensure(VO.zero.hasType(VO.Object).not());
 
         VO.ensure(VO.zero.lessThan(VO.minusOne).not());
         VO.ensure(VO.zero.lessThan(VO.zero).not());
@@ -754,21 +746,13 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyString.equals(VO.emptyString));
         VO.ensure(VO.emptyString.equals(VO.emptyArray).not());
         VO.ensure(VO.emptyString.equals(VO.emptyObject).not());
-/*
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Value));
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Null));
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Boolean).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Number).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.String).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Array).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Object).not());
-*/
-        VO.ensure(VO.Boolean(VO.emptyString instanceof VO.Null).not());
-        VO.ensure(VO.emptyString.isBoolean().not());
-        VO.ensure(VO.emptyString.isNumber().not());
-        VO.ensure(VO.emptyString.isString());
-        VO.ensure(VO.emptyString.isArray().not());
-        VO.ensure(VO.emptyString.isObject().not());
+        VO.ensure(VO.emptyString.hasType(VO.Value));
+        VO.ensure(VO.emptyString.hasType(VO.Null).not());
+        VO.ensure(VO.emptyString.hasType(VO.Boolean).not());
+        VO.ensure(VO.emptyString.hasType(VO.Number).not());
+        VO.ensure(VO.emptyString.hasType(VO.String));
+        VO.ensure(VO.emptyString.hasType(VO.Array).not());
+        VO.ensure(VO.emptyString.hasType(VO.Object).not());
 
         VO.ensure(VO.emptyString.length().equals(VO.zero));
         VO.ensure(sampleString.length().equals(new VO.Number(13)));
@@ -808,21 +792,13 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyArray.equals(VO.emptyString).not());
         VO.ensure(VO.emptyArray.equals(VO.emptyArray));
         VO.ensure(VO.emptyArray.equals(VO.emptyObject).not());
-/*
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Value));
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Null));
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Boolean).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Number).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.String).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Array).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Object).not());
-*/
-        VO.ensure(VO.Boolean(VO.emptyArray instanceof VO.Null).not());
-        VO.ensure(VO.emptyArray.isBoolean().not());
-        VO.ensure(VO.emptyArray.isNumber().not());
-        VO.ensure(VO.emptyArray.isString().not());
-        VO.ensure(VO.emptyArray.isArray());
-        VO.ensure(VO.emptyArray.isObject().not());
+        VO.ensure(VO.emptyArray.hasType(VO.Value));
+        VO.ensure(VO.emptyArray.hasType(VO.Null).not());
+        VO.ensure(VO.emptyArray.hasType(VO.Boolean).not());
+        VO.ensure(VO.emptyArray.hasType(VO.Number).not());
+        VO.ensure(VO.emptyArray.hasType(VO.String).not());
+        VO.ensure(VO.emptyArray.hasType(VO.Array));
+        VO.ensure(VO.emptyArray.hasType(VO.Object).not());
 
         VO.ensure(VO.emptyArray.length().equals(VO.zero));
         VO.ensure(sampleArray.length().equals(new VO.Number(8)));
@@ -862,21 +838,13 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyObject.equals(VO.emptyString).not());
         VO.ensure(VO.emptyObject.equals(VO.emptyArray).not());
         VO.ensure(VO.emptyObject.equals(VO.emptyObject));
-/*
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Value));
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Null));
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Boolean).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Number).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.String).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Array).not());
-        VO.ensure(VO.Boolean(VO.null instanceof VO.Object).not());
-*/
-        VO.ensure(VO.Boolean(VO.emptyObject instanceof VO.Null).not());
-        VO.ensure(VO.emptyObject.isBoolean().not());
-        VO.ensure(VO.emptyObject.isNumber().not());
-        VO.ensure(VO.emptyObject.isString().not());
-        VO.ensure(VO.emptyObject.isArray().not());
-        VO.ensure(VO.emptyObject.isObject());
+        VO.ensure(VO.emptyObject.hasType(VO.Value));
+        VO.ensure(VO.emptyObject.hasType(VO.Null).not());
+        VO.ensure(VO.emptyObject.hasType(VO.Boolean).not());
+        VO.ensure(VO.emptyObject.hasType(VO.Number).not());
+        VO.ensure(VO.emptyObject.hasType(VO.String).not());
+        VO.ensure(VO.emptyObject.hasType(VO.Array).not());
+        VO.ensure(VO.emptyObject.hasType(VO.Object));
 
         VO.ensure(VO.emptyObject.names().equals(VO.emptyArray));
         VO.ensure(sampleObject.names().length().equals(new VO.Number(8)));
