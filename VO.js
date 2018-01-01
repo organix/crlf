@@ -285,7 +285,8 @@ VO.Array = (function (self) {
         if (this === other) {
             return VO.true;
         }
-        if ((this.isArray() === VO.true) && (other.isArray() === VO.true)) {
+        if ((this.hasType(VO.Array) === VO.true)
+        &&  (other.hasType(VO.Array) === VO.true)) {
             var a = this._value;
             var b = other._value;
             if (a.length === b.length) {
@@ -300,23 +301,23 @@ VO.Array = (function (self) {
         return VO.false;
     };
     self.length = function length() {
-        VO.ensure(this.isArray());
+        VO.ensure(this.hasType(VO.Array));
         return new VO.Number(this._value.length);
     };
     self.value = function value(offset) {
-        VO.ensure(this.isArray());
+        VO.ensure(this.hasType(VO.Array));
         VO.ensure(offset.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
         VO.ensure(offset.lessThan(this.length()));  // offset < length
         return this._value[offset._value];
     };
     self.concatenate = function concatenate(array) {
-        VO.ensure(this.isArray());
-        VO.ensure(array.isArray());
+        VO.ensure(this.hasType(VO.Array));
+        VO.ensure(array.hasType(VO.Array));
         return new VO.Array(this._value.concat(array._value));
     };
     self.extract = function extract(from, upto) {
-        VO.ensure(this.isArray());
+        VO.ensure(this.hasType(VO.Array));
         VO.ensure(from.hasType(VO.Number));
         VO.ensure(upto.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(from));  // 0 <= from
@@ -325,12 +326,12 @@ VO.Array = (function (self) {
         return new VO.Array(this._value.slice(from._value, upto._value));
     };
     self.append = function append(value) {
-        VO.ensure(this.isArray());
+        VO.ensure(this.hasType(VO.Array));
         VO.ensure(value.hasType(VO.Value));
         return new VO.Array(this._value.concat(value));
     };
     self.reduce = function reduce(func, value) {
-        VO.ensure(this.isArray());
+        VO.ensure(this.hasType(VO.Array));
         if (typeof func === "function") {
             for (var i = 0; i < this._value.length; ++i) {
                 value = func(this._value[i], value);
@@ -551,7 +552,7 @@ VO.Combiner = (function (self) {
     });
     /* return array of evaluated arguments */
     VO.arrayOper = new constructor(function arrayOper(array, context) {
-        VO.ensure(array.isArray());
+        VO.ensure(array.hasType(VO.Array));
 //        VO.ensure(context.isObject());
         return array.reduce(function (v, x) {
             VO.ensure(v.hasType(VO.Expression));
@@ -567,9 +568,9 @@ VO.FunctionExpr = (function (self) {
         VO.throw("Not Implemented");  // FIXME!
     };
     var constructor = function FunctionExpr(body, names, values) {
-        VO.ensure(body.isArray());
-        VO.ensure(names.isArray());
-        VO.ensure(values.isArray());
+        VO.ensure(body.hasType(VO.Array));
+        VO.ensure(names.hasType(VO.Array));
+        VO.ensure(values.hasType(VO.Array));
         this._body = body;
         this._names = names;
         this._values = values;
@@ -594,7 +595,7 @@ VO.MethodExpr = (function (self) {
     };
     var constructor = function MethodExpr(expr, name, values) {
         VO.ensure(name.hasType(VO.String));
-        VO.ensure(values.isArray());
+        VO.ensure(values.hasType(VO.Array));
         this._expr = expr;
         this._name = name;
         this._values = values;
