@@ -62,26 +62,14 @@ VO.ensure = function ensure(predicate) {  // express an invariant condition
 
 VO.Value = (function (self) {
     self = self || {};
-    self.equals = function equals(other) {
-        if (this === other) {
+    self.equals = function equals(that) {
+        if (this === that) {
             return VO.true;
         }
         return VO.false;
     };
     self.hasType = function hasType(type) {
         return VO.Boolean(this instanceof type);
-    };
-    self.isNumber = function isNumber() {
-        return this.hasType(VO.Number);
-    };
-    self.isString = function isString() {
-        return this.hasType(VO.String);
-    };
-    self.isArray = function isArray() {
-        return this.hasType(VO.Array);
-    };
-    self.isObject = function isObject() {
-        return this.hasType(VO.Object);
     };
     var constructor = function Value() {
 //        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
@@ -115,21 +103,21 @@ VO.Boolean = (function (self) {
         }
         return VO.false;
     };
-    self.and = function and(boolean) {
+    self.and = function and(that) {
         VO.ensure(this.hasType(VO.Boolean));
         if (this === VO.false) {
             return VO.false;
         }
-        VO.ensure(boolean.hasType(VO.Boolean));
-        return boolean;
+        VO.ensure(that.hasType(VO.Boolean));
+        return that;
     };
-    self.or = function or(boolean) {
+    self.or = function or(that) {
         VO.ensure(this.hasType(VO.Boolean));
         if (this === VO.true) {
             return VO.true;
         }
-        VO.ensure(boolean.hasType(VO.Boolean));
-        return boolean;
+        VO.ensure(that.hasType(VO.Boolean));
+        return that;
     };
     var constructor = function Boolean(value) {
         if (value) {
@@ -155,47 +143,47 @@ VO.Boolean = (function (self) {
 
 VO.Number = (function (self) {
     self = self || new VO.Value();
-    self.equals = function equals(other) {
-        if (this === other) {
+    self.equals = function equals(that) {
+        if (this === that) {
             return VO.true;
         }
         if ((this.hasType(VO.Number) === VO.true)
-        &&  (other.hasType(VO.Number) === VO.true)) {
-            if (this._value === other._value) {
+        &&  (that.hasType(VO.Number) === VO.true)) {
+            if (this._value === that._value) {
                 return VO.true;
             }
         }
         return VO.false;
     };
-    self.lessThan = function lessThan(number) {
+    self.lessThan = function lessThan(that) {
         VO.ensure(this.hasType(VO.Number));
-        VO.ensure(number.hasType(VO.Number));
-        return VO.Boolean(this._value < number._value);
+        VO.ensure(that.hasType(VO.Number));
+        return VO.Boolean(this._value < that._value);
     };
-    self.lessEqual = function lessEqual(number) {
+    self.lessEqual = function lessEqual(that) {
         VO.ensure(this.hasType(VO.Number));
-        VO.ensure(number.hasType(VO.Number));
-        return VO.Boolean(this._value <= number._value);
+        VO.ensure(that.hasType(VO.Number));
+        return VO.Boolean(this._value <= that._value);
     };
-    self.greaterEqual = function greaterEqual(number) {
+    self.greaterEqual = function greaterEqual(that) {
         VO.ensure(this.hasType(VO.Number));
-        VO.ensure(number.hasType(VO.Number));
-        return VO.Boolean(this._value >= number._value);
+        VO.ensure(that.hasType(VO.Number));
+        return VO.Boolean(this._value >= that._value);
     };
-    self.greaterThan = function greaterThan(number) {
+    self.greaterThan = function greaterThan(that) {
         VO.ensure(this.hasType(VO.Number));
-        VO.ensure(number.hasType(VO.Number));
-        return VO.Boolean(this._value > number._value);
+        VO.ensure(that.hasType(VO.Number));
+        return VO.Boolean(this._value > that._value);
     };
-    self.plus = function plus(number) {
+    self.plus = function plus(that) {
         VO.ensure(this.hasType(VO.Number));
-        VO.ensure(number.hasType(VO.Number));
-        return new VO.Number(this._value + number._value);
+        VO.ensure(that.hasType(VO.Number));
+        return new VO.Number(this._value + that._value);
     };
-    self.times = function times(number) {
+    self.times = function times(that) {
         VO.ensure(this.hasType(VO.Number));
-        VO.ensure(number.hasType(VO.Number));
-        return new VO.Number(this._value * number._value);
+        VO.ensure(that.hasType(VO.Number));
+        return new VO.Number(this._value * that._value);
     };
     var constructor = function Number(value) {
         VO.ensure(VO.Boolean(typeof value === "number"));
@@ -213,13 +201,13 @@ VO.Number = (function (self) {
 
 VO.String = (function (self) {
     self = self || new VO.Value();
-    self.equals = function equals(other) {
-        if (this === other) {
+    self.equals = function equals(that) {
+        if (this === that) {
             return VO.true;
         }
         if ((this.hasType(VO.String) === VO.true) 
-        &&  (other.hasType(VO.String) === VO.true)) {
-            if (this._value === other._value) {
+        &&  (that.hasType(VO.String) === VO.true)) {
+            if (this._value === that._value) {
                 return VO.true;
             }
         }
@@ -236,10 +224,10 @@ VO.String = (function (self) {
         VO.ensure(offset.lessThan(this.length()));  // offset < length
         return new VO.Number(this._value.charCodeAt(offset._value));  // FIXME: use .codePointAt() when available
     };
-    self.concatenate = function concatenate(string) {
+    self.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.String));
-        VO.ensure(string.hasType(VO.String));
-        return new VO.String(this._value + string._value);
+        VO.ensure(that.hasType(VO.String));
+        return new VO.String(this._value + that._value);
     };
     self.extract = function extract(from, upto) {
         VO.ensure(this.hasType(VO.String));
@@ -281,14 +269,14 @@ VO.String = (function (self) {
 
 VO.Array = (function (self) {
     self = self || new VO.Value();
-    self.equals = function equals(other) {
-        if (this === other) {
+    self.equals = function equals(that) {
+        if (this === that) {
             return VO.true;
         }
         if ((this.hasType(VO.Array) === VO.true)
-        &&  (other.hasType(VO.Array) === VO.true)) {
+        &&  (that.hasType(VO.Array) === VO.true)) {
             var a = this._value;
-            var b = other._value;
+            var b = that._value;
             if (a.length === b.length) {
                 for (var i = 0; i < a.length; ++i) {
                     if (a[i].equals(b[i]) === VO.false) {
@@ -311,10 +299,10 @@ VO.Array = (function (self) {
         VO.ensure(offset.lessThan(this.length()));  // offset < length
         return this._value[offset._value];
     };
-    self.concatenate = function concatenate(array) {
+    self.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.Array));
-        VO.ensure(array.hasType(VO.Array));
-        return new VO.Array(this._value.concat(array._value));
+        VO.ensure(that.hasType(VO.Array));
+        return new VO.Array(this._value.concat(that._value));
     };
     self.extract = function extract(from, upto) {
         VO.ensure(this.hasType(VO.Array));
@@ -359,14 +347,14 @@ VO.Array = (function (self) {
 
 VO.Object = (function (self) {
     self = self || new VO.Value();
-    self.equals = function equals(other) {
-        if (this === other) {
+    self.equals = function equals(that) {
+        if (this === that) {
             return VO.true;
         }
         if ((this.hasType(VO.Object) === VO.true) 
-        &&  (other.hasType(VO.Object) === VO.true)) {
+        &&  (that.hasType(VO.Object) === VO.true)) {
             var a = this._value;
-            var b = other._value;
+            var b = that._value;
             var keys = Object.keys(a);
             if (keys.length === Object.keys(b).length) {
                 for (var i = 0; i < keys.length; ++i) {
@@ -390,15 +378,15 @@ VO.Object = (function (self) {
         VO.ensure(name.hasType(VO.String));
         return this._value[name._value];
     };
-    self.concatenate = function concatenate(object) {
+    self.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.Object));
-        VO.ensure(object.hasType(VO.Object));
+        VO.ensure(that.hasType(VO.Object));
         var result = {};
         Object.keys(this._value).forEach(function (key) {
             result[key] = this._value[key];  // copy properties from this
         }, this);
-        Object.keys(object._value).forEach(function (key) {
-            result[key] = object._value[key];  // argument/replace with properties from object
+        Object.keys(that._value).forEach(function (key) {
+            result[key] = that._value[key];  // argument/replace with properties from that
         });
         return new VO.Object(result);
     };
