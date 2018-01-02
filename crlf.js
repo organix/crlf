@@ -44,9 +44,9 @@ crlf.compile = function compile(source) {  // { "lang": <string>, "ast": <value>
 crlf.language = {};  // language factory namespace
 
 crlf.language["PEG"] = (function (constructor) {
-    var kinds = {};
+    var kind = {};
     var compile = function compile(expr) {  // { "kind": <string>, ... }
-        var constructor = kinds[expr.kind];
+        var constructor = kind[expr.kind];
         return new constructor(expr);
     };
     constructor = constructor || function PEG_grammar(ast) {
@@ -65,7 +65,7 @@ crlf.language["PEG"] = (function (constructor) {
         var rule = this.rule(name);
         return rule.match(input);
     };
-    kinds["fail"] = (function (constructor) {
+    kind["fail"] = (function (constructor) {
         constructor = constructor || function PEG_fail(ast) {
             this._ast = ast;
         };
@@ -76,7 +76,7 @@ crlf.language["PEG"] = (function (constructor) {
         };
         return constructor;
     })();
-    kinds["nothing"] = (function (constructor) {
+    kind["nothing"] = (function (constructor) {
         constructor = constructor || function PEG_nothing(ast) {
             this._ast = ast;
         };
@@ -90,7 +90,7 @@ crlf.language["PEG"] = (function (constructor) {
         };
         return constructor;
     })();
-    kinds["anything"] = (function (constructor) {
+    kind["anything"] = (function (constructor) {
         constructor = constructor || function PEG_anything(ast) {
             this._ast = ast;
         };
@@ -107,7 +107,7 @@ crlf.language["PEG"] = (function (constructor) {
         };
         return constructor;
     })();
-    kinds["terminal"] = (function (constructor) {
+    kind["terminal"] = (function (constructor) {
         constructor = constructor || function PEG_terminal(ast) {
             this._ast = ast;
         };
