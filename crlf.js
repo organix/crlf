@@ -36,30 +36,36 @@ crlf.version = "0.0.0";
 //crlf.log = console.log;
 crlf.log = function () {};
 
+crlf.compile = function compile(source) {  // { "lang": <string>, "ast": <value> }
+    var constructor = crlf.language[source.lang];
+    return new constructor(source.ast);  // compile crlf language ast
+};
+
 crlf.language = {};  // language factory namespace
 
-crlf.language["PEG"] = (function (PEG) {
-    PEG = PEG || {};
-    PEG["grammar"] = (function (constructor) {
-        constructor = constructor || function PEG_grammar(ast) {
-            this._ast = ast;
-            this._rules = {};
-            Object.keys(ast.rules).forEach(function (key) {
-                var expr = ast.rules[key];
-                this._rules[key] = new (PEG[expr.kind])(expr);  // compile rules
-            }, this);
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.rule = function rule(name) {  // get named rule
-            return this._rules[name];
-        };
-        prototype.match = function match(name, input) {  // apply named rule to input
-            return this.rule(name).match(input);
-        };
-        return constructor;
-    })();
-    PEG["fail"] = (function (constructor) {
+crlf.language["PEG"] = (function (constructor) {
+    var kinds = {};
+    var compile = function compile(expr) {  // { "kind": <string>, ... }
+        var constructor = kinds[expr.kind];
+        return new constructor(expr);
+    };
+    constructor = constructor || function PEG_grammar(ast) {
+        this._ast = ast;  // { "kind": "grammar", "rules": {...} }
+        this._rules = ast.rules;
+        Object.keys(this._rules).forEach(function (key) {
+            this._rules[key] = compile(this._rules[key]);  // compile rules
+        }, this);
+    };
+    var prototype = constructor.prototype;
+    prototype.constructor = constructor;
+    prototype.rule = function rule(name) {  // get named rule
+        return this._rules[name];
+    };
+    prototype.match = function match(name, input) {  // apply named rule to input
+        var rule = this.rule(name);
+        return rule.match(input);
+    };
+    kinds["fail"] = (function (constructor) {
         constructor = constructor || function PEG_fail(ast) {
             this._ast = ast;
         };
@@ -70,7 +76,7 @@ crlf.language["PEG"] = (function (PEG) {
         };
         return constructor;
     })();
-    PEG["empty"] = (function (constructor) {
+    kinds["empty"] = (function (constructor) {
         constructor = constructor || function PEG_empty(ast) {
             this._ast = ast;
         };
@@ -84,7 +90,7 @@ crlf.language["PEG"] = (function (PEG) {
         };
         return constructor;
     })();
-    PEG["anything"] = (function (constructor) {
+    kinds["anything"] = (function (constructor) {
         constructor = constructor || function PEG_anything(ast) {
             this._ast = ast;
         };
@@ -101,7 +107,7 @@ crlf.language["PEG"] = (function (PEG) {
         };
         return constructor;
     })();
-    PEG["terminal"] = (function (constructor) {
+    kinds["terminal"] = (function (constructor) {
         constructor = constructor || function PEG_terminal(ast) {
             this._ast = ast;
         };
@@ -121,12 +127,8 @@ crlf.language["PEG"] = (function (PEG) {
         };
         return constructor;
     })();
-    return PEG;
+    return constructor;
 })();
-
-crlf.compile = function compile(source) {
-    return new (crlf.language[source.lang])(source.ast);  // compile crlf language
-};
 
 crlf.selfTest = (function () {
     var source = {
@@ -158,7 +160,23 @@ crlf.selfTest = (function () {
     };
 
     return function selfTest() {
-        var grammar = crlf.compile(source);
+        var source;
+        var grammar;
+        var input;
+        var match;
+
+        source = {
+            "lang": "PEG",
+            "ast": {
+                "kind": "grammar",
+                "rules": {
+                    "zero": { "kind": "terminal", "value": 48 }
+                }
+            }
+        };
+        grammar = crlf.compile(source);
+        input = [ 48, 10 ];  // "0\n"
+        match = grammar.rule("zero").match(input);
 
         return true;  // all tests passed
     };
