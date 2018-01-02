@@ -918,6 +918,22 @@ VO.selfTest = (function () {
         VO.ensure(VO.Boolean(VO.emptyObject !== new VO.Object({})));
         VO.ensure(VO.Boolean(VO.emptyObject === new VO.Object()));
 
+        VO.ensure(VO.fromNative(
+            {
+                "null": null,
+                true: true,
+                false: false,
+                zero: 0,
+                one: 1,
+                emptyString: "",
+                emptyArray: [],
+                emptyObject: {}
+            }).equals(sampleObject));
+        VO.ensure(VO.fromNative(
+            JSON.parse(
+                '{"null":null, "true":true, "false":false, "zero":0, "one":1, "emptyString":"", "emptyArray":[], "emptyObject":{}}'
+            )).equals(sampleObject));
+
         // Expression
         VO.ensure(new VO.ValueExpr(new VO.Null()).evaluate(VO.emptyObject).equals(VO.null));
         VO.ensure(new VO.ValueExpr(new VO.Number(2)).evaluate(sampleObject).equals(VO.two));
