@@ -50,6 +50,14 @@ var deepFreeze = (typeof Object.freeze !== "function")
         return Object.freeze(obj);
     };
 
+var isNativeArray = Array.isArray || function isArray(object) {
+    return (Object.prototype.toString.call(object) === '[object Array]');
+};
+
+var isNativeObject = function isObject(object) {
+    return (Object.prototype.toString.call(object) === '[object Object]');
+};
+
 VO.throw = function error(value) {  // signal an error
     throw new Error(value);
 };
@@ -58,6 +66,33 @@ VO.ensure = function ensure(predicate) {  // express an invariant condition
     if (predicate !== VO.true) {
         VO.throw(predicate);
     }
+};
+
+VO.fromNative = function fromNative(native) {  // convert native JS value to VO equivalent
+    if (native === null) {
+        return VO.null;
+    } else if (native === true) {
+        return VO.true;
+    } else if (native === false) {
+        return VO.false;
+    } else if (typeof native === "number") {
+        return new VO.Number(native);
+    } else if (typeof native === "string") {
+        return new VO.String(native);
+    } else if (isNativeArray(native)) {
+        var a = [];
+        native.forEach(function (v, i) {
+            a[i] = VO.fromNative(v);
+        });
+        return new VO.Array(a);
+    } else if (isNativeObject(native)) {
+        var o = {};
+        Object.keys(native).forEach(function (k) {
+            o[k] = VO.fromNative(native[k]);
+        });
+        return new VO.Object(o);
+    }
+    VO.throw(native);  // no VO equivalent
 };
 
 VO.Value = (function (self) {
@@ -328,14 +363,11 @@ VO.Array = (function (self) {
         }
         VO.throw("Not Implemented");  // FIXME!
     };
-    var isArray = Array.isArray || function isArray(object) {
-        return (Object.prototype.toString.call(object) === '[object Array]');
-    };
     var constructor = function Array(value) {
         if (value === undefined) {
             return VO.emptyArray;
         }
-        VO.ensure(VO.Boolean(isArray(value)));
+        VO.ensure(VO.Boolean(isNativeArray(value)));
         this._value = value;
         deepFreeze(this);
     };
@@ -437,14 +469,11 @@ VO.Object = (function (self) {
         }, VO.emptyArray);
     };
 */
-    var isObject = function isObject(object) {
-        return (Object.prototype.toString.call(object) === '[object Object]');
-    };
     var constructor = function Object(value) {
         if (value === undefined) {
             return VO.emptyObject;
         }
-        VO.ensure(VO.Boolean(isObject(value)));
+        VO.ensure(VO.Boolean(isNativeObject(value)));
         this._value = value;
         deepFreeze(this);
     };
