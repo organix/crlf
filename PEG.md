@@ -45,7 +45,7 @@ A primitive parsing expression may be any of the following:
 
 ```javascript
 {
-    "kind": "empty"
+    "kind": "nothing"
 }
 ```
 
@@ -119,9 +119,9 @@ Many common (and useful) parsing expressions can be defined in terms of the prim
 Name | Description | Derivation
 -----|-------------|-----------
 anything | matches any single _value_ | alternative( _...all possible values..._ )
-star(_expr_) | zero-or-more repetition | alternative(sequence(_expr_, star(_expr_)), empty)
+star(_expr_) | zero-or-more repetition | alternative(sequence(_expr_, star(_expr_)), nothing)
 plus(_expr_) | one-or-more repetition | sequence(_expr_, star(_expr_))
-optional(_expr_) | zero-or-one occurance | alternative(_expr_, empty)
+optional(_expr_) | zero-or-one occurance | alternative(_expr_, nothing)
 suffix(_expr_) | positive look-ahead | negation(negation(_expr_))
 range(_from_, _to_) | matches any single _value_, where _from_ &#x2266; _value_ &#x2266; _to_ | alternative(_from_, ..., _to_)
 
