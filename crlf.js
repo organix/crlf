@@ -76,8 +76,8 @@ crlf.language["PEG"] = (function (constructor) {
         };
         return constructor;
     })();
-    kinds["empty"] = (function (constructor) {
-        constructor = constructor || function PEG_empty(ast) {
+    kinds["nothing"] = (function (constructor) {
+        constructor = constructor || function PEG_nothing(ast) {
             this._ast = ast;
         };
         var prototype = constructor.prototype;
@@ -170,7 +170,10 @@ crlf.selfTest = (function () {
             "ast": {
                 "kind": "grammar",
                 "rules": {
-                    "zero": { "kind": "terminal", "value": 48 }
+                    "nothing": { "kind": "nothing" },
+                    "anything": { "kind": "anything" },
+                    "zero": { "kind": "terminal", "value": 48 },
+                    "fail": { "kind": "fail" }
                 }
             }
         };
