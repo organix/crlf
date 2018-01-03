@@ -54,6 +54,10 @@ crlf.language["PEG"] = (function (constructor) {
         var constructor = kind[expr.value(new VO.String("kind"))._value];
         return new constructor(expr);
     };
+    var rule = function rule(name) {  // get named rule
+        VO.ensure(name.hasType(VO.String));
+        return this._rules[name._value];
+    };
     constructor = constructor || function PEG_grammar(ast) {  // { "kind": "grammar", "rules": <object> }
         VO.ensure(ast.hasType(VO.Object));
         VO.ensure(ast.hasProperty(new VO.String("kind")));
@@ -70,16 +74,7 @@ crlf.language["PEG"] = (function (constructor) {
     };
     var prototype = constructor.prototype;
     prototype.constructor = constructor;
-    prototype.rule = function rule(name) {  // get named rule
-        VO.ensure(name.hasType(VO.String));
-        return this._rules[name._value];
-    };
-    prototype.match = function match(name, input) {  // apply named rule to input
-        VO.ensure(name.hasType(VO.String));
-        VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-        var rule = this.rule(name);
-        return rule.match(input);
-    };
+    prototype.rule = rule;  // get named rule
     kind["fail"] = (function (constructor) {
         constructor = constructor || function PEG_fail(ast) {  // { "kind": "fail" }
             VO.ensure(ast.hasType(VO.Object));
@@ -182,6 +177,23 @@ crlf.language["PEG"] = (function (constructor) {
                 }
             }
             return VO.false;  // match failure
+        };
+        return constructor;
+    })();
+    kind["rule"] = (function (constructor) {  // apply named rule to input
+        constructor = constructor || function PEG_terminal(ast) {  // { "kind": "rule", "name": <string> }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("rule")));
+            VO.ensure(ast.hasProperty(new VO.String("name")));
+            VO.ensure(ast.value(new VO.String("name")).hasType(VO.String));
+            this._ast = ast;
+        };
+        var prototype = constructor.prototype;
+        prototype.constructor = constructor;
+        prototype.match = function match(input) {
+            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+            return rule(this._ast.value(new VO.String("name"))).match(input);
         };
         return constructor;
     })();
