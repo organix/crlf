@@ -39,8 +39,9 @@ crlf.version = "0.0.0";
 crlf.log = function () {};
 
 crlf.compile = function compile(source) {  // { "lang": <string>, "ast": <value> }
-    var constructor = crlf.language[source.lang];
-    return new constructor(source.ast);  // compile crlf language ast
+    VO.ensure(source.hasType(VO.Object));
+    var constructor = crlf.language[source.value(new VO.String("lang"))._value];
+    return new constructor(source.value(new VO.String("ast")));  // compile crlf language ast
 };
 
 crlf.language = {};  // language factory namespace
@@ -48,27 +49,42 @@ crlf.language = {};  // language factory namespace
 crlf.language["PEG"] = (function (constructor) {
     var kind = {};
     var compile = function compile(expr) {  // { "kind": <string>, ... }
-        var constructor = kind[expr.kind];
+        VO.ensure(expr.hasType(VO.Object));
+        VO.ensure(expr.hasProperty(new VO.String("kind")));
+        var constructor = kind[expr.value(new VO.String("kind"))._value];
         return new constructor(expr);
     };
-    constructor = constructor || function PEG_grammar(ast) {
-        this._ast = ast;  // { "kind": "grammar", "rules": {...} }
-        this._rules = ast.rules;
-        Object.keys(this._rules).forEach(function (key) {
-            this._rules[key] = compile(this._rules[key]);  // compile rules
-        }, this);
+    constructor = constructor || function PEG_grammar(ast) {  // { "kind": "grammar", "rules": <object> }
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(new VO.String("kind")));
+        VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("grammar")));
+        VO.ensure(ast.hasProperty(new VO.String("rules")));
+        VO.ensure(ast.value(new VO.String("rules")).hasType(VO.Object));
+        this._ast = ast;
+        var rules = [];
+        ast.value(new VO.String("rules")).reduce(function (n, v, x) {
+            rules[n._value] = compile(v);  // compile rules
+            return x;
+        }, VO.null);
+        this._rules = rules;
     };
     var prototype = constructor.prototype;
     prototype.constructor = constructor;
     prototype.rule = function rule(name) {  // get named rule
-        return this._rules[name];
+        VO.ensure(name.hasType(VO.String));
+        return this._rules[name._value];
     };
     prototype.match = function match(name, input) {  // apply named rule to input
+        VO.ensure(name.hasType(VO.String));
+        VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
         var rule = this.rule(name);
         return rule.match(input);
     };
     kind["fail"] = (function (constructor) {
-        constructor = constructor || function PEG_fail(ast) {
+        constructor = constructor || function PEG_fail(ast) {  // { "kind": "fail" }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("fail")));
             this._ast = ast;
         };
         var prototype = constructor.prototype;
@@ -80,7 +96,10 @@ crlf.language["PEG"] = (function (constructor) {
         return constructor;
     })();
     kind["nothing"] = (function (constructor) {
-        constructor = constructor || function PEG_nothing(ast) {
+        constructor = constructor || function PEG_nothing(ast) {  // { "kind": "nothing" }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("nothing")));
             this._ast = ast;
         };
         var prototype = constructor.prototype;
@@ -94,7 +113,10 @@ crlf.language["PEG"] = (function (constructor) {
         return constructor;
     })();
     kind["anything"] = (function (constructor) {
-        constructor = constructor || function PEG_anything(ast) {
+        constructor = constructor || function PEG_anything(ast) {  // { "kind": "anything" }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("anything")));
             this._ast = ast;
         };
         var prototype = constructor.prototype;
@@ -111,7 +133,11 @@ crlf.language["PEG"] = (function (constructor) {
         return constructor;
     })();
     kind["terminal"] = (function (constructor) {
-        constructor = constructor || function PEG_terminal(ast) {
+        constructor = constructor || function PEG_terminal(ast) {  // { "kind": "terminal", "value": <value> }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("terminal")));
+            VO.ensure(ast.hasProperty(new VO.String("value")));
             this._ast = ast;
         };
         var prototype = constructor.prototype;
@@ -120,7 +146,7 @@ crlf.language["PEG"] = (function (constructor) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
             if (input.length().greaterThan(VO.zero) === VO.true) {
                 var value = input.value(VO.zero);
-                if (value.equals(new VO.Number(this._ast.value)) === VO.true) {
+                if (value.equals(this._ast.value(new VO.String("value"))) === VO.true) {
                     return (VO.emptyObject  // match success
                         .append(new VO.String("value"), value)
                         .append(new VO.String("remainder"), input.extract(VO.one, input.length())));
@@ -168,7 +194,7 @@ crlf.selfTest = (function () {
         var input;
         var match;
 
-        source = {
+        source = VO.fromNative({
             "lang": "PEG",
             "ast": {
                 "kind": "grammar",
@@ -179,34 +205,34 @@ crlf.selfTest = (function () {
                     "fail": { "kind": "fail" }
                 }
             }
-        };
+        });
         grammar = crlf.compile(source);
 
         input = VO.fromNative("0\n");
-        match = grammar.rule("zero").match(input);
+        match = grammar.rule(new VO.String("zero")).match(input);
         VO.ensure(match.hasType(VO.Object));
         VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(48)));  // "0"
         VO.ensure(match.value(new VO.String("remainder")).length().equals(new VO.Number(1)));
 
-        match = grammar.rule("fail").match(input);
+        match = grammar.rule(new VO.String("fail")).match(input);
         VO.ensure(match.equals(VO.false));
 
-        match = grammar.rule("zero").match(VO.emptyString);
+        match = grammar.rule(new VO.String("zero")).match(VO.emptyString);
         VO.ensure(match.equals(VO.false));
 
-        match = grammar.rule("nothing").match(VO.emptyString);
+        match = grammar.rule(new VO.String("nothing")).match(VO.emptyString);
         VO.ensure(match.hasType(VO.Object));
         VO.ensure(match.value(new VO.String("remainder")).equals(VO.emptyString));
 
-        match = grammar.rule("nothing").match(VO.emptyArray);
+        match = grammar.rule(new VO.String("nothing")).match(VO.emptyArray);
         VO.ensure(match.hasType(VO.Object));
         VO.ensure(match.value(new VO.String("remainder")).equals(VO.emptyArray));
 
-        match = grammar.rule("anything").match(VO.emptyArray);
+        match = grammar.rule(new VO.String("anything")).match(VO.emptyArray);
         VO.ensure(match.equals(VO.false));
 
         input = VO.fromNative("\r\n");
-        match = grammar.rule("anything").match(input);
+        match = grammar.rule(new VO.String("anything")).match(input);
         VO.ensure(match.hasType(VO.Object));
         VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(13)));  // "\r"
         VO.ensure(match.value(new VO.String("remainder")).length().equals(new VO.Number(1)));
