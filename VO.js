@@ -282,11 +282,18 @@ VO.String = (function (self) {
         VO.ensure(this.hasType(VO.String));
         if (typeof func === "function") {
             for (var i = 0; i < this._value.length; ++i) {
-                value = func(this._value.charCodeAt(i), value);  // FIXME: use .codePointAt() when available
+                var c = new VO.Number(this._value.charCodeAt(i));
+                value = func(c, value);  // FIXME: use .codePointAt() when available
             }
             return value;
         }
         VO.throw("Not Implemented");  // FIXME!
+    };
+    self.asArray = function asArray() {
+        VO.ensure(this.hasType(VO.String));
+        return this.reduce(function (c, x) {
+            return x.append(c);
+        }, VO.emptyArray);
     };
     var constructor = function String(value) {
         if (value === undefined) {
@@ -362,6 +369,13 @@ VO.Array = (function (self) {
             return value;
         }
         VO.throw("Not Implemented");  // FIXME!
+    };
+    self.asString = function asString() {
+        VO.ensure(this.hasType(VO.Array));
+        return this.reduce(function (v, x) {
+            VO.ensure(v.hasType(VO.Number));
+            return x.append(v);
+        }, VO.emptyString);
     };
     var constructor = function Array(value) {
         if (value === undefined) {
@@ -845,6 +859,7 @@ VO.selfTest = (function () {
                           return x.append(v);
                       }, VO.emptyString)
                   .equals(new VO.String("Hi")));
+        VO.ensure(sampleString.asArray().asString().equals(sampleString));
 
 //        VO.ensure(VO.emptyArray.equals(VO.Array([])));  // ERROR: VO.Array([]) === undefined
         VO.ensure(VO.emptyArray.equals(new VO.Array([])));
