@@ -30,6 +30,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 "use strict";
 
+var VO = require("VO.js");
+
 var crlf = module.exports;
 crlf.version = "0.0.0";
 
@@ -72,7 +74,8 @@ crlf.language["PEG"] = (function (constructor) {
         var prototype = constructor.prototype;
         prototype.constructor = constructor;
         prototype.match = function match(input) {
-            return false;  // match failure
+            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+            return VO.false;  // match failure
         };
         return constructor;
     })();
@@ -83,10 +86,10 @@ crlf.language["PEG"] = (function (constructor) {
         var prototype = constructor.prototype;
         prototype.constructor = constructor;
         prototype.match = function match(input) {
-            return {
-                "value": [],
-                "remainder": input
-            };  // match success
+            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+            return (VO.emptyObject  // match success
+                .append(new VO.String("value"), VO.emptyArray)
+                .append(new VO.String("remainder"), input));
         };
         return constructor;
     })();
@@ -97,13 +100,13 @@ crlf.language["PEG"] = (function (constructor) {
         var prototype = constructor.prototype;
         prototype.constructor = constructor;
         prototype.match = function match(input) {
-            if (input.length > 0) {
-                return {
-                    "value": input[0],
-                    "remainder": input.slice(1, input.length)
-                };  // match success
+            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+            if (input.length().greaterThan(VO.zero) === VO.true) {
+                return (VO.emptyObject  // match success
+                    .append(new VO.String("value"), input.value(VO.zero))
+                    .append(new VO.String("remainder"), input.extract(VO.one, input.length())));
             }
-            return false;  // match failure
+            return VO.false;  // match failure
         };
         return constructor;
     })();
@@ -114,16 +117,16 @@ crlf.language["PEG"] = (function (constructor) {
         var prototype = constructor.prototype;
         prototype.constructor = constructor;
         prototype.match = function match(input) {
-            if (input.length > 0) {
-                var value = input[0];
-                if (value === this._ast.value) {
-                    return {
-                        "value": value,
-                        "remainder": input.slice(1, input.length)
-                    };  // match success
+            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+            if (input.length().greaterThan(VO.zero) === VO.true) {
+                var value = input.value(VO.zero);
+                if (value.equals(new VO.Number(this._ast.value)) === VO.true) {
+                    return (VO.emptyObject  // match success
+                        .append(new VO.String("value"), value)
+                        .append(new VO.String("remainder"), input.extract(VO.one, input.length())));
                 }
             }
-            return false;  // match failure
+            return VO.false;  // match failure
         };
         return constructor;
     })();
@@ -178,8 +181,35 @@ crlf.selfTest = (function () {
             }
         };
         grammar = crlf.compile(source);
-        input = [ 48, 10 ];  // "0\n"
+
+        input = VO.fromNative("0\n");
         match = grammar.rule("zero").match(input);
+        VO.ensure(match.hasType(VO.Object));
+        VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(48)));  // "0"
+        VO.ensure(match.value(new VO.String("remainder")).length().equals(new VO.Number(1)));
+
+        match = grammar.rule("fail").match(input);
+        VO.ensure(match.equals(VO.false));
+
+        match = grammar.rule("zero").match(VO.emptyString);
+        VO.ensure(match.equals(VO.false));
+
+        match = grammar.rule("nothing").match(VO.emptyString);
+        VO.ensure(match.hasType(VO.Object));
+        VO.ensure(match.value(new VO.String("remainder")).equals(VO.emptyString));
+
+        match = grammar.rule("nothing").match(VO.emptyArray);
+        VO.ensure(match.hasType(VO.Object));
+        VO.ensure(match.value(new VO.String("remainder")).equals(VO.emptyArray));
+
+        match = grammar.rule("anything").match(VO.emptyArray);
+        VO.ensure(match.equals(VO.false));
+
+        input = VO.fromNative("\r\n");
+        match = grammar.rule("anything").match(input);
+        VO.ensure(match.hasType(VO.Object));
+        VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(13)));  // "\r"
+        VO.ensure(match.value(new VO.String("remainder")).length().equals(new VO.Number(1)));
 
         return true;  // all tests passed
     };
