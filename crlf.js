@@ -156,15 +156,45 @@ crlf.language["PEG"] = (function (constructor) {
         };
         return constructor;
     })();
+    kind["range"] = (function (constructor) {
+        constructor = constructor || function PEG_terminal(ast) {  // { "kind": "range", "from": <number>, "to": <number> }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("range")));
+            VO.ensure(ast.hasProperty(new VO.String("from")));
+            VO.ensure(ast.value(new VO.String("from")).hasType(VO.Number));
+            VO.ensure(ast.hasProperty(new VO.String("to")));
+            VO.ensure(ast.value(new VO.String("to")).hasType(VO.Number));
+            VO.ensure(ast.value(new VO.String("from")).lessEqual(ast.value(new VO.String("to"))));
+            this._ast = ast;
+        };
+        var prototype = constructor.prototype;
+        prototype.constructor = constructor;
+        prototype.match = function match(input) {
+            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+            if (input.length().greaterThan(VO.zero) === VO.true) {
+                var value = input.value(VO.zero);
+                if (value.greaterEqual(this._ast.value(new VO.String("from")))
+                .and(value.lessEqual(this._ast.value(new VO.String("to")))) === VO.true) {
+                    return (VO.emptyObject  // match success
+                        .append(new VO.String("value"), value)
+                        .append(new VO.String("remainder"), input.extract(VO.one, input.length())));
+                }
+            }
+            return VO.false;  // match failure
+        };
+        return constructor;
+    })();
     return constructor;
 })();
 
 crlf.selfTest = (function () {
-    var source = {
+    var source = VO.fromNative({
         "lang": "PEG",
         "ast": {
             "kind": "grammar",
             "rules": {
+/*
                 "integer": {
                     "kind": "alternative",
                     "of": [
@@ -181,44 +211,23 @@ crlf.selfTest = (function () {
                         }
                     ]
                 },
+*/
                 "digit0": { "kind": "terminal", "value": 48 },
                 "digit1-9": { "kind": "range", "from": 49, "to": 57 },
-                "digit0-9": { "kind": "range", "from": 48, "to": 57 }
+                "digit0-9": { "kind": "range", "from": 48, "to": 57 },
+                "anything": { "kind": "anything" },
+                "nothing": { "kind": "nothing" },
+                "fail": { "kind": "fail" }
             }
         }
-    };
+    });
 
     return function selfTest() {
-        var source;
         var grammar;
         var input;
         var match;
 
-        source = VO.fromNative({
-            "lang": "PEG",
-            "ast": {
-                "kind": "grammar",
-                "rules": {
-                    "nothing": { "kind": "nothing" },
-                    "anything": { "kind": "anything" },
-                    "zero": { "kind": "terminal", "value": 48 },
-                    "fail": { "kind": "fail" }
-                }
-            }
-        });
         grammar = crlf.compile(source);
-
-        input = VO.fromNative("0\n");
-        match = grammar.rule(new VO.String("zero")).match(input);
-        VO.ensure(match.hasType(VO.Object));
-        VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(48)));  // "0"
-        VO.ensure(match.value(new VO.String("remainder")).length().equals(new VO.Number(1)));
-
-        match = grammar.rule(new VO.String("fail")).match(input);
-        VO.ensure(match.equals(VO.false));
-
-        match = grammar.rule(new VO.String("zero")).match(VO.emptyString);
-        VO.ensure(match.equals(VO.false));
 
         match = grammar.rule(new VO.String("nothing")).match(VO.emptyString);
         VO.ensure(match.hasType(VO.Object));
@@ -229,6 +238,26 @@ crlf.selfTest = (function () {
         VO.ensure(match.value(new VO.String("remainder")).equals(VO.emptyArray));
 
         match = grammar.rule(new VO.String("anything")).match(VO.emptyArray);
+        VO.ensure(match.equals(VO.false));
+
+        match = grammar.rule(new VO.String("digit0")).match(VO.emptyString);
+        VO.ensure(match.equals(VO.false));
+
+        input = VO.fromNative("0\n");
+        match = grammar.rule(new VO.String("fail")).match(input);
+        VO.ensure(match.equals(VO.false));
+
+        match = grammar.rule(new VO.String("digit0")).match(input);
+        VO.ensure(match.hasType(VO.Object));
+        VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(48)));  // "0"
+        VO.ensure(match.value(new VO.String("remainder")).length().equals(new VO.Number(1)));
+
+        match = grammar.rule(new VO.String("digit0-9")).match(input);
+        VO.ensure(match.hasType(VO.Object));
+        VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(48)));  // "0"
+        VO.ensure(match.value(new VO.String("remainder")).length().equals(new VO.Number(1)));
+
+        match = grammar.rule(new VO.String("digit1-9")).match(input);
         VO.ensure(match.equals(VO.false));
 
         input = VO.fromNative("\r\n");
