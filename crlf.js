@@ -221,7 +221,8 @@ crlf.language["PEG"] = (function (constructor) {
             var match = (VO.emptyObject  // match success (default)
                 .append(new VO.String("value"), VO.emptyArray)
                 .append(new VO.String("remainder"), input));
-            this._of.forEach(function (rule) {
+            for (var i = 0; i < this._of.length; ++i) {
+                var rule = this._of[i];
                 var _match = rule.match(input);
                 if (_match === VO.false) {
                     return VO.false;  // match failure
@@ -232,7 +233,7 @@ crlf.language["PEG"] = (function (constructor) {
                             match.value(new VO.String("value"))
                                 .append(_match.value(new VO.String("value"))))
                     .append(new VO.String("remainder"), input));
-            });
+            }
             return match;
         };
         return constructor;
@@ -256,12 +257,13 @@ crlf.language["PEG"] = (function (constructor) {
         prototype.constructor = constructor;
         prototype.match = function match(input) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            this._of.forEach(function (rule) {
+            for (var i = 0; i < this._of.length; ++i) {
+                var rule = this._of[i];
                 var match = rule.match(input);
                 if (match !== VO.false) {
                     return match;  // match success
                 }
-            });
+            }
             return VO.false;  // match failure
         };
         return constructor;
@@ -350,24 +352,19 @@ crlf.selfTest = (function () {
 
         match = grammar.rule(new VO.String("integer")).match(new VO.String("0"));
         VO.ensure(match.equals(VO.false).not());
-//        VO.ensure(match.value(new VO.String("value")).equals(new VO.String("0")));
+        VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(48)));  // "0"
         VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
-
-        match = grammar.rule(new VO.String("integer")).match(new VO.String("00"));
-        VO.ensure(match.equals(VO.false));
 
         match = grammar.rule(new VO.String("integer")).match(new VO.String("1"));
-        VO.ensure(match.equals(VO.false).not());
-//        VO.ensure(match.value(new VO.String("value")).equals(new VO.String("1")));
-        VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
+        VO.ensure(match.equals(VO.false));
 
         match = grammar.rule(new VO.String("integer")).match(new VO.String("12"));
         VO.ensure(match.equals(VO.false).not());
-//        VO.ensure(match.value(new VO.String("value")).equals(new VO.String("12")));
+        VO.ensure(match.value(new VO.String("value"))
+                  .equals(VO.emptyArray
+                         .append(new VO.Number(49))
+                         .append(new VO.Number(50))));
         VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
-
-        match = grammar.rule(new VO.String("integer")).match(new VO.String("123"));
-        VO.ensure(match.equals(VO.false));
 
         return true;  // all tests passed
     };
