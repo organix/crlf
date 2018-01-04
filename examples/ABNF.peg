@@ -1,0 +1,426 @@
+{
+    "lang": "PEG",
+    "ast": {
+        "kind": "grammar",
+        "rules": {
+            "rulelist": {
+                "kind": "plus",
+                "expr": {
+                    "kind": "alternative",
+                    "of": [
+                        { "kind": "rule", "name": "rule" },
+                        {
+                            "kind": "sequence",
+                            "of": [
+                                {
+                                    "kind": "star",
+                                    "expr": { "kind": "rule", "name": "c-wsp" }
+                                },
+                                { "kind": "rule", "name": "c-nl" }
+                            ]
+                        }
+                    ]
+                }
+            },
+            "rule": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "rulename" },
+                    { "kind": "rule", "name": "defined-as" },
+                    { "kind": "rule", "name": "elements" },
+                    { "kind": "rule", "name": "c-nl" }
+                ]
+            },
+            "rulename": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "ALPHA" },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                { "kind": "rule", "name": "ALPHA" },
+                                { "kind": "rule", "name": "DIGIT" },
+                                { "kind": "terminal", "value": 45 }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "defined-as": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    },
+                    { "kind": "terminal", "value": 61 },
+                    {
+                        "kind": "optional",
+                        "expr": { "kind": "terminal", "value": 47 }
+                    },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    }
+                ]
+            },
+            "elements": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "alternation" },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    }
+                ]
+            },
+            "c-wsp": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "WSP" },
+                    {
+                        "kind": "sequence",
+                        "of": [
+                            { "kind": "rule", "name": "c-nl" },
+                            { "kind": "rule", "name": "WSP" }
+                        ]
+                    }
+                ]
+            },
+            "c-nl": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "comment" },
+                    { "kind": "rule", "name": "CRLF" }
+                ]
+            },
+            "comment": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 59 },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                { "kind": "rule", "name": "WSP" },
+                                { "kind": "rule", "name": "VCHAR" }
+                            ]
+                        }
+                    },
+                    { "kind": "rule", "name": "CRLF" }
+                ]
+            },
+            "alternation": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "concatenation" },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "sequence",
+                            "of": [
+                                {
+                                    "kind": "star",
+                                    "expr": { "kind": "rule", "name": "c-wsp" }
+                                },
+                                { "kind": "terminal", "value": 59 },
+                                {
+                                    "kind": "star",
+                                    "expr": { "kind": "rule", "name": "c-wsp" }
+                                },
+                                { "kind": "rule", "name": "concatenation" }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "concatenation": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "repetition" },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "sequence",
+                            "of": [
+                                {
+                                    "kind": "plus",
+                                    "expr": { "kind": "rule", "name": "c-wsp" }
+                                },
+                                { "kind": "rule", "name": "repetition" }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "repetition": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "optional",
+                        "expr": { "kind": "rule", "name": "repeat" }
+                    },
+                    { "kind": "rule", "name": "element" }
+                ]
+            },
+            "repeat": {
+                "kind": "alternative",
+                "of": [
+                    {
+                        "kind": "plus",
+                        "expr": { "kind": "rule", "name": "DIGIT" }
+                    },
+                    {
+                        "kind": "sequence",
+                        "of": [
+                            {
+                                "kind": "star",
+                                "expr": { "kind": "rule", "name": "DIGIT" }
+                            },
+                            { "kind": "terminal", "value": 42 },
+                            {
+                                "kind": "star",
+                                "expr": { "kind": "rule", "name": "DIGIT" }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "element": {
+                "kind": "alternative",
+                "of": [
+                    { "kind": "rule", "name": "rulename" },
+                    { "kind": "rule", "name": "group" },
+                    { "kind": "rule", "name": "option" },
+                    { "kind": "rule", "name": "char-val" },
+                    { "kind": "rule", "name": "num-val" },
+                    { "kind": "rule", "name": "prose-val" }
+                ]
+            },
+            "group": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 40 },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    },
+                    { "kind": "rule", "name": "alternation" },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    },
+                    { "kind": "terminal", "value": 41 }
+                ]
+            },
+            "option": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 91 },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    },
+                    { "kind": "rule", "name": "alternation" },
+                    {
+                        "kind": "star",
+                        "expr": { "kind": "rule", "name": "c-wsp" }
+                    },
+                    { "kind": "terminal", "value": 93 }
+                ]
+            },
+            "char-val": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "rule", "name": "DQUOTE" },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                { "kind": "range", "from": 32, "to": 33 },
+                                { "kind": "range", "from": 35, "to": 126 }
+                            ]
+                        }
+                    },
+                    { "kind": "rule", "name": "DQUOTE" }
+                ]
+            },
+            "num-val": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 37 },
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "rule", "name": "bin-val" },
+                            { "kind": "rule", "name": "dec-val" },
+                            { "kind": "rule", "name": "hex-val" }
+                        ]
+                    }
+                ]
+            },
+            "bin-val": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 98 },
+                            { "kind": "terminal", "value": 66 }
+                        ]
+                    },
+                    {
+                        "kind": "plus",
+                        "expr": { "kind": "rule", "name": "BIT" }
+                    },
+                    {
+                        "kind": "optional",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                {
+                                    "kind": "plus",
+                                    "expr": {
+                                        "kind": "sequence",
+                                        "of": [
+                                            { "kind": "terminal", "value": 46 },
+                                            {
+                                                "kind": "plus",
+                                                "expr": { "kind": "rule", "name": "BIT" }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "kind": "sequence",
+                                    "of": [
+                                        { "kind": "terminal", "value": 45 },
+                                        {
+                                            "kind": "plus",
+                                            "expr": { "kind": "rule", "name": "BIT" }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "dec-val": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 100 },
+                            { "kind": "terminal", "value": 68 }
+                        ]
+                    },
+                    {
+                        "kind": "plus",
+                        "expr": { "kind": "rule", "name": "DIGIT" }
+                    },
+                    {
+                        "kind": "optional",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                {
+                                    "kind": "plus",
+                                    "expr": {
+                                        "kind": "sequence",
+                                        "of": [
+                                            { "kind": "terminal", "value": 46 },
+                                            {
+                                                "kind": "plus",
+                                                "expr": { "kind": "rule", "name": "DIGIT" }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "kind": "sequence",
+                                    "of": [
+                                        { "kind": "terminal", "value": 45 },
+                                        {
+                                            "kind": "plus",
+                                            "expr": { "kind": "rule", "name": "DIGIT" }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "hex-val": {
+                "kind": "sequence",
+                "of": [
+                    {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 120 },
+                            { "kind": "terminal", "value": 88 }
+                        ]
+                    },
+                    {
+                        "kind": "plus",
+                        "expr": { "kind": "rule", "name": "HEXDIG" }
+                    },
+                    {
+                        "kind": "optional",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                {
+                                    "kind": "plus",
+                                    "expr": {
+                                        "kind": "sequence",
+                                        "of": [
+                                            { "kind": "terminal", "value": 46 },
+                                            {
+                                                "kind": "plus",
+                                                "expr": { "kind": "rule", "name": "HEXDIG" }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "kind": "sequence",
+                                    "of": [
+                                        { "kind": "terminal", "value": 45 },
+                                        {
+                                            "kind": "plus",
+                                            "expr": { "kind": "rule", "name": "HEXDIG" }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "prose-val": {
+                "kind": "sequence",
+                "of": [
+                    { "kind": "terminal", "value": 60 },
+                    {
+                        "kind": "star",
+                        "expr": {
+                            "kind": "alternative",
+                            "of": [
+                                { "kind": "range", "from": 32, "to": 61 },
+                                { "kind": "range", "from": 63, "to": 126 }
+                            ]
+                        }
+                    },
+                    { "kind": "terminal", "value": 62 }
+                ]
+            }
+        }
+    }
+}
