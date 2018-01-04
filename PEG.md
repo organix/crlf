@@ -116,14 +116,14 @@ Matches, with a result value `null` and _remainder_ = _source_, if _next_ **fail
 
 Many common (and useful) parsing expressions can be defined in terms of the primitives already specified.
 
-Name | Description | Derivation
------|-------------|-----------
-anything | matches any single _value_ | alternative( _...all possible values..._ )
-star(_expr_) | zero-or-more repetition | alternative(sequence(_expr_, star(_expr_)), nothing)
-plus(_expr_) | one-or-more repetition | sequence(_expr_, star(_expr_))
-optional(_expr_) | zero-or-one occurance | alternative(_expr_, nothing)
-suffix(_expr_) | positive look-ahead | negation(negation(_expr_))
-range(_from_, _to_) | matches any single _value_, where _from_ &#x2266; _value_ &#x2266; _to_ | alternative(_from_, ..., _to_)
+Name | Description | Derivation | Result
+-----|-------------|------------|-------
+anything | matches any single _value_ | alternative( _...all possible values..._ ) | _value_
+star(_expr_) | zero-or-more repetition | alternative(sequence(_expr_, star(_expr_)), nothing) | [_value_, ...] or []
+plus(_expr_) | one-or-more repetition | sequence(_expr_, star(_expr_)) | [_value_, ...]
+optional(_expr_) | zero-or-one occurance | alternative(_expr_, nothing) | [_value_] or []
+suffix(_expr_) | positive look-ahead | negation(negation(_expr_)) | `null`
+range(_from_, _to_) | matches any single _value_, where _from_ &#x2266; _value_ &#x2266; _to_ | alternative(_from_, ..., _to_) | _value_
 
 ## Examples
 
