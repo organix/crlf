@@ -509,10 +509,20 @@ crlf.selfTest = (function () {
         VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([49, [50, 51]])));
         VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
 
-        match = grammar.rule(new VO.String("number")).match(new VO.String("3.14e+0"));
-        crlf.log('match:', match);
+        match = grammar.rule(new VO.String("integer")).match(new VO.String("3.14e+0"));
         VO.ensure(match.equals(VO.false).not());
-//        VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([49, [50, 51]])));  // [FIXME]
+        VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([51, []])));
+        VO.ensure(match.value(new VO.String("remainder")).equals(VO.fromNative(".14e+0")));
+
+        match = grammar.rule(new VO.String("number")).match(new VO.String("3.14e+0"));
+        VO.ensure(match.equals(VO.false).not());
+        VO.ensure(match.value(new VO.String("value"))
+                  .equals(VO.fromNative([
+                        [], 
+                        [51, []], 
+                        [[46, [49, 52]]], 
+                        [[101, [43], [48]]]
+                    ])));
         VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
 
         return true;  // all tests passed
