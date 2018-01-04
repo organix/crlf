@@ -40,8 +40,15 @@ crlf.log = function () {};
 
 crlf.compile = function compile(source) {  // { "lang": <string>, "ast": <value> }
     VO.ensure(source.hasType(VO.Object));
-    var constructor = crlf.language[source.value(new VO.String("lang"))._value];
-    return new constructor(source.value(new VO.String("ast")));  // compile crlf language ast
+    VO.ensure(source.hasProperty(new VO.String("lang")));
+    VO.ensure(source.value(new VO.String("lang")).hasType(VO.String));
+    VO.ensure(source.hasProperty(new VO.String("ast")));
+    VO.ensure(source.value(new VO.String("ast")).hasType(VO.Value));
+    var name = source.value(new VO.String("lang"))._value;
+    var constructor = crlf.language[name];
+    var ast = source.value(new VO.String("ast"));
+    crlf.log('language:', name, '->', constructor, ast);
+    return new constructor(ast);  // compile crlf language ast
 };
 
 crlf.language = {};  // language factory namespace
@@ -51,6 +58,7 @@ crlf.language["PEG"] = (function (constructor) {
     var compile = function compile(expr, grammar) {  // { "kind": <string>, ... }
         VO.ensure(expr.hasType(VO.Object));
         VO.ensure(expr.hasProperty(new VO.String("kind")));
+        VO.ensure(expr.value(new VO.String("kind")).hasType(VO.String));
         var constructor = kind[expr.value(new VO.String("kind"))._value];
         return new constructor(expr, grammar);
     };
@@ -73,7 +81,10 @@ crlf.language["PEG"] = (function (constructor) {
     prototype.constructor = constructor;
     prototype.rule = function rule(name) {  // get named rule
         VO.ensure(name.hasType(VO.String));
-        return this._rules[name._value];
+        var _name = name._value;
+        var _rule = this._rules[_name];
+        crlf.log('rule:', _name, '->', _rule);
+        return _rule;
     };
     kind["fail"] = (function (constructor) {
         constructor = constructor || function PEG_fail(ast, g) {  // { "kind": "fail" }
@@ -196,7 +207,6 @@ crlf.language["PEG"] = (function (constructor) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
             var name = this._ast.value(new VO.String("name"));
             var rule = this._grammar.rule(name);
-            crlf.log('PEG_rule:', name, '->', rule);
             return rule.match(input);
         };
         return constructor;
