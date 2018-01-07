@@ -571,6 +571,16 @@ VO.Combiner = (function (self) {
 //        VO.ensure(context.hasType(VO.Object));
         return this._oper(value, context);
     };
+    self.concatenate = function concatenate(that) {
+        VO.ensure(this.hasType(VO.Combiner));
+        VO.ensure(that.hasType(VO.Combiner));
+        var composition = function composition(value, context) {
+            value = this._oper(value, context);  // apply this combiner first
+            value = that._oper(value, context);  // apply that combiner second
+            return value;  // return final value
+        }
+        return new VO.Combiner(composition);
+    };
     var constructor = function Combiner(operative) {
         VO.ensure(VO.Boolean(typeof operative === "function"));
         this._oper = operative;
@@ -591,46 +601,36 @@ VO.Combiner = (function (self) {
             return x.append(v.evaluate(context));
         }, VO.emptyArray);
     });
-    return constructor;
-})();
-
-VO.FunctionExpr = (function (self) {
-    self = self || new VO.Expression();
-    self.evaluate = function evaluate(context) {
-        VO.throw("Not Implemented");  // FIXME!
-    };
-    var constructor = function FunctionExpr(body, names, values) {
-        VO.ensure(body.hasType(VO.Array));
-        VO.ensure(names.hasType(VO.Array));
-        VO.ensure(values.hasType(VO.Array));
-        this._body = body;
-        this._names = names;
-        this._values = values;
-    };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    /* evaluate expressions sequentially, returning the last value */
+    VO.sequentialOper = new constructor(function sequentialOper(array, context) {
+        VO.ensure(array.hasType(VO.Array));
+//        VO.ensure(context.hasType(VO.Object));
+        return array.reduce(function (v, x) {
+            VO.ensure(v.hasType(VO.Expression));
+            return v.evaluate(context);
+        }, VO.null);
+    });
     return constructor;
 })();
 
 VO.MethodExpr = (function (self) {
     self = self || new VO.Expression();
     self.evaluate = function evaluate(context) {
-        var _this = this._expr.evaluate(context);  // determine target object
-        var _body = _this.value(this._name);  // retrieve method from target
-        var _env = context.append(new VO.String("this"), _this);  // bind target object to "this"
-        // ...
-        _body.reduce(function (expr, value) {
-            return expr.evaluate(_env);
-        }, VO.null);
-        // ...
-        VO.throw("Not Implemented");  // FIXME!
+        VO.ensure(context.hasType(VO.Object));
+        var selector = this._name.evaluate(context);  // evaluate name expression to get selector
+        VO.ensure(selector.hasType(VO.String));
+        var target = this._this.evaluate(context);  // evaluate this expression to get target
+        VO.ensure(target.hasType(VO.Object));
+        var combiner = target.value(selector);  // extract combiner from target object
+        VO.ensure(combiner.hasType(VO.Combiner));
+        var env = context.append(new VO.String("this"), target);  // [FIXME: where is this used?]
+        return combiner;
     };
-    var constructor = function MethodExpr(expr, name, values) {
-        VO.ensure(name.hasType(VO.String));
-        VO.ensure(values.hasType(VO.Array));
-        this._expr = expr;
-        this._name = name;
-        this._values = values;
+    var constructor = function MethodExpr(target, selector) {
+        VO.ensure(target.hasType(VO.Expression));
+        VO.ensure(selector.hasType(VO.Expression));
+        this._this = target;
+        this._name = selector;
     };
     self.constructor = constructor;
     constructor.prototype = self;
