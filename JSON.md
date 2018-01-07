@@ -411,79 +411,64 @@ Each abstract JSON value can be viewed as an object, with properties and methods
 
 ### JSON-VO
 
-_JSON-VO_ is an encoding for expressions involving JSON value-objects.
+_VO_ is an encoding for expressions involving JSON value-objects.
 
-#### value-vo
+#### Value expression
 
-Value-objects are wrappers for native JSON values. These are constant expressions.
+Value expressions are wrappers for native JSON values. These are constant expressions.
 
 ```javascript
 {
-    "lang": "JSON-VO",
+    "lang": "VO",
     "ast": {
-        "kind": "value-vo",
-        "methods": <dictionary-vo>,
-        "data": <value>
+        "kind": "value",
+        "value": <value>
     }
 }
 ```
 
-#### call-vo
+#### Variable expression
 
-Value-object method calls invoke a selected behavior and either return a result value or throw an exception.
-
-```javascript
-{
-    "lang": "JSON-VO",
-    "ast": {
-        "kind": "call-vo",
-        "target": <value-vo>,
-        "selector": <string>,
-        "parameters": <array/object>
-    }
-}
-```
-
-#### dictionary-vo
-
-A dictionary provides a mapping from &lt;string&gt; _names_ to value-objects.
+A variable expression is a named reference to a value-object. During evaluation, the run-time _context_ provides a mapping from names to values.
 
 ```javascript
 {
-    "lang": "JSON-VO",
+    "lang": "VO",
     "ast": {
-        "kind": "dictionary-vo",
-        "data": <array/object>,
-        "parent": <dictionary-vo>
-    }
-}
-```
-
-#### variable-vo
-
-A variable expression is a named reference to a value-object.
-
-```javascript
-{
-    "lang": "JSON-VO",
-    "ast": {
-        "kind": "variable-vo",
+        "kind": "variable",
         "name": <string>
     }
 }
 ```
 
-#### function-vo
+#### Combine expression
 
-Function expressions evaluate _expression_ in the context of _environment_ and either return a result value or throw an exception.
+A combine expression represents an operative combination. The _operative_ expression is evaluated to determine the _combiner_ to which the _parameter_ value is passed. The value returned by the combiner is the value of the expression.
+
+```javascript
+{
+    "lang": "VO",
+    "ast": {
+        "kind": "combination",
+        "operative": <expression>,
+        "parameter": <value>
+    }
+}
+```
+
+Note: in the common case where the combiner is _applicative_, the parameter value is an _array_ of _expressions_ which are evaluated to produce an _array_ of _arguments_ for the applicative.
+
+#### Method expression
+
+A method expression selects a named method from a target object. The _target_ expression is evaluated to determine the target _object_. The _selector_ expression is evaluated to determine the method _name_, which must be a _string_. The value returned is the _combiner_ selected.
 
 ```javascript
 {
     "lang": "JSON-VO",
     "ast": {
-        "kind": "function-vo",
-        "expression": <JSON-VO>,
-        "environment": <dictionary-vo>
+        "kind": "method",
+        "target": <expression>,
+        "selector": <expression>
     }
 }
 ```
