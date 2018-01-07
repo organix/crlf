@@ -464,7 +464,7 @@ A method expression selects a named method from a target object. The _target_ ex
 
 ```javascript
 {
-    "lang": "JSON-VO",
+    "lang": "VO",
     "ast": {
         "kind": "method",
         "target": <expression>,

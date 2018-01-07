@@ -38,7 +38,7 @@ crlf.version = "0.0.0";
 //crlf.log = console.log;
 crlf.log = function () {};
 
-crlf.compile = function compile(source) {  // { "lang": <string>, "ast": <value> }
+crlf.compile = function compile_crlf(source) {  // { "lang": <string>, "ast": <value> }
     VO.ensure(source.hasType(VO.Object));
     VO.ensure(source.hasProperty(new VO.String("lang")));
     VO.ensure(source.value(new VO.String("lang")).hasType(VO.String));
@@ -55,12 +55,12 @@ crlf.language = {};  // language factory namespace
 
 crlf.language["PEG"] = (function (constructor) {
     var kind = {};
-    var compile = function compile(expr, grammar) {  // { "kind": <string>, ... }
-        VO.ensure(expr.hasType(VO.Object));
-        VO.ensure(expr.hasProperty(new VO.String("kind")));
-        VO.ensure(expr.value(new VO.String("kind")).hasType(VO.String));
-        var constructor = kind[expr.value(new VO.String("kind"))._value];
-        return new constructor(expr, grammar);
+    var compile = function compile_PEG(ast, grammar) {  // { "kind": <string>, ... }
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(new VO.String("kind")));
+        VO.ensure(ast.value(new VO.String("kind")).hasType(VO.String));
+        var constructor = kind[ast.value(new VO.String("kind"))._value];
+        return new constructor(ast, grammar);
     };
     constructor = constructor || function PEG_grammar(ast) {  // { "kind": "grammar", "rules": <object> }
         var grammar = this;  // capture this
@@ -360,102 +360,170 @@ crlf.language["PEG"] = (function (constructor) {
     return constructor;
 })();
 
-crlf.selfTest = (function () {
-    var source = VO.fromNative({
-        "lang": "PEG",
-        "ast": {
-            "kind": "grammar",
-            "rules": {
-                "number": {
-                    "kind": "sequence",
-                    "of": [
-                        {
-                            "kind": "optional",
-                            "expr": { "kind": "rule", "name": "minus" }
-                        },
-                        { "kind": "rule", "name": "integer" },
-                        {
-                            "kind": "optional",
-                            "expr": { "kind": "rule", "name": "frac" }
-                        },
-                        {
-                            "kind": "optional",
-                            "expr": { "kind": "rule", "name": "exp" }
-                        }
-                    ]
-                },
-                "integer": {
-                    "kind": "alternative",
-                    "of": [
-                        { "kind": "rule", "name": "digit0" },
-                        {
-                            "kind": "sequence",
-                            "of": [
-                                { "kind": "rule", "name": "digit1-9" },
-                                {
-                                    "kind": "star",
-                                    "expr": { "kind": "rule", "name": "digit0-9" }
-                                }
-                            ]
-                        }
-                    ]
-                },
-                "frac": {
-                    "kind": "sequence",
-                    "of": [
-                        { "kind": "rule", "name": "decimal-point" },
-                        {
-                            "kind": "plus",
-                            "expr": { "kind": "rule", "name": "digit0-9" }
-                        }
-                    ]
-                },
-                "exp": {
-                    "kind": "sequence",
-                    "of": [
-                        { "kind": "rule", "name": "e" },
-                        {
-                            "kind": "optional",
-                            "expr": {
-                                "kind": "alternative",
-                                "of": [
-                                    { "kind": "rule", "name": "minus" },
-                                    { "kind": "rule", "name": "plus" }
-                                ]
-                            }
-                        },
-                        {
-                            "kind": "plus",
-                            "expr": { "kind": "rule", "name": "digit0-9" }
-                        }
-                    ]
-                },
-                "e": {
-                    "kind": "alternative",
-                    "of": [
-                        { "kind": "terminal", "value": 101 },
-                        { "kind": "terminal", "value": 69 }
-                    ]
-                },
-                "decimal-point": { "kind": "terminal", "value": 46 },
-                "plus": { "kind": "terminal", "value": 43 },
-                "minus": { "kind": "terminal", "value": 45 },
-                "digit0": { "kind": "terminal", "value": 48 },
-                "digit1-9": { "kind": "range", "from": 49, "to": 57 },
-                "digit0-9": { "kind": "range", "from": 48, "to": 57 },
-                "anything": { "kind": "anything" },
-                "nothing": { "kind": "nothing" },
-                "fail": { "kind": "fail" }
-            }
+crlf.language["VO"] = (function (constructor) {
+    var kind = {};
+    var compile = function compile_VO(ast) {  // { "kind": <string>, ... }
+        if (ast.hasType(VO.Array) === VO.true) {
+            return ast.reduce(function (v, x) {
+                return x.append(compile(v));  // compile expressions
+            }, VO.emptyArray);
         }
-    });
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(new VO.String("kind")));
+        VO.ensure(ast.value(new VO.String("kind")).hasType(VO.String));
+        var constructor = kind[ast.value(new VO.String("kind"))._value];
+        return new constructor(ast);
+    };
+    constructor = constructor || function VO_expression(ast) {
+        return compile(ast);
+    };
+//    var prototype = constructor.prototype;
+//    prototype.constructor = constructor;
+    kind["value"] = (function (constructor) {
+        constructor = constructor || function VO_value(ast) {  // { "kind": "value", "value": <value> }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("value")));
+            VO.ensure(ast.hasProperty(new VO.String("value")));
+            VO.ensure(ast.value(new VO.String("value")).hasType(VO.Value));
+            return new VO.ValueExpr(ast.value(new VO.String("value")));
+        };
+        return constructor;
+    })();
+    kind["variable"] = (function (constructor) {
+        constructor = constructor || function VO_variable(ast) {  // { "kind": "variable", "name": <string> }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("variable")));
+            VO.ensure(ast.hasProperty(new VO.String("name")));
+            VO.ensure(ast.value(new VO.String("name")).hasType(VO.String));
+            return new VO.VariableExpr(ast.value(new VO.String("name")));
+        };
+        return constructor;
+    })();
+    kind["combination"] = (function (constructor) {
+        constructor = constructor || function VO_combination(ast) {  // { "kind": "combination", "operative": <expression>, "parameter": <value> }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("combination")));
+            VO.ensure(ast.hasProperty(new VO.String("operative")));
+            var operative = compile(ast.value(new VO.String("operative")));
+            VO.ensure(ast.hasProperty(new VO.String("parameter")));
+            var parameter = compile(ast.value(new VO.String("parameter")));
+            return new VO.CombineExpr(operative, parameter);
+        };
+        return constructor;
+    })();
+    kind["method"] = (function (constructor) {
+        constructor = constructor || function VO_method(ast) {  // { "kind": "method", "target": <expression>, "selector": <expression> }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("method")));
+            VO.ensure(ast.hasProperty(new VO.String("target")));
+            var target = compile(ast.value(new VO.String("target")));
+            VO.ensure(ast.hasProperty(new VO.String("selector")));
+            var selector = compile(ast.value(new VO.String("selector")));
+            return new VO.MethodExpr(target, selector);
+        };
+        return constructor;
+    })();
+    return constructor;
+})();
 
-    return function selfTest() {
-        var grammar;
+crlf.selfTest = (function () {
+
+    var test_PEG = function test_PEG() {
         var input;
         var match;
 
-        grammar = crlf.compile(source);
+        var grammar = crlf.compile(VO.fromNative({
+            "lang": "PEG",
+            "ast": {
+                "kind": "grammar",
+                "rules": {
+                    "number": {
+                        "kind": "sequence",
+                        "of": [
+                            {
+                                "kind": "optional",
+                                "expr": { "kind": "rule", "name": "minus" }
+                            },
+                            { "kind": "rule", "name": "integer" },
+                            {
+                                "kind": "optional",
+                                "expr": { "kind": "rule", "name": "frac" }
+                            },
+                            {
+                                "kind": "optional",
+                                "expr": { "kind": "rule", "name": "exp" }
+                            }
+                        ]
+                    },
+                    "integer": {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "rule", "name": "digit0" },
+                            {
+                                "kind": "sequence",
+                                "of": [
+                                    { "kind": "rule", "name": "digit1-9" },
+                                    {
+                                        "kind": "star",
+                                        "expr": { "kind": "rule", "name": "digit0-9" }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "frac": {
+                        "kind": "sequence",
+                        "of": [
+                            { "kind": "rule", "name": "decimal-point" },
+                            {
+                                "kind": "plus",
+                                "expr": { "kind": "rule", "name": "digit0-9" }
+                            }
+                        ]
+                    },
+                    "exp": {
+                        "kind": "sequence",
+                        "of": [
+                            { "kind": "rule", "name": "e" },
+                            {
+                                "kind": "optional",
+                                "expr": {
+                                    "kind": "alternative",
+                                    "of": [
+                                        { "kind": "rule", "name": "minus" },
+                                        { "kind": "rule", "name": "plus" }
+                                    ]
+                                }
+                            },
+                            {
+                                "kind": "plus",
+                                "expr": { "kind": "rule", "name": "digit0-9" }
+                            }
+                        ]
+                    },
+                    "e": {
+                        "kind": "alternative",
+                        "of": [
+                            { "kind": "terminal", "value": 101 },
+                            { "kind": "terminal", "value": 69 }
+                        ]
+                    },
+                    "decimal-point": { "kind": "terminal", "value": 46 },
+                    "plus": { "kind": "terminal", "value": 43 },
+                    "minus": { "kind": "terminal", "value": 45 },
+                    "digit0": { "kind": "terminal", "value": 48 },
+                    "digit1-9": { "kind": "range", "from": 49, "to": 57 },
+                    "digit0-9": { "kind": "range", "from": 48, "to": 57 },
+                    "anything": { "kind": "anything" },
+                    "nothing": { "kind": "nothing" },
+                    "fail": { "kind": "fail" }
+                }
+            }
+        }));
 
         match = grammar.rule(new VO.String("nothing")).match(VO.emptyString);
         VO.ensure(match.hasType(VO.Object));
@@ -534,7 +602,50 @@ crlf.selfTest = (function () {
                         [[101, [43], [48]]]
                     ])));
         VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
+    };
 
+    var test_VO = function test_VO() {
+        var context = VO.fromNative({
+            "zero": 0,
+            "one": 1,
+            "two": 2,
+            "null": null
+        });
+        var expr;
+        var value;
+
+        expr = crlf.compile(VO.fromNative({
+            "lang": "VO",
+            "ast": {
+                "kind": "value",
+                "value": []
+            }
+        }));
+        value = expr.evaluate(context);
+        VO.ensure(value.equals(VO.emptyArray));
+
+        expr = crlf.compile(VO.fromNative({
+            "lang": "VO",
+            "ast": {
+                "kind": "combination",
+                "operative": {
+                    "kind": "method",
+                    "target": { "kind": "variable", "name": "one" },
+                    "selector": { "kind": "value", "value": "plus" }
+                },
+                "parameter": [
+                    { "kind": "value", "value": 1 }
+                ]
+            }
+        }));
+        value = expr.evaluate(context);
+        VO.ensure(value.equals(new VO.Number(2)));
+    };
+
+    return function selfTest() {
+        test_PEG();
+        test_VO();
         return true;  // all tests passed
     };
+
 })();
