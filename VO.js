@@ -569,14 +569,17 @@ VO.Combiner = (function (self) {
     self.combine = function combine(value, context) {
         VO.ensure(value.hasType(VO.Value));
 //        VO.ensure(context.hasType(VO.Object));
-        return this._oper(value, context);
+        var operative = this._oper;
+        return operative(value, context);
     };
     self.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.Combiner));
+        var first = this._oper;
         VO.ensure(that.hasType(VO.Combiner));
+        var second = that._oper;
         var composition = function composition(value, context) {
-            value = this._oper(value, context);  // apply this combiner first
-            value = that._oper(value, context);  // apply that combiner second
+            value = first(value, context);  // apply this combiner first
+            value = second(value, context);  // apply that combiner second
             return value;  // return final value
         }
         return new VO.Combiner(composition);
@@ -590,6 +593,8 @@ VO.Combiner = (function (self) {
     constructor.prototype = self;
     /* return unevaluated argument */
     VO.quoteOper = new constructor(function quoteOper(value/*, context*/) {
+        VO.ensure(value.hasType(VO.Value));
+//        VO.ensure(context.hasType(VO.Object));
         return value;
     });
     /* return array of evaluated arguments */
@@ -620,11 +625,16 @@ VO.MethodExpr = (function (self) {
         var selector = this._name.evaluate(context);  // evaluate name expression to get selector
         VO.ensure(selector.hasType(VO.String));
         var target = this._this.evaluate(context);  // evaluate this expression to get target
-        VO.ensure(target.hasType(VO.Object));
-        var combiner = target.value(selector);  // extract combiner from target object
-        VO.ensure(combiner.hasType(VO.Combiner));
-        var env = context.append(new VO.String("this"), target);  // [FIXME: where is this used?]
-        return combiner;
+        VO.ensure(target.hasType(VO.Value));
+        var method = target[selector._value];  // extract native method from target object
+        VO.ensure(VO.Boolean(typeof method === "function"));
+//        var env = context.append(new VO.String("this"), target);  // [FIXME: where is this used?]
+        var combiner = new VO.Combiner(function methodCall(args/*, context*/) {
+            VO.ensure(args.hasType(VO.Array));
+//            VO.ensure(context.hasType(VO.Object));
+            return method.apply(target, args._value);  // call native method on target object
+        });
+        return VO.arrayOper.concatenate(combiner);  // evaluate arguments before calling method
     };
     var constructor = function MethodExpr(target, selector) {
         VO.ensure(target.hasType(VO.Expression));
@@ -973,6 +983,13 @@ VO.selfTest = (function () {
                                          return x.append(new VO.VariableExpr(n));
                                      }, VO.emptyArray))
                   .evaluate(sampleContext).equals(sampleArray));
+        VO.ensure(new VO.CombineExpr(
+                        new VO.MethodExpr(
+                            new VO.VariableExpr(new VO.String("one")), 
+                            new VO.ValueExpr(new VO.String("plus"))),
+                        VO.emptyArray.append(
+                            new VO.ValueExpr(VO.one)))
+                  .evaluate(sampleContext).equals(new VO.Number(2)));
 
         return true;  // all tests passed
     };
