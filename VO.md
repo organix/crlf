@@ -1,18 +1,18 @@
-# JSON Value Objects
+# Abstract Value Objects
 
 Abstract Data Values are organized into a type-hierarchy:
 
- * Value
-   * Null
-   * Boolean
-   * Number
-   * String
-   * Array
-   * Object
+* Value
+    * Null
+    * Boolean
+    * Number
+    * String
+    * Array
+    * Object
 
 ## Abstract Value Methods
 
-Each abstract data value can be viewed as a value-object, with properties and methods. However, properties can only be JSON values, and methods may only return a JSON value (and not mutate any objects). Methods with no parameters are indistinguishable from properties. One such method has already been described for each abstract data type, the _equals_ predicate.
+Each abstract data value can be viewed as a value-object, with properties and methods. However, properties can only be value-objects, and methods may only return a value-object (and not mutate any objects). Methods with no parameters are indistinguishable from properties. One such method has already been described for each [abstract data type](JSON.md), the _equals_ predicate.
 
 ### Global (ambient) methods
 
@@ -154,16 +154,23 @@ Evaluate the target (according to `lang`) to produce a value. If an exception is
 
 ## Value Object Expressions (VO)
 
-_VO_ is a crlf-encoding for _expressions_ involving JSON value-objects.
+`VO` is a [crlf-encoding](READMD.md) for _expressions_ involving [JSON](JSON.md) value-objects.
+
+```javascript
+{
+    "lang": "VO",
+    "ast": <expression>
+}
+```
 
 The Expression type derives from the Value type:
 
-  * Value
+* Value
     * Expression
-      * ValueExpr
-      * VariableExpr
-      * CombineExpr
-      * MethodExpr
+        * ValueExpr
+        * VariableExpr
+        * CombineExpr
+        * MethodExpr
 
 ### Value expression (ValueExpr)
 
