@@ -106,6 +106,20 @@ VO.Value = (function (self) {
     self.hasType = function hasType(type) {
         return VO.Boolean(this instanceof type);
     };
+    self.method = function method(name) {  // create adapter for native method
+        VO.ensure(this.hasType(VO.Value));
+        var target = this;  // this is the target object
+        VO.ensure(name.hasType(VO.String));
+        var method = target[name._value];  // extract native method from target
+        VO.ensure(VO.Boolean(typeof method === "function"));
+        var combiner = new VO.Combiner(function methodCall(args/*, context*/) {
+            VO.ensure(args.hasType(VO.Array));
+//            VO.ensure(context.hasType(VO.Object));
+            return method.apply(target, args._value);  // call native method on target object
+        });
+        combiner = VO.arrayOper.concatenate(combiner);  // evaluate arguments before calling method
+        return combiner;  // return applicative combiner bound to target object
+    };
     var constructor = function Value() {
 //        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
     };
@@ -626,15 +640,7 @@ VO.MethodExpr = (function (self) {
         VO.ensure(selector.hasType(VO.String));
         var target = this._this.evaluate(context);  // evaluate this expression to get target
         VO.ensure(target.hasType(VO.Value));
-        var method = target[selector._value];  // extract native method from target object
-        VO.ensure(VO.Boolean(typeof method === "function"));
-//        var env = context.append(new VO.String("this"), target);  // [FIXME: where is this used?]
-        var combiner = new VO.Combiner(function methodCall(args/*, context*/) {
-            VO.ensure(args.hasType(VO.Array));
-//            VO.ensure(context.hasType(VO.Object));
-            return method.apply(target, args._value);  // call native method on target object
-        });
-        return VO.arrayOper.concatenate(combiner);  // evaluate arguments before calling method
+        return target.method(selector);  // return adapter for native method
     };
     var constructor = function MethodExpr(target, selector) {
         VO.ensure(target.hasType(VO.Expression));
