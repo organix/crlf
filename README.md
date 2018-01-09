@@ -17,59 +17,21 @@ The value of the `lang` property specifies the interpretation of the value of th
 
 `lang` value | Description
 -------------|------------
+[JSON](JSON.md) | JavaScript Object Notation
+[VO](VO.md) | Abstract Value-Object Expressions
 [lambda](lambda.md) | Untyped Lambda-calculus
 [PEG](PEG.md) | Parsing Expression Grammars
 [actor](actor.md) | Primitive actions for the Actor-model of computation
 
-## Semantic Notation
+## Abstract Compilation
 
-The abstract semantics of these languages are decribed using a few common notational conventions. We start with the data-types which can be represented by [JSON](JSON.md), which are:
+The `ast` property value represents the _source_ language for a particular type of _crlf_ object. This source consists entirely of abstract _values_ which can be represented by [JSON](JSON.md):
 
-  * String
-  * Number
-  * Object
-  * Array
-  * Boolean (`true` and `false`)
   * `null`
+  * Boolean (`true` and `false`)
+  * Number
+  * String
+  * Array
+  * Object
 
-Named meta-variables may be given any value, using assigment notation:
-
-```
-<name> := <value>
-```
-
-Object fields may be accessed by name:
-
-```
-<object>.<name>
-```
-
-Objects fields may also be accessed by string key:
-
-```
-<object>[<string>]
-```
-
-Array elements may be accessed by number index (0-based):
-
-```
-<array>[<number>]
-```
-
-Array length may be accessed as a named field:
-
-```
-<array>.length
-```
-
-New array values may be created by concatenation:
-
-```
-<prefix> ^ <suffix>
-```
-
-New object values may be created by concatenation:
-
-```
-<original> ^ <updates>
-```
+The `lang` property value specifies a _compiler_ for this type of _crlf_ object. The compiler translates the _source_ value into an implementation-specific object. The abstract semantics of this object are defined by each language.
