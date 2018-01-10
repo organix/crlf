@@ -22,6 +22,34 @@ The abstract values represent immutable state/data. In order for some computatio
 
 If a value cannot be determined, an exception is thrown. So the application of a combiner to a value either produces another value, or signals an error.
 
+Combiners may be chained together such that the output from one combination is the input to another. This assumes that the output value from the first combiner is acceptable as input for the second combiner, otherwise an exception is thrown.
+
+```
+           +------------+      +------------+
+input ---> | combiner A | ---> | combiner B | ---> output
+           +------------+      +------------+
+```
+
+Chained combiners may be viewed as a single combiner which is the _concatenation_ of combiners (like _composition_ of _functions_).
+
+```
+           +------------------+
+input ---> | combiner (A ^ B) | ---> output
+           +------------------+
+```
+
+The output value of a combination may also be a combiner. The resulting combiner may be applied to additional input values.
+
+```
+             +------------+
+input x ---> | combiner A | -------+
+             +------------+        |
+                                   v
+                                 +------------+
+                    input y ---> | combiner B | ---> output
+                                 +------------+
+```
+
 ## Abstract Value Methods
 
 Each abstract data value can be viewed as a value-object, with properties and methods. However, properties can only be value-objects, and methods may only return a value-object (and not mutate any objects). Methods with no parameters are indistinguishable from properties. One such method has already been described for each [abstract data type](JSON.md), the _equals_ predicate.
