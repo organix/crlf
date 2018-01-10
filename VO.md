@@ -10,6 +10,18 @@ Abstract Data Values are organized into a type-hierarchy:
     * Array
     * Object
 
+## Combiners
+
+The abstract values represent immutable state/data. In order for some computation to be done, there must be a way to specify a transformation between values. We call that transformation a _combiner_. The _combination_ of a combiner with an _input_ value determines an _output_ result value.
+
+```
+              +----------+
+    input --> | combiner | --> output
+              +----------+
+```
+
+If a value cannot be determined, an exception is thrown. So the application of a combiner to a value either produces another value, or signals an error.
+
 ## Abstract Value Methods
 
 Each abstract data value can be viewed as a value-object, with properties and methods. However, properties can only be value-objects, and methods may only return a value-object (and not mutate any objects). Methods with no parameters are indistinguishable from properties. One such method has already been described for each [abstract data type](JSON.md), the _equals_ predicate.
