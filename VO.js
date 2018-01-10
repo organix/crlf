@@ -117,8 +117,7 @@ VO.Value = (function (self) {
 //            VO.ensure(context.hasType(VO.Object));
             return method.apply(target, args._value);  // call native method on target object
         });
-        combiner = VO.arrayOper.concatenate(combiner);  // evaluate arguments before calling method
-        return combiner;  // return applicative combiner bound to target object
+        return combiner;  // return combiner bound to target object method
     };
     var constructor = function Value() {
 //        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
@@ -647,7 +646,9 @@ VO.MethodExpr = (function (self) {
         VO.ensure(selector.hasType(VO.String));
         var target = this._this.evaluate(context);  // evaluate this expression to get target
         VO.ensure(target.hasType(VO.Value));
-        return target.method(selector);  // return adapter for native method
+        var combiner = target.method(selector);  // adapter for native method
+        combiner = VO.arrayOper.concatenate(combiner);  // evaluate arguments before calling method
+        return combiner;  // return applicative combiner bound to target object
     };
     var constructor = function MethodExpr(target, selector) {
         VO.ensure(target.hasType(VO.Expression));
