@@ -12,15 +12,15 @@ Abstract Data Values are organized into a type-hierarchy:
 
 ## Combiners
 
-The abstract values represent immutable state/data. In order for some computation to be done, there must be a way to specify a transformation between values. We call that transformation a _combiner_. The _combination_ of a combiner with an _input_ value determines an _output_ result value.
+The abstract values represent immutable state/data. In order for some computation to be done, there must be a way to specify a transformation between values. We call that transformation a _combiner_. The _combination_ of a combiner with an _input_ value determines an _output_ value (result).
 
 ```
-              +----------+
-    input --> | combiner | --> output
-              +----------+
+           +----------+
+input ---> | combiner | ---> output
+           +----------+
 ```
 
-If a value cannot be determined, an exception is thrown. So the application of a combiner to a value either produces another value, or signals an error.
+If a value cannot be determined, an exception is thrown. So the application of a combiner to a value either produces a result, or signals an error.
 
 Combiners may be chained together such that the output from one combination is the input to another. This assumes that the output value from the first combiner is acceptable as input for the second combiner, otherwise an exception is thrown.
 
@@ -48,6 +48,30 @@ input x ---> | combiner A | -------+
                                  +------------+
                     input y ---> | combiner B | ---> output
                                  +------------+
+```
+
+### Abstract Combiners
+
+Each abstract data value can be viewed as a combiner takes a name _string_ as input. The result value, naturally, may itself be a combiner.
+
+For example, the `null` value, when given the input "equals", returns a _combiner_. This combiner takes returns `true` if its input is `null`, or `false` otherwise. 
+
+```
+              +------+
+"equals" ---> | null | -------+
+              +------+        |
+                              v
+                            +-------------+
+                  null ---> | null.equals | ---> true
+                            +-------------+
+
+              +------+
+"equals" ---> | null | -------+
+              +------+        |
+                              v
+                            +-------------+
+                  true ---> | null.equals | ---> false
+                            +-------------+
 ```
 
 ## Abstract Value Methods
