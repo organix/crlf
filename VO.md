@@ -22,7 +22,7 @@ input ---> | combiner | ---> output
 
 If a value cannot be determined, an exception is thrown. So the application of a combiner to a value either produces a result, or signals an error.
 
-Combiners may be chained together such that the output from one combination is the input to another. This assumes that the output value from the first combiner is acceptable as input for the second combiner, otherwise an exception is thrown.
+Combiners may be chained together such that the output from one combiner is the input to another. This assumes that the output value from the first combiner is acceptable as input for the second combiner, otherwise an exception is thrown.
 
 ```
            +------------+      +------------+
@@ -54,7 +54,7 @@ input x ---> | combiner A | -------+
 
 Each abstract data value can be viewed as a _combiner_ which takes a _name_ (of type _String_) as input. The result value, naturally, may itself be a _combiner_.
 
-For example, the `null` value, when given the input `"equals"`, returns a _combiner_. This combiner takes returns `true` if its input is `null`, or `false` otherwise. 
+For example, the `null` value, when given the input `"equals"`, returns a _combiner_. This combiner returns `true` if its input is `null`, or `false` otherwise. 
 
 ```
               +------+
@@ -74,7 +74,7 @@ For example, the `null` value, when given the input `"equals"`, returns a _combi
                             +-------------+
 ```
 
-Note that the combiner we've labelled `null.equals` is **not** one of the previously specified abstract data values.
+Note that the combiner we've labelled `null.equals` is **not** one of the previously specified abstract data values. Combiners representing intermediate results (or partial function applications) may have no corresponding abstract data value.
 
 ## Abstract Value Methods
 
