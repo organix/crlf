@@ -52,7 +52,7 @@ input x ---> | combiner A | -------+
 
 ### Abstract Combiners
 
-Each abstract data value can be viewed as a combiner takes a name _string_ as input. The result value, naturally, may itself be a combiner.
+Each abstract data value can be viewed as a _combiner_ which takes a _name_ (of type _String_) as input. The result value, naturally, may itself be a _combiner_.
 
 For example, the `null` value, when given the input `"equals"`, returns a _combiner_. This combiner takes returns `true` if its input is `null`, or `false` otherwise. 
 
