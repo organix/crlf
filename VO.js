@@ -292,6 +292,13 @@ VO.String = (function (self) {
         VO.ensure(value.hasType(VO.Number));
         return new VO.String(this._value + String.fromCharCode(value._value));  // FIXME: use .fromCodePoint() when available
     };
+    self.bind = function bind(value) {
+        VO.ensure(this.hasType(VO.String));
+        VO.ensure(value.hasType(VO.Value));
+        var obj = {};
+        obj[this._value] = value;
+        return new VO.Object(obj);
+    };
     self.reduce = function reduce(func, value) {
         VO.ensure(this.hasType(VO.String));
         if (typeof func === "function") {
@@ -821,6 +828,7 @@ VO.selfTest = (function () {
         VO.ensure(sampleString.extract(VO.zero, new VO.Number(6))
                   .concatenate(sampleString.extract(new VO.Number(6), sampleString.length()))
                   .equals(sampleString));
+        VO.ensure(new VO.String("foo").bind(new VO.Number(42)).equals(VO.fromNative({ "foo": 42 })));
 
         VO.ensure(VO.emptyString.append(new VO.Number(72)).append(new VO.Number(105))
                   .equals(new VO.String("Hi")));
