@@ -94,6 +94,10 @@ The `<string>` consisting of the characters of target followed by the characters
 
 The `<string>` consisting of the characters of target from the first parameter value to the second parameter value as a 0-based half-open interval.
 
+#### `<string>.bind <value>`
+
+The `<object>` where the target name `<string>` is associated with the parameter `<value>`.
+
 ### Array methods
 
 #### `<array>.length`
