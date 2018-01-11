@@ -112,7 +112,7 @@ VO.Value = (function (self) {
         var member = this[name._value];
         VO.ensure(VO.Boolean(member !== undefined));
         if (typeof member === 'function') {
-            return member.bind(this);  // [FIXME: may want to wrap this in a new kind of Combiner object]
+            member = new VO.Combiner(member.bind(this));  // wrap native function
         }
         VO.ensure(member.hasType(VO.Value));
         return member;
@@ -132,6 +132,35 @@ VO.Value = (function (self) {
     };
     var constructor = function Value() {
 //        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
+    };
+    self.constructor = constructor;
+    constructor.prototype = self;
+    return constructor;
+})();
+
+VO.Combiner = (function (self) {
+    self = self || new VO.Value();
+    self.combine = function combine(value) {  // delegate to native operative function
+        VO.ensure(this.hasType(VO.Combiner));
+        VO.ensure(value.hasType(VO.Value));
+        return this._oper(value);
+    };
+    self.concatenate = function concatenate(that) {
+        VO.ensure(this.hasType(VO.Combiner));
+        var first = this._oper;
+        VO.ensure(this.hasType(VO.Combiner));
+        var second = that._oper;
+        var composition = function composition(value) {
+            value = first(value);  // apply this operative first
+            value = second(value);  // apply that operative second
+            return value;  // return final value
+        }
+        return new VO.Combiner(composition);
+    };
+    var constructor = function Combiner(operative) {
+        VO.ensure(VO.Boolean(typeof operative === "function"));
+        this._oper = operative;
+        deepFreeze(this);
     };
     self.constructor = constructor;
     constructor.prototype = self;
