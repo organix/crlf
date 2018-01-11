@@ -112,12 +112,12 @@ VO.Value = (function (self) {
         VO.ensure(name.hasType(VO.String));
         var method = target[name._value];  // extract native method from target
         VO.ensure(VO.Boolean(typeof method === "function"));
-        var combiner = new VO.Combiner(function methodCall(args/*, context*/) {
+        var operation = new VO.Operation(function methodCall(args/*, context*/) {
             VO.ensure(args.hasType(VO.Array));
 //            VO.ensure(context.hasType(VO.Object));
             return method.apply(target, args._value);  // call native method on target object
         });
-        return combiner;  // return combiner bound to target object method
+        return operation;  // return operation bound to target object method
     };
     var constructor = function Value() {
 //        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
@@ -564,10 +564,10 @@ VO.CombineExpr = (function (self) {
     self = self || new VO.Expression();
     self.evaluate = function evaluate(context) {
 //        VO.ensure(context.hasType(VO.Object));
-        var combiner = this._expr.evaluate(context);
-//        VO.ensure(VO.Boolean(typeof combiner.combine === "function"));
-        VO.ensure(combiner.hasType(VO.Combiner));
-        return combiner.combine(this._data, context);
+        var operation = this._expr.evaluate(context);
+//        VO.ensure(VO.Boolean(typeof operation.operate === "function"));
+        VO.ensure(operation.hasType(VO.Operation));
+        return operation.operate(this._data, context);
     };
     var constructor = function CombineExpr(expr, data) {
         VO.ensure(expr.hasType(VO.Expression));
@@ -580,31 +580,31 @@ VO.CombineExpr = (function (self) {
     return constructor;
 })();
 
-VO.Combiner = (function (self) {
+VO.Operation = (function (self) {
     self = self || new VO.Expression();
     self.evaluate = function evaluate(context) {
 //        VO.ensure(context.hasType(VO.Object));
-        return this;  // combiners evaluate to themselves
+        return this;  // operations evaluate to themselves
     };
-    self.combine = function combine(value, context) {
+    self.operate = function operate(value, context) {
         VO.ensure(value.hasType(VO.Value));
 //        VO.ensure(context.hasType(VO.Object));
         var operative = this._oper;
         return operative(value, context);
     };
     self.concatenate = function concatenate(that) {
-        VO.ensure(this.hasType(VO.Combiner));
+        VO.ensure(this.hasType(VO.Operation));
         var first = this._oper;
-        VO.ensure(that.hasType(VO.Combiner));
+        VO.ensure(that.hasType(VO.Operation));
         var second = that._oper;
         var composition = function composition(value, context) {
-            value = first(value, context);  // apply this combiner first
-            value = second(value, context);  // apply that combiner second
+            value = first(value, context);  // apply this operative first
+            value = second(value, context);  // apply that operative second
             return value;  // return final value
         }
-        return new VO.Combiner(composition);
+        return new VO.Operation(composition);
     };
-    var constructor = function Combiner(operative) {
+    var constructor = function Operation(operative) {
         VO.ensure(VO.Boolean(typeof operative === "function"));
         this._oper = operative;
         deepFreeze(this);
@@ -646,9 +646,9 @@ VO.MethodExpr = (function (self) {
         VO.ensure(selector.hasType(VO.String));
         var target = this._this.evaluate(context);  // evaluate this expression to get target
         VO.ensure(target.hasType(VO.Value));
-        var combiner = target.method(selector);  // adapter for native method
-        combiner = VO.arrayOper.concatenate(combiner);  // evaluate arguments before calling method
-        return combiner;  // return applicative combiner bound to target object
+        var operation = target.method(selector);  // adapter for native method
+        operation = VO.arrayOper.concatenate(operation);  // evaluate arguments before calling method
+        return operation;  // return applicative bound to target object
     };
     var constructor = function MethodExpr(target, selector) {
         VO.ensure(target.hasType(VO.Expression));
