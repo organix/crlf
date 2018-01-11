@@ -106,6 +106,17 @@ VO.Value = (function (self) {
     self.hasType = function hasType(type) {
         return VO.Boolean(this instanceof type);
     };
+    self.combine = function combine(name) {  // data-value combiner is abstract field accessor
+        VO.ensure(this.hasType(VO.Value));
+        VO.ensure(name.hasType(VO.String));
+        var member = this[name._value];
+        VO.ensure(VO.Boolean(member !== undefined));
+        if (typeof member === 'function') {
+            return member.bind(this);  // [FIXME: may want to wrap this in a new kind of Combiner object]
+        }
+        VO.ensure(member.hasType(VO.Value));
+        return member;
+    };
     self.method = function method(name) {  // create adapter for native method
         VO.ensure(this.hasType(VO.Value));
         var target = this;  // this is the target object
