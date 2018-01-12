@@ -301,19 +301,6 @@ VO.String = (function (self) {
         }
         return VO.false;
     };
-/*
-Object.defineProperty(o, 'b', { get: function() { return this.a + 1; } });
-Object.defineProperty(o, 'b', {
-  // Using shorthand method names (ES2015 feature).
-  // This is equivalent to:
-  // get: function() { return bValue; },
-  // set: function(newValue) { bValue = newValue; },
-  get() { return bValue; },
-  set(newValue) { bValue = newValue; },
-  enumerable: true,
-  configurable: true
-});
-*/
     Object.defineProperty(self, 'length', {
         enumerable: true,
         get: function () {
@@ -321,18 +308,12 @@ Object.defineProperty(o, 'b', {
             return new VO.Number(this._value.length);
         }
     });
-/*
-    self.length = function length() {
-        VO.ensure(this.hasType(VO.String));
-        return new VO.Number(this._value.length);
-    };
-*/
     self.value = function value(offset) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(offset.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
         VO.ensure(offset.lessThan(this.length));  // offset < length
-        return new VO.Number(this._value.charCodeAt(offset._value));  // FIXME: use .codePointAt() when available
+        return new VO.Number(this._value.codePointAt(offset._value));
     };
     self.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.String));
@@ -351,7 +332,7 @@ Object.defineProperty(o, 'b', {
     self.append = function append(value) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(value.hasType(VO.Number));
-        return new VO.String(this._value + String.fromCharCode(value._value));  // FIXME: use .fromCodePoint() when available
+        return new VO.String(this._value + String.fromCodePoint(value._value));
     };
     self.bind = function bind(value) {
         VO.ensure(this.hasType(VO.String));
@@ -364,8 +345,8 @@ Object.defineProperty(o, 'b', {
         VO.ensure(this.hasType(VO.String));
         if (typeof func === "function") {
             for (var i = 0; i < this._value.length; ++i) {
-                var c = new VO.Number(this._value.charCodeAt(i));
-                value = func(c, value);  // FIXME: use .codePointAt() when available
+                var c = new VO.Number(this._value.codePointAt(i));
+                value = func(c, value);
             }
             return value;
         }
@@ -419,12 +400,6 @@ VO.Array = (function (self) {
             return new VO.Number(this._value.length);
         }
     });
-/*
-    self.length = function length() {
-        VO.ensure(this.hasType(VO.Array));
-        return new VO.Number(this._value.length);
-    };
-*/
     self.value = function value(offset) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(offset.hasType(VO.Number));
