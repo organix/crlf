@@ -3,12 +3,15 @@
 Abstract Data Values are organized into a type-hierarchy:
 
 * Value
-    * Null
-    * Boolean
-    * Number
-    * String
-    * Array
-    * Object
+    * Combiner
+    * Data
+        * Null
+        * Boolean
+        * Number
+        * Composite
+            * String
+            * Array
+            * Object
 
 ## Combiners
 
@@ -94,7 +97,7 @@ If the parameter value is `true`, return the target, otherwise throw an exceptio
 
 Some methods are common to all value types.
 
-#### `<value>.equals [<value>]`
+#### `<value>.equals <value>`
 
 `true` if the target is equal to the parameter value, otherwise `false`.
 
@@ -102,7 +105,11 @@ Some methods are common to all value types.
 
 `true` if the target is a member of the specified type, otherwise `false`.
 
-#### `<value>.toJSON`
+### Data methods
+
+Data values are restricted to types with a defined JSON serialization.
+
+#### `<data>.asJSON`
 
 The JSON-encoded `<string>` representation of the target.
 
@@ -134,13 +141,19 @@ If target is `true`, return `then.value`, otherwise `else.value` (see `<crlf>.va
 
 The `<number>` that is the mathematical sum of the target and the parameter value.
 
+### Composite methods
+
+#### `<composite>.value <data>`
+
+The component `<value>` corresponding to the selector `<data>` value in the target.
+
 ### String methods
 
 #### `<string>.length`
 
 The `<number>` of characters in the target.
 
-#### `<string>.value [<number>]`
+#### `<string>.value <number>`
 
 The character `<number>` at the parameter value 0-based index in the target.
 
@@ -160,6 +173,10 @@ The `<string>` consisting of the characters of target followed by the characters
 
 The `<string>` consisting of the characters of target from the first parameter value to the second parameter value as a 0-based half-open interval.
 
+#### `<string>.asArray`
+
+The `<array>` consisting of the characters of target as `<number>`s.
+
 #### `<string>.bind <value>`
 
 The `<object>` where the target name `<string>` is associated with the parameter `<value>`.
@@ -170,7 +187,7 @@ The `<object>` where the target name `<string>` is associated with the parameter
 
 The `<number>` of elements in the target.
 
-#### `<array>.value [<number>]`
+#### `<array>.value <number>`
 
 The element `<value>` at the parameter value 0-based index in the target.
 
@@ -186,13 +203,17 @@ The `<array>` consisting of the elements of target followed by the elements of t
 
 The `<array>` consisting of the elements of target from the first parameter value to the second parameter value as a 0-based half-open interval.
 
+#### `<array>.asString`
+
+The `<string>` consisting of the elements of target (which must be `<number>`s).
+
 ### Object methods
 
 #### `<object>.hasProperty [<string>]`
 
 `true` if the target has a property whose name matches the parameter value, otherwise `false`.
 
-#### `<object>.value [<string>]`
+#### `<object>.value <string>`
 
 The `<value>` associated with the parameter value name in the target.
 
@@ -214,9 +235,9 @@ The `<array>` of property names defined by the target.
 
 ### CRLF methods
 
-#### `<crlf>.value`
+#### `<crlf>.compile`
 
-Evaluate the target (according to `lang`) to produce a value.
+Transform the target (according to `lang`) to produce a `<value>`.
 
 #### `<crlf>.try { catch:<crlf>, default:<value> }`
 
