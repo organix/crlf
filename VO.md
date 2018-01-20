@@ -3,7 +3,6 @@
 Abstract Data Values are organized into a type-hierarchy:
 
 * Value
-    * Combiner
     * Data
         * Null
         * Boolean
@@ -12,6 +11,31 @@ Abstract Data Values are organized into a type-hierarchy:
             * String
             * Array
             * Object
+    * Combiner
+
+## Data
+
+Various frequently-used data values are available by name.
+
+### Scalar Values
+
+#### `VO.null`
+
+#### `VO.true`
+
+#### `VO.false`
+
+#### `VO.zero`
+
+#### `VO.one`
+
+### Composite Values
+
+#### `VO.emptyString`
+
+#### `VO.emptyArray`
+
+#### `VO.emptyObject`
 
 ## Combiners
 
