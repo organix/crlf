@@ -125,9 +125,13 @@ Some methods are common to all value types.
 
 `true` if the target is equal to the parameter value, otherwise `false`.
 
-#### `<value>.hasType [<type>]`
+#### `<value>.hasType <type>`
 
 `true` if the target is a member of the specified type, otherwise `false`.
+
+#### `<value>.combine <string>`
+
+The `<combiner>` corresponding to the named abstract method. Throws an exception if the named method does not exist.
 
 ### Data methods
 
@@ -256,6 +260,16 @@ The `<object>` consisting of the properties of target named by the parameter val
 #### `<object>.names`
 
 The `<array>` of property names defined by the target.
+
+### Combiner methods
+
+#### `<combiner>.combine <value>`
+
+The output `<value>` resulting from applying the combiner to the input `<value>`.
+
+#### `<combiner>.concatenate <combiner>`
+
+The `<combiner>` representing the composition of the target and the parameter. The output of the target `<combiner>` is the input to the parameter `<combiner>`.
 
 ### CRLF methods
 
