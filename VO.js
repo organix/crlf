@@ -168,11 +168,14 @@ VO.Combiner = (function (self) {
 })();
 
 VO.Data = (function (self) {
-//    self = self || Object.create(VO.emptyObject);
     self = self || new VO.Value();
-    self.asJSON = function asJSON() {
-        VO.throw("Not Implemented");  // FIXME!
-    };
+    Object.defineProperty(self, 'asJSON', {
+        enumerable: true,
+        get: function () {
+            VO.ensure(this.hasType(VO.Data));
+            return new VO.String(JSON.stringify(this._value));
+        }
+    });
     var constructor = function Data() {
 //        deepFreeze(this);  // can't freeze because we need mutable prototypes
     };
@@ -302,7 +305,6 @@ VO.Number = (function (self) {
 })();
 
 VO.Composite = (function (self) {
-//    self = self || Object.create(VO.emptyObject);
     self = self || new VO.Data();
     self.value = function value(selector) {  // extract a component of the composite
         VO.throw("Not Implemented");  // FIXME!
@@ -592,7 +594,6 @@ VO.Object = (function (self) {
 })();
 
 VO.Expression = (function (self) {
-//    self = self || Object.create(VO.emptyObject);
     self = self || new VO.Value();
     self.evaluate = function evaluate(/* context */) {
         VO.throw("Not Implemented");
@@ -783,6 +784,8 @@ VO.selfTest = (function () {
         VO.ensure(VO.Boolean(VO.null === new VO.Null()));
         VO.ensure(VO.Boolean(new VO.Null() === new VO.Null()));
 
+        VO.ensure(VO.null.asJSON.equals(new VO.String("null")));
+
         // Boolean
         VO.ensure(VO.true.equals(VO.null).not());
         VO.ensure(VO.true.equals(VO.true));
@@ -827,6 +830,9 @@ VO.selfTest = (function () {
         VO.ensure(VO.false.equals(new VO.Boolean(false)));
         VO.ensure(VO.Boolean(VO.false === new VO.Boolean(false)));
         VO.ensure(VO.Boolean(new VO.Boolean(false) === new VO.Boolean(false)));
+
+        VO.ensure(VO.true.asJSON.equals(new VO.String("true")));
+        VO.ensure(VO.false.asJSON.equals(new VO.String("false")));
 
         // Number
         VO.ensure(VO.zero.equals(VO.zero));
@@ -874,6 +880,12 @@ VO.selfTest = (function () {
         VO.ensure(VO.Boolean(VO.zero !== new VO.Number(0)));
         VO.ensure(VO.one.equals(new VO.Number(1)));
         VO.ensure(VO.Boolean(VO.one !== new VO.Number(1)));
+
+        VO.ensure(VO.zero.asJSON.equals(new VO.String("0")));
+        VO.ensure(VO.one.asJSON.equals(new VO.String("1")));
+        VO.ensure(VO.two.asJSON.equals(new VO.String("2")));
+        VO.ensure(VO.minusOne.asJSON.equals(new VO.String("-1")));
+        VO.ensure((new VO.Number(42)).asJSON.equals(new VO.String("42")));
 
         // String
         VO.ensure(VO.emptyString.equals(VO.zero).not());
@@ -924,6 +936,10 @@ VO.selfTest = (function () {
         VO.ensure(VO.Boolean(VO.emptyString !== new VO.String("")));
         VO.ensure(VO.Boolean(VO.emptyString === new VO.String()));
 
+        VO.ensure(VO.emptyString.asJSON.equals(new VO.String('""')));
+        VO.ensure(sampleString.asJSON.equals(new VO.String('"Hello, World!"')));
+        VO.ensure((new VO.String(" \r\n")).asJSON.equals(new VO.String('" \\r\\n"')));
+
         // Array
         VO.ensure(VO.emptyArray.equals(VO.zero).not());
         VO.ensure(VO.emptyArray.equals(VO.emptyString).not());
@@ -972,6 +988,8 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyArray.equals(new VO.Array([])));
         VO.ensure(VO.Boolean(VO.emptyArray !== new VO.Array([])));
         VO.ensure(VO.Boolean(VO.emptyArray === new VO.Array()));
+
+        VO.ensure(VO.emptyArray.asJSON.equals(new VO.String('[]')));
 
         // Object
         VO.ensure(VO.emptyObject.equals(VO.zero).not());
@@ -1041,6 +1059,8 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyObject.equals(new VO.Object({})));
         VO.ensure(VO.Boolean(VO.emptyObject !== new VO.Object({})));
         VO.ensure(VO.Boolean(VO.emptyObject === new VO.Object()));
+
+        VO.ensure(VO.emptyObject.asJSON.equals(new VO.String('{}')));
 
         VO.ensure(VO.fromNative(
             {
