@@ -578,14 +578,23 @@ VO.Object = (function (self) {
         }
         return new VO.Object(result);
     };
-    self.names = function names() {
-        VO.ensure(this.hasType(VO.Object));
-        var keys = Object.keys(this._value);
-        for (var i = 0; i < keys.length; ++i) {
-            keys[i] = new VO.String(keys[i]);  // convert to VO.String
+    Object.defineProperty(self, 'names', {
+        enumerable: true,
+        get: function () {
+/*
+            VO.ensure(this.hasType(VO.Object));
+            return this.reduce(function (n, v, x) {
+                return x.append(n);
+            }, VO.emptyArray);
+*/
+            VO.ensure(this.hasType(VO.Object));
+            var keys = Object.keys(this._value);
+            for (var i = 0; i < keys.length; ++i) {
+                keys[i] = new VO.String(keys[i]);  // convert to VO.String
+            }
+            return new VO.Array(keys);
         }
-        return new VO.Array(keys);
-    };
+    });
     self.append = function append(name, value) {
         VO.ensure(this.hasType(VO.Object));
         VO.ensure(name.hasType(VO.String));
@@ -606,14 +615,6 @@ VO.Object = (function (self) {
         }
         VO.throw("Not Implemented");  // FIXME!
     };
-/*
-    self.names = function names() {
-        VO.ensure(this.hasType(VO.Object));
-        return this.reduce(function (n, v, x) {
-            return x.append(n);
-        }, VO.emptyArray);
-    };
-*/
     var constructor = function Object(value) {
         if (value === undefined) {
             return VO.emptyObject;
@@ -1043,8 +1044,8 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyObject.hasType(VO.Array).not);
         VO.ensure(VO.emptyObject.hasType(VO.Object));
 
-        VO.ensure(VO.emptyObject.names().equals(VO.emptyArray));
-        VO.ensure(sampleObject.names().length.equals(new VO.Number(8)));
+        VO.ensure(VO.emptyObject.names.equals(VO.emptyArray));
+        VO.ensure(sampleObject.names.length.equals(new VO.Number(8)));
         VO.ensure(VO.emptyObject.hasProperty(new VO.String("zero")).not);
         VO.ensure(sampleObject.hasProperty(new VO.String("zero")));
         VO.ensure(sampleObject.hasProperty(new VO.String("none")).not);
@@ -1052,14 +1053,14 @@ VO.selfTest = (function () {
         VO.ensure(sampleObject.value(new VO.String("one")).equals(new VO.Number(1)));
         VO.ensure(sampleObject.value(new VO.String("emptyObject")).equals(VO.emptyObject));
         VO.ensure(sampleObject.extract().equals(VO.emptyObject));
-        VO.ensure(sampleObject.extract(new VO.String("zero")).names().length.equals(VO.one));
+        VO.ensure(sampleObject.extract(new VO.String("zero")).names.length.equals(VO.one));
         VO.ensure(sampleObject.extract(new VO.String("zero"), new VO.String("one"))
-                  .names().length.equals(VO.two));
+                  .names.length.equals(VO.two));
         VO.ensure(sampleObject.extract(new VO.String("zero"), new VO.String("one"))
                   .value(new VO.String("zero")).equals(VO.zero));
         VO.ensure(sampleObject.extract(new VO.String("zero"), new VO.String("one"))
                   .value(new VO.String("one")).equals(VO.one));
-        VO.ensure(sampleObject.extract.apply(sampleObject, sampleObject.names()._value)
+        VO.ensure(sampleObject.extract.apply(sampleObject, sampleObject.names._value)
                   .equals(sampleObject));
         VO.ensure(VO.emptyObject.concatenate(VO.emptyObject).equals(VO.emptyObject));
         VO.ensure(sampleObject.concatenate(VO.emptyObject).equals(sampleObject));
@@ -1077,12 +1078,12 @@ VO.selfTest = (function () {
                       function (n, v, x) {
                           return x.plus(VO.one);
                       }, VO.zero)
-                  .equals(sampleObject.names().length));
+                  .equals(sampleObject.names.length));
         VO.ensure(sampleObject.reduce(
                       function (n, v, x) {
                           return x.append(n);
                       }, VO.emptyArray)
-                  .equals(sampleObject.names()));
+                  .equals(sampleObject.names));
         VO.ensure(VO.emptyObject
                   .append(new VO.String("space"), new VO.Number(33))
                   .append(new VO.String("bang"), new VO.Number(34))
