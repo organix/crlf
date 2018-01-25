@@ -336,6 +336,22 @@ VO.String = (function (self) {
         VO.ensure(that.hasType(VO.String));
         return new VO.String(this._value + that._value);
     };
+    self.skip = function skip(count) {
+        VO.ensure(this.hasType(VO.String));
+        VO.ensure(count.hasType(VO.Number));
+        VO.ensure(count.greaterEqual(VO.zero));  // count >= 0
+        if (count._value >= this._value.length) {  // count >= length
+            return VO.emptyString;
+        }
+        return new VO.String(this._value.slice(count._value, this._value.length));
+    };
+    self.take = function take(count) {
+        VO.ensure(this.hasType(VO.String));
+        VO.ensure(count.hasType(VO.Number));
+        VO.ensure(count.greaterEqual(VO.zero));  // count >= 0
+        VO.ensure(count.lessEqual(this.length));  // count <= length
+        return new VO.String(this._value.slice(0, count._value));
+    };
     self.extract = function extract(interval) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(interval.hasType(VO.Object));
@@ -909,19 +925,13 @@ VO.selfTest = (function () {
         VO.ensure(sampleString.extract(VO.fromNative({from:1, upto:1})).length.equals(VO.zero));
         VO.ensure(sampleString.extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleString.length)))
                   .equals(sampleString));
-        VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:5}))
-                  .equals(new VO.String("Hello")));
-        VO.ensure(sampleString.extract(VO.emptyObject
-                      .concatenate((new VO.String("from")).bind(new VO.Number(7)))
-                      .concatenate((new VO.String("upto")).bind(sampleString.length.plus(VO.minusOne))))
-                  .equals(new VO.String("World")));
+        VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:5})).equals(new VO.String("Hello")));
+        VO.ensure(sampleString.skip(new VO.Number(7)).take(new VO.Number(5)).equals(new VO.String("World")));
         VO.ensure(VO.emptyString.concatenate(VO.emptyString).equals(VO.emptyString));
         VO.ensure(sampleString.concatenate(VO.emptyString).equals(sampleString));
         VO.ensure(VO.emptyString.concatenate(sampleString).equals(sampleString));
-        VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:6}))
-                  .concatenate(sampleString.extract(VO.emptyObject
-                      .concatenate((new VO.String("from")).bind(new VO.Number(6)))
-                      .concatenate((new VO.String("upto")).bind(sampleString.length))))
+        VO.ensure(sampleString.take(new VO.Number(6))
+                  .concatenate(sampleString.skip(new VO.Number(6)))
                   .equals(sampleString));
         VO.ensure(new VO.String("foo").bind(new VO.Number(42)).equals(VO.fromNative({ "foo": 42 })));
 
