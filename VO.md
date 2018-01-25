@@ -19,31 +19,31 @@ Various frequently-used data values are available by name.
 
 ### `VO.Null` type
 
-    * `VO.null`
+* `VO.null`
 
 ### `VO.Boolean` type
 
-    * `VO.true`
-    * `VO.false`
+* `VO.true`
+* `VO.false`
 
 ### `VO.Number` type
 
-    * `VO.minusOne`
-    * `VO.zero`
-    * `VO.one`
-    * `VO.two`
+* `VO.minusOne`
+* `VO.zero`
+* `VO.one`
+* `VO.two`
 
 ### `VO.String` type
 
-    * `VO.emptyString`
+* `VO.emptyString`
 
 ### `VO.Array` type
 
-    * `VO.emptyArray`
+* `VO.emptyArray`
 
 ### `VO.Object` type
 
-    * `VO.emptyObject`
+* `VO.emptyObject`
 
 ## Combiners
 
