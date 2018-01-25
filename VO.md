@@ -213,17 +213,25 @@ The character `<number>` at the parameter value 0-based index in the target.
 
 `{ "ok": true, "value": <value> }` on success, otherwise `{ "ok": false, "error": <value> }`.
 
-#### `<string>.append [<number>]`
+#### `<string>.append <number>`
 
 The `<string>` consisting of the characters of target followed by the new character parameter.
 
-#### `<string>.concatenate [<string>]`
+#### `<string>.concatenate <string>`
 
 The `<string>` consisting of the characters of target followed by the characters of the parameter value.
 
-#### `<string>.extract [<number>, <number>]`
+#### `<string>.skip <number>`
 
-The `<string>` consisting of the characters of target from the first parameter value to the second parameter value as a 0-based half-open interval.
+The `<string>` consisting of the characters of target after skipping over the parameter `<number>` of characters from the begining.
+
+#### `<string>.take <number>`
+
+The `<string>` consisting of the parameter `<number>` of characters taken from the begining of the target.
+
+#### `<string>.extract { "from": <number>, "upto": <number> }`
+
+The `<string>` consisting of the characters of target from the 0-based half-open interval specified by the parameter.
 
 #### `<string>.asArray`
 
