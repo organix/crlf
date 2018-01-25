@@ -109,11 +109,11 @@ Each abstract data value can be viewed as a value-object, with properties and me
 
 ### Global (ambient) methods
 
-#### `VO.throw [<value>]`
+#### `VO.throw <value>`
 
 Signal an exceptional condition with an error `value` (see `<crlf>.try`).
 
-#### `VO.ensure [<boolean>]`
+#### `VO.ensure <boolean>`
 
 If the parameter value is `true`, return the target, otherwise throw an exception.
 
@@ -147,11 +147,11 @@ The JSON-encoded `<string>` representation of the target.
 
 If target is `true`, return `false`, otherwise `true`.
 
-#### `<boolean>.and [<boolean>]`
+#### `<boolean>.and <boolean>`
 
 If target is `false`, return `false`, otherwise return the parameter value.
 
-#### `<boolean>.or [<boolean>]`
+#### `<boolean>.or <boolean>`
 
 If target is `true`, return `true`, otherwise return the parameter value.
 
@@ -161,11 +161,11 @@ If target is `true`, return `then.value`, otherwise `else.value` (see `<crlf>.va
 
 ### Number methods
 
-#### `<number>.lessThan [<number>]`
+#### `<number>.lessThan <number>`
 
 `true` if target is numerically less than the parameter value, otherwise `false`.
 
-#### `<number>.plus [<number>]`
+#### `<number>.plus <number>`
 
 The `<number>` that is the mathematical sum of the target and the parameter value.
 
