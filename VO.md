@@ -123,7 +123,7 @@ Signal an exceptional condition with an error `value` (see `<crlf>.try`).
 
 #### `VO.ensure <boolean>`
 
-If the parameter value is `true`, return the target, otherwise throw an exception.
+Throw an exception if the parameter value is not `true`.
 
 ### Value methods
 
@@ -173,9 +173,25 @@ If target is `true`, return `then.value`, otherwise `else.value` (see `<crlf>.va
 
 `true` if target is numerically less than the parameter value, otherwise `false`.
 
+#### `<number>.lessEqual <number>`
+
+`true` if target is numerically less than or equal to the parameter value, otherwise `false`.
+
+#### `<number>.greaterEqual <number>`
+
+`true` if target is numerically greater than or equal to the parameter value, otherwise `false`.
+
+#### `<number>.greaterThan <number>`
+
+`true` if target is numerically greater than the parameter value, otherwise `false`.
+
 #### `<number>.plus <number>`
 
 The `<number>` that is the mathematical sum of the target and the parameter value.
+
+#### `<number>.times <number>`
+
+The `<number>` that is the mathematical product of the target and the parameter value.
 
 ### Composite methods
 
