@@ -452,8 +452,29 @@ VO.Array = (function (self) {
         VO.ensure(that.hasType(VO.Array));
         return new VO.Array(this._value.concat(that._value));
     };
-    self.extract = function extract(from, upto) {
+    self.skip = function skip(count) {
         VO.ensure(this.hasType(VO.Array));
+        VO.ensure(count.hasType(VO.Number));
+        VO.ensure(count.greaterEqual(VO.zero));  // count >= 0
+        if (count._value >= this._value.length) {  // count >= length
+            return VO.emptyArray;
+        }
+        return new VO.Array(this._value.slice(count._value, this._value.length));
+    };
+    self.take = function take(count) {
+        VO.ensure(this.hasType(VO.Array));
+        VO.ensure(count.hasType(VO.Number));
+        VO.ensure(count.greaterEqual(VO.zero));  // count >= 0
+        VO.ensure(count.lessEqual(this.length));  // count <= length
+        return new VO.Array(this._value.slice(0, count._value));
+    };
+    self.extract = function extract(interval) {
+        VO.ensure(this.hasType(VO.Array));
+        VO.ensure(interval.hasType(VO.Object));
+        VO.ensure(interval.hasProperty(new VO.String("from")));
+        VO.ensure(interval.hasProperty(new VO.String("upto")));
+        let from = interval.value(new VO.String("from"));
+        let upto = interval.value(new VO.String("upto"));
         VO.ensure(from.hasType(VO.Number));
         VO.ensure(upto.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(from));  // 0 <= from
@@ -531,6 +552,7 @@ VO.Object = (function (self) {
     self.value = function value(name) {
         VO.ensure(this.hasType(VO.Object));
         VO.ensure(name.hasType(VO.String));
+        VO.ensure(this.hasProperty(name));
         return this._value[name._value];
     };
     self.concatenate = function concatenate(that) {
@@ -923,7 +945,8 @@ VO.selfTest = (function () {
         VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:0})).equals(VO.emptyString));
         VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:1})).length.equals(VO.one));
         VO.ensure(sampleString.extract(VO.fromNative({from:1, upto:1})).length.equals(VO.zero));
-        VO.ensure(sampleString.extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleString.length)))
+        VO.ensure(sampleString
+                  .extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleString.length)))
                   .equals(sampleString));
         VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:5})).equals(new VO.String("Hello")));
         VO.ensure(sampleString.skip(new VO.Number(7)).take(new VO.Number(5)).equals(new VO.String("World")));
@@ -972,15 +995,17 @@ VO.selfTest = (function () {
         VO.ensure(sampleArray.value(VO.zero).equals(VO.null));
         VO.ensure(sampleArray.value(new VO.Number(4)).equals(new VO.Number(1)));
         VO.ensure(sampleArray.value(sampleArray.length.plus(VO.minusOne)).equals(VO.emptyObject));
-        VO.ensure(sampleArray.extract(VO.zero, VO.zero).equals(VO.emptyArray));
-        VO.ensure(sampleArray.extract(VO.zero, VO.one).length.equals(VO.one));
-        VO.ensure(sampleArray.extract(VO.one, VO.one).length.equals(VO.zero));
-        VO.ensure(sampleArray.extract(VO.zero, sampleArray.length).equals(sampleArray));
+        VO.ensure(sampleArray.extract(VO.fromNative({from:0, upto:0})).equals(VO.emptyArray));
+        VO.ensure(sampleArray.extract(VO.fromNative({from:0, upto:1})).length.equals(VO.one));
+        VO.ensure(sampleArray.extract(VO.fromNative({from:1, upto:1})).length.equals(VO.zero));
+        VO.ensure(sampleArray
+                  .extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleArray.length)))
+                  .equals(sampleArray));
         VO.ensure(VO.emptyArray.concatenate(VO.emptyArray).equals(VO.emptyArray));
         VO.ensure(sampleArray.concatenate(VO.emptyArray).equals(sampleArray));
         VO.ensure(VO.emptyArray.concatenate(sampleArray).equals(sampleArray));
-        VO.ensure(sampleArray.extract(VO.zero, new VO.Number(4))
-                  .concatenate(sampleArray.extract(new VO.Number(4), sampleArray.length))
+        VO.ensure(sampleArray.take(new VO.Number(4))
+                  .concatenate(sampleArray.skip(new VO.Number(4)))
                   .equals(sampleArray));
 
         VO.ensure(sampleArray.reduce(
