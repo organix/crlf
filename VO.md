@@ -17,25 +17,33 @@ Abstract Data Values are organized into a type-hierarchy:
 
 Various frequently-used data values are available by name.
 
-### Scalar Values
+### `VO.Null` type
 
-#### `VO.null`
+    * `VO.null`
 
-#### `VO.true`
+### `VO.Boolean` type
 
-#### `VO.false`
+    * `VO.true`
+    * `VO.false`
 
-#### `VO.zero`
+### `VO.Number` type
 
-#### `VO.one`
+    * `VO.minusOne`
+    * `VO.zero`
+    * `VO.one`
+    * `VO.two`
 
-### Composite Values
+### `VO.String` type
 
-#### `VO.emptyString`
+    * `VO.emptyString`
 
-#### `VO.emptyArray`
+### `VO.Array` type
 
-#### `VO.emptyObject`
+    * `VO.emptyArray`
+
+### `VO.Object` type
+
+    * `VO.emptyObject`
 
 ## Combiners
 
