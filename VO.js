@@ -336,8 +336,13 @@ VO.String = (function (self) {
         VO.ensure(that.hasType(VO.String));
         return new VO.String(this._value + that._value);
     };
-    self.extract = function extract(from, upto) {
+    self.extract = function extract(interval) {
         VO.ensure(this.hasType(VO.String));
+        VO.ensure(interval.hasType(VO.Object));
+        VO.ensure(interval.hasProperty(new VO.String("from")));
+        VO.ensure(interval.hasProperty(new VO.String("upto")));
+        let from = interval.value(new VO.String("from"));
+        let upto = interval.value(new VO.String("upto"));
         VO.ensure(from.hasType(VO.Number));
         VO.ensure(upto.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(from));  // 0 <= from
@@ -368,12 +373,15 @@ VO.String = (function (self) {
         }
         VO.throw("Not Implemented");  // FIXME!
     };
-    self.asArray = function asArray() {
-        VO.ensure(this.hasType(VO.String));
-        return this.reduce(function (c, x) {
-            return x.append(c);
-        }, VO.emptyArray);
-    };
+    Object.defineProperty(self, 'asArray', {
+        enumerable: true,
+        get: function () {
+            VO.ensure(this.hasType(VO.String));
+            return this.reduce(function (c, x) {
+                return x.append(c);
+            }, VO.emptyArray);
+        }
+    });
     var constructor = function String(value) {
         if (value === undefined) {
             return VO.emptyString;
@@ -452,13 +460,16 @@ VO.Array = (function (self) {
         }
         VO.throw("Not Implemented");  // FIXME!
     };
-    self.asString = function asString() {
-        VO.ensure(this.hasType(VO.Array));
-        return this.reduce(function (v, x) {
-            VO.ensure(v.hasType(VO.Number));
-            return x.append(v);
-        }, VO.emptyString);
-    };
+    Object.defineProperty(self, 'asString', {
+        enumerable: true,
+        get: function () {
+            VO.ensure(this.hasType(VO.Array));
+            return this.reduce(function (v, x) {
+                VO.ensure(v.hasType(VO.Number));
+                return x.append(v);
+            }, VO.emptyString);
+        }
+    });
     var constructor = function Array(value) {
         if (value === undefined) {
             return VO.emptyArray;
@@ -893,19 +904,24 @@ VO.selfTest = (function () {
         VO.ensure(sampleString.value(VO.zero).equals(new VO.Number(72)));  // "H"
         VO.ensure(sampleString.value(new VO.Number(6)).equals(new VO.Number(32)));  // " "
         VO.ensure(sampleString.value(sampleString.length.plus(VO.minusOne)).equals(new VO.Number(33)));  // "!"
-        VO.ensure(sampleString.extract(VO.zero, VO.zero).equals(VO.emptyString));
-        VO.ensure(sampleString.extract(VO.zero, VO.one).length.equals(VO.one));
-        VO.ensure(sampleString.extract(VO.one, VO.one).length.equals(VO.zero));
-        VO.ensure(sampleString.extract(VO.zero, sampleString.length).equals(sampleString));
-        VO.ensure(sampleString.extract(VO.zero, new VO.Number(5))
+        VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:0})).equals(VO.emptyString));
+        VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:1})).length.equals(VO.one));
+        VO.ensure(sampleString.extract(VO.fromNative({from:1, upto:1})).length.equals(VO.zero));
+        VO.ensure(sampleString.extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleString.length)))
+                  .equals(sampleString));
+        VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:5}))
                   .equals(new VO.String("Hello")));
-        VO.ensure(sampleString.extract(new VO.Number(7), sampleString.length.plus(VO.minusOne))
+        VO.ensure(sampleString.extract(VO.emptyObject
+                      .concatenate((new VO.String("from")).bind(new VO.Number(7)))
+                      .concatenate((new VO.String("upto")).bind(sampleString.length.plus(VO.minusOne))))
                   .equals(new VO.String("World")));
         VO.ensure(VO.emptyString.concatenate(VO.emptyString).equals(VO.emptyString));
         VO.ensure(sampleString.concatenate(VO.emptyString).equals(sampleString));
         VO.ensure(VO.emptyString.concatenate(sampleString).equals(sampleString));
-        VO.ensure(sampleString.extract(VO.zero, new VO.Number(6))
-                  .concatenate(sampleString.extract(new VO.Number(6), sampleString.length))
+        VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:6}))
+                  .concatenate(sampleString.extract(VO.emptyObject
+                      .concatenate((new VO.String("from")).bind(new VO.Number(6)))
+                      .concatenate((new VO.String("upto")).bind(sampleString.length))))
                   .equals(sampleString));
         VO.ensure(new VO.String("foo").bind(new VO.Number(42)).equals(VO.fromNative({ "foo": 42 })));
 
@@ -968,7 +984,7 @@ VO.selfTest = (function () {
                           return x.append(v);
                       }, VO.emptyString)
                   .equals(new VO.String("Hi")));
-        VO.ensure(sampleString.asArray().asString().equals(sampleString));
+        VO.ensure(sampleString.asArray.asString.equals(sampleString));
 
 //        VO.ensure(VO.emptyArray.equals(VO.Array([])));  // ERROR: VO.Array([]) === undefined
         VO.ensure(VO.emptyArray.equals(new VO.Array([])));
