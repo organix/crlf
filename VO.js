@@ -567,16 +567,14 @@ VO.Object = (function (self) {
         });
         return new VO.Object(result);
     };
-    self.extract = function extract(/* ...arguments */) {
+    self.extract = function extract(names) {
         VO.ensure(this.hasType(VO.Object));
-        VO.ensure(VO.Boolean(arguments.length >= 0));
-        var result = {};
-        for (var i = 0; i < arguments.length; ++i) {
-            var name = arguments[i];
-            VO.ensure(name.hasType(VO.String));
-            result[name._value] = this._value[name._value];
-        }
-        return new VO.Object(result);
+        VO.ensure(names.hasType(VO.Array));
+        var from = this;  // capture this use in reduce
+        return names.reduce(function (n, v) {
+            VO.ensure(n.hasType(VO.String));
+            return v.concatenate(n.bind(from.value(n)));
+        }, VO.emptyObject);
     };
     Object.defineProperty(self, 'names', {
         enumerable: true,
@@ -595,14 +593,6 @@ VO.Object = (function (self) {
             return new VO.Array(keys);
         }
     });
-    self.append = function append(name, value) {
-        VO.ensure(this.hasType(VO.Object));
-        VO.ensure(name.hasType(VO.String));
-        VO.ensure(value.hasType(VO.Value));
-        var obj = {};
-        obj[name._value] = value;
-        return this.concatenate(new VO.Object(obj));
-    };
     self.reduce = function reduce(func, value) {
         VO.ensure(this.hasType(VO.Object));
         if (typeof func === "function") {
@@ -1052,22 +1042,23 @@ VO.selfTest = (function () {
         VO.ensure(sampleObject.value(new VO.String("zero")).equals(VO.zero));
         VO.ensure(sampleObject.value(new VO.String("one")).equals(new VO.Number(1)));
         VO.ensure(sampleObject.value(new VO.String("emptyObject")).equals(VO.emptyObject));
-        VO.ensure(sampleObject.extract().equals(VO.emptyObject));
-        VO.ensure(sampleObject.extract(new VO.String("zero")).names.length.equals(VO.one));
-        VO.ensure(sampleObject.extract(new VO.String("zero"), new VO.String("one"))
+        VO.ensure(sampleObject.extract(VO.emptyArray).equals(VO.emptyObject));
+        VO.ensure(sampleObject.extract(VO.emptyArray.append(new VO.String("zero")))
+                  .names.length.equals(VO.one));
+        VO.ensure(sampleObject.extract(VO.fromNative(["zero","one"]))
                   .names.length.equals(VO.two));
-        VO.ensure(sampleObject.extract(new VO.String("zero"), new VO.String("one"))
+        VO.ensure(sampleObject.extract(VO.fromNative(["zero","one"]))
                   .value(new VO.String("zero")).equals(VO.zero));
-        VO.ensure(sampleObject.extract(new VO.String("zero"), new VO.String("one"))
+        VO.ensure(sampleObject.extract(VO.fromNative(["zero","one"]))
                   .value(new VO.String("one")).equals(VO.one));
-        VO.ensure(sampleObject.extract.apply(sampleObject, sampleObject.names._value)
+        VO.ensure(sampleObject.extract(sampleObject.names)
                   .equals(sampleObject));
         VO.ensure(VO.emptyObject.concatenate(VO.emptyObject).equals(VO.emptyObject));
         VO.ensure(sampleObject.concatenate(VO.emptyObject).equals(sampleObject));
         VO.ensure(VO.emptyObject.concatenate(sampleObject).equals(sampleObject));
-        VO.ensure(sampleObject.extract(new VO.String("zero"))
-                  .concatenate(sampleObject.extract(new VO.String("one")))
-                  .equals(sampleObject.extract(new VO.String("one"), new VO.String("zero"))));
+        VO.ensure(sampleObject.extract(VO.fromNative(["zero"]))
+                  .concatenate(sampleObject.extract(VO.fromNative(["one"])))
+                  .equals(sampleObject.extract(VO.fromNative(["one","zero"]))));
         tmp = new VO.Object({ a: VO.true, b: VO.false })
             .concatenate(new VO.Object({ b: VO.true, c: VO.true }));
         VO.ensure(tmp.value(new VO.String("a"))
@@ -1085,8 +1076,8 @@ VO.selfTest = (function () {
                       }, VO.emptyArray)
                   .equals(sampleObject.names));
         VO.ensure(VO.emptyObject
-                  .append(new VO.String("space"), new VO.Number(33))
-                  .append(new VO.String("bang"), new VO.Number(34))
+                  .concatenate((new VO.String("space")).bind(new VO.Number(33)))
+                  .concatenate((new VO.String("bang")).bind(new VO.Number(34)))
                   .reduce(
                       function (n, v, x) {
                           return x.times(v);
