@@ -251,17 +251,25 @@ The `<number>` of elements in the target.
 
 The element `<value>` at the parameter value 0-based index in the target.
 
-#### `<array>.append [<value>]`
+#### `<array>.append <value>`
 
 The `<array>` consisting of the elemtns of target followed by the new element parameter.
 
-#### `<array>.concatenate [<array>]`
+#### `<array>.concatenate <array>`
 
 The `<array>` consisting of the elements of target followed by the elements of the parameter value.
 
-#### `<array>.extract [<number>, <number>]`
+#### `<array>.skip <number>`
 
-The `<array>` consisting of the elements of target from the first parameter value to the second parameter value as a 0-based half-open interval.
+The `<array>` consisting of the elements of target after skipping over the parameter `<number>` of elements from the begining.
+
+#### `<array>.take <number>`
+
+The `<array>` consisting of the parameter `<number>` of elements taken from the begining of the target.
+
+#### `<array>.extract { "from": <number>, "upto": <number> }`
+
+The `<array>` consisting of the elements of target from the 0-based half-open interval specified by the parameter.
 
 #### `<array>.asString`
 
@@ -269,7 +277,7 @@ The `<string>` consisting of the elements of target (which must be `<number>`s).
 
 ### Object methods
 
-#### `<object>.hasProperty [<string>]`
+#### `<object>.hasProperty <string>`
 
 `true` if the target has a property whose name matches the parameter value, otherwise `false`.
 
@@ -277,21 +285,17 @@ The `<string>` consisting of the elements of target (which must be `<number>`s).
 
 The `<value>` associated with the parameter value name in the target.
 
-#### `<object>.concatenate [<object>]`
+#### `<object>.concatenate <object>`
 
 The `<object>` consisting of the properties of target, either augmented or replaced by properties of the parameter value.
-
-#### `<object>.append [<name>, <value>]`
-
-The `<object>` consisting of the properties of target followed by the new property name/value.
-
-#### `<object>.extract [<string>, ...]`
-
-The `<object>` consisting of the properties of target named by the parameter value(s).
 
 #### `<object>.names`
 
 The `<array>` of property names defined by the target.
+
+#### `<object>.extract [<string>, ...]`
+
+The `<object>` consisting of the properties of target named by the parameter value(s).
 
 ### Combiner methods
 
