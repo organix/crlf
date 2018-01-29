@@ -95,6 +95,7 @@ A _derivation_ is tree of _rule_'s where the leaves are _judgement_'s. The `prem
 ```javascript
 {
     "kind": "rule",
+    "name": "(2.2a)",
     "premises": [],
     "conclusion": {
         "kind": "judgement",
@@ -112,6 +113,7 @@ A _derivation_ is tree of _rule_'s where the leaves are _judgement_'s. The `prem
 ```javascript
 {
     "kind": "rule",
+    "name": "(2.2b)",
     "premises": [
         {
             "kind": "judgement",
@@ -147,6 +149,7 @@ A _derivation_ is tree of _rule_'s where the leaves are _judgement_'s. The `prem
 ```javascript
 {
     "kind": "rule",
+    "name": "(2.3a)",
     "premises": [],
     "conclusion": {
         "kind": "judgement",
@@ -164,6 +167,7 @@ A _derivation_ is tree of _rule_'s where the leaves are _judgement_'s. The `prem
 ```javascript
 {
     "kind": "rule",
+    "name": "(2.3b)",
     "premises": [
         {
             "kind": "judgement",
