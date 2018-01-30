@@ -90,6 +90,21 @@ The `premises` are a list of zero or more _judgement_'s. The `name` is optional 
 
 A _derivation_ is tree of _rule_'s where the leaves are _judgement_'s. The `premises` are a list of zero or more _derivation_'s or _judgement_'s. The `rule` is optional documentation of the _rule_ applied.
 
+### Type Judgement
+
+Γ ⊢ _e_ : τ
+
+```javascript
+{
+    "kind": "type-judgement",
+    "context": <object>,
+    "expression": <abt>,
+    "type": <string>
+}
+```
+
+∀∃•Γ≠≡χλ∈∉ℕ×ℤ⟨⟩∅⊤⊥∨∧⊢↦→⇒↑↓ _x_′′″‴
+
 #### Example: nat
 
 ```javascript
