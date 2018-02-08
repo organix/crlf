@@ -13,6 +13,16 @@ This [crlf](README.md) language encodes the components of a proof.
 
 Abstract Binding Trees support a _replace_ operation `<abt>.replace { "name":<string>, "abt":<abt> }` which replaces all occurances of the named variable in the target with the `abt` parameter. Note that the `sort` of the abt must match the `sort` of the variable.
 
+### Value
+
+```javascript
+{
+    "kind": "value",
+    "sort": <string>,
+    "value": <value>
+}
+```
+
 ### Variable
 
 ```javascript
@@ -103,7 +113,7 @@ A _derivation_ is tree of _rule_'s where the leaves are _judgement_'s. The `prem
 }
 ```
 
-∀∃•Γ≠≡χλ∈∉ℕ×ℤ⟨⟩∅⊤⊥∨∧⊢↦→⇒↑↓ _x_′′″‴
+∀∃•Γ≠≡χλ∈∉ℕ×ℤ⟨⟩∅⊤⊥∨∧⊢↦→⇒↑↓⇓ _x_′′″‴
 
 #### Example: nat
 
