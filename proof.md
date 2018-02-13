@@ -13,7 +13,7 @@ This [crlf](README.md) language encodes the components of a proof.
 
 An _abstract syntax tree_ represents the structure of a program. 
 The leaves are _variables_, which represent place-holders for subordinate Ast’s. 
-The nodes are _operators_ which combine subordinate Ast’s.
+The nodes are _operators_ which combine zero or more subordinate Ast’s.
 
 * AST
     * Variable
@@ -47,7 +47,7 @@ Variables are given meaning by substitution.
 
 Ast’s can be combined by an _operator_, 
 which has an _arity_ specifying the sort of the operator and the number and sorts of its arguments. 
-An operator of sort <var>s</var> and arity <var>s</var><sub>1</sub>, . . . ,<var>s</var><sub>_n_</sub> combines <var>n</var> ≥ 0 ast’s of sort <var>s</var><sub>1</sub>, . . . ,<var>s</var><sub><var>n</var></sub>, respectively, into a compound ast of sort <var>s</var>.
+An operator of sort <var>s</var> and arity <var>s</var><sub>1</sub>, ... ,<var>s</var><sub>_n_</sub> combines <var>n</var> ≥ 0 ast’s of sort <var>s</var><sub>1</sub>, ... ,<var>s</var><sub><var>n</var></sub>, respectively, into a compound ast of sort <var>s</var>.
 
 Operators may be _indexed_ to create a _family_ of similar operators. This is indicated by the presence of an optional `index` property.
 
