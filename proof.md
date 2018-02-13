@@ -60,7 +60,7 @@ The abstract syntax of such a language consists of a single sort **Exp** generat
 1. An operator `num`[_n_] of sort **Exp** for each _n_ ∈ ℕ;
 2. Two operators, `plus` and `times`, of sort **Exp**, each with two arguments of sort **Exp**.
 
-The expression 2 + (3 × 4) which involves a variable, _x_, would be represented by the ast:
+The expression 2 + (3 × _x_) which involves a variable, _x_, would be represented by the ast:
 
 <pre align="center">
 plus(num[2]; times(num[3]; <var>x</var>))
