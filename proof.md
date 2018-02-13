@@ -9,6 +9,45 @@ This [crlf](README.md) language encodes the components of a proof.
 }
 ```
 
+## Abstract Syntax Trees (ast)
+
+An _abstract syntax tree_ represents the structure of a program. The leaves are _variables_, which represent place-holders for subordinate Ast’s. The nodes are _operators_ which combine subordinate Ast’s.
+
+* AST
+  * Variable
+  * Operator
+
+Ast’s are classified into a variety of _sorts_ corresponding to different forms of syntax. 
+
+### Variable
+
+```javascript
+{
+    "kind": "variable",
+    "sort": <string>,
+    "name": <string>
+}
+```
+
+A _variable_ stands for an unspecified, or generic, piece of syntax of a specified sort. 
+Variables are given meaning by substitution.
+
+### Operator
+
+```javascript
+{
+    "kind": "operator",
+    "sort": <string>,
+    "arguments": [..., <ast>]
+}
+```
+
+Ast’s can be combined by an _operator_, 
+which has an _arity_ specifying the sort of the operator and the number and sorts of its arguments. 
+An operator of sort _s_ and arity _s_<sub>1</sub>, . . . ,_s_<sub>_n_</sub> combines _n_ ≥ 0 ast’s of sort _s_<sub>1</sub>, . . . ,_s_<sub>_n_</sub>, respectively, into a compound ast of sort _s_.
+
+----
+
 ## Abstract Binding Trees (abt)
 
 Abstract Binding Trees support a _replace_ operation `<abt>.replace { "name":<string>, "abt":<abt> }` which replaces all occurances of the named variable in the target with the `abt` parameter. Note that the `sort` of the abt must match the `sort` of the variable.
