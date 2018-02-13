@@ -38,6 +38,7 @@ Variables are given meaning by substitution.
 {
     "kind": "operator",
     "sort": <string>,
+    "name": <string>,
     "arguments": [..., <ast>]
 }
 ```
