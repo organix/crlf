@@ -60,17 +60,17 @@ The abstract syntax of such a language consists of a single sort **Exp** generat
 1. An operator `num`[<var>n</var>] of sort **Exp** for each <var>n</var> ∈ ℕ;
 2. Two operators, `plus` and `times`, of sort **Exp**, each with two arguments of sort **Exp**.
 
-The expression 2 + (3 × <var>x</var>) which involves a variable, <var>x</var>, would be represented by the ast:
+The expression 2 × (3 + <var>x</var>) which involves a variable, <var>x</var>, would be represented by the ast:
 
 <pre align="center">
-plus(num[2]; times(num[3]; <var>x</var>))
+times(num[2]; plus(num[3]; <var>x</var>))
 </pre>
 
 Expressed as nested lists this would be:
 
-* `plus`
+* `times`
     * `num`<sub>[2]</sub>
-    * `times`
+    * `plus`
         * `num`<sub>[3]</sub>
         * <var>x</var>
 
@@ -80,7 +80,7 @@ Expressed with _crlf_ this would look like:
 {
     "kind": "operator",
     "sort": "Exp",
-    "name": "plus",
+    "name": "times",
     "arguments": [
         {
             "kind": "operator",
@@ -92,7 +92,7 @@ Expressed with _crlf_ this would look like:
         {
             "kind": "operator",
             "sort": "Exp",
-            "name": "times",
+            "name": "plus",
             "arguments": [
                     {
                         "kind": "operator",
