@@ -96,9 +96,7 @@ called its _scope_.
 * ABT
     * Variable
     * Operator
-        * Binder
-
-A _binder_ can occur anywhere an _operator_ is expected.
+    * Binder
 
 ### Binder
 
