@@ -153,6 +153,88 @@ The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt 
 |      | Γ ⊢ <var>e</var> : str
 | ⇒    | Γ ⊢ len(<var>e</var>) : num
 
+```javascript
+{
+    "kind": "operator",
+    "sort": "Logic",
+    "name": "implication",
+    "arguments": [
+        {
+            "kind": "operator",
+            "sort": "Logic",
+            "name": "conjunction",
+            "arguments": [
+                {
+                    "kind": "operator",
+                    "sort": "Logic",
+                    "name": "inference",
+                    "arguments": [
+                        {
+                            "kind": "variable",
+                            "sort": "Logic",
+                            "name": "Γ"
+                        },
+                        {
+                            "kind": "operator",
+                            "sort": "Predicate",
+                            "name": "has-type",
+                            "arguments": [
+                                {
+                                    "kind": "variable",
+                                    "sort": "Expression",
+                                    "name": "e"
+                                },
+                                {
+                                    "kind": "operator",
+                                    "sort": "Type",
+                                    "name": "str",
+                                    "arguments": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "kind": "operator",
+            "sort": "Logic",
+            "name": "inference",
+            "arguments": [
+                {
+                    "kind": "variable",
+                    "sort": "Logic",
+                    "name": "Γ"
+                },
+                {
+                    "kind": "operator",
+                    "sort": "Predicate",
+                    "name": "has-type",
+                    "arguments": [
+                        {
+                            "kind": "operator",
+                            "sort": "Expression",
+                            "name": "len",
+                            "arguments": [
+                                "kind": "variable",
+                                "sort": "Expression",
+                                "name": "e"
+                            ]
+                        },
+                        {
+                            "kind": "operator",
+                            "sort": "Type",
+                            "name": "num",
+                            "arguments": []
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+```
+
 | rule | (4.1h)
 |------|----
 |      | Γ ⊢ <var>e</var><sub>1</sub> : <var>τ</var><sub>1</sub>
