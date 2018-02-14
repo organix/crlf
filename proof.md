@@ -148,91 +148,63 @@ The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt 
 | ∧    | Γ ⊢ <var>e</var><sub>2</sub> : str
 | ⇒    | Γ ⊢ cat(<var>e</var><sub>1</sub>; <var>e</var><sub>2</sub>) : str
 
+```javascript
+{ "kind":"operator", "sort":"Logic", "name":"implication", "arguments":[
+    { "kind":"operator", "sort":"Logic", "name":"conjunction", "arguments":[
+        { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
+            { "kind":"variable", "sort":"Logic", "name":"Γ" },
+            { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
+                { "kind":"variable", "sort":"Term", "name":"e_1" },
+                { "kind":"operator", "sort":"Type", "name":"str", "arguments":[] }
+            ]}
+        ]},
+        { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
+            { "kind":"variable", "sort":"Logic", "name":"Γ" },
+            { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
+                { "kind":"variable", "sort":"Term", "name":"e_2" },
+                { "kind":"operator", "sort":"Type", "name":"str", "arguments":[] }
+            ]}
+        ]}
+    ]},
+    { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
+        { "kind":"variable", "sort":"Logic", "name":"Γ" },
+        { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
+            { "kind":"operator", "sort":"Term", "name":"cat", "arguments": [
+                { "kind":"variable", "sort":"Term", "name":"e_1" },
+                { "kind":"variable", "sort":"Term", "name":"e_2" }
+            ]},
+            { "kind":"operator", "sort":"Type", "name":"str", "arguments":[] }
+        ]}
+    ]}
+]}
+```
+
 | rule | (4.1g)
 |------|----
 |      | Γ ⊢ <var>e</var> : str
 | ⇒    | Γ ⊢ len(<var>e</var>) : num
 
 ```javascript
-{
-    "kind": "operator",
-    "sort": "Logic",
-    "name": "implication",
-    "arguments": [
-        {
-            "kind": "operator",
-            "sort": "Logic",
-            "name": "conjunction",
-            "arguments": [
-                {
-                    "kind": "operator",
-                    "sort": "Logic",
-                    "name": "inference",
-                    "arguments": [
-                        {
-                            "kind": "variable",
-                            "sort": "Logic",
-                            "name": "Γ"
-                        },
-                        {
-                            "kind": "operator",
-                            "sort": "Predicate",
-                            "name": "has-type",
-                            "arguments": [
-                                {
-                                    "kind": "variable",
-                                    "sort": "Expression",
-                                    "name": "e"
-                                },
-                                {
-                                    "kind": "operator",
-                                    "sort": "Type",
-                                    "name": "str",
-                                    "arguments": []
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "kind": "operator",
-            "sort": "Logic",
-            "name": "inference",
-            "arguments": [
-                {
-                    "kind": "variable",
-                    "sort": "Logic",
-                    "name": "Γ"
-                },
-                {
-                    "kind": "operator",
-                    "sort": "Predicate",
-                    "name": "has-type",
-                    "arguments": [
-                        {
-                            "kind": "operator",
-                            "sort": "Expression",
-                            "name": "len",
-                            "arguments": [
-                                "kind": "variable",
-                                "sort": "Expression",
-                                "name": "e"
-                            ]
-                        },
-                        {
-                            "kind": "operator",
-                            "sort": "Type",
-                            "name": "num",
-                            "arguments": []
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-}
+{ "kind":"operator", "sort":"Logic", "name":"implication", "arguments":[
+    { "kind":"operator", "sort":"Logic", "name":"conjunction", "arguments":[
+        { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
+            { "kind":"variable", "sort":"Logic", "name":"Γ" },
+            { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
+                { "kind":"variable", "sort":"Term", "name":"e" },
+                { "kind":"operator", "sort":"Type", "name":"str", "arguments":[] }
+            ]}
+        ]}
+    ]},
+    { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
+        { "kind":"variable", "sort":"Logic", "name":"Γ" },
+        { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
+            { "kind":"operator", "sort":"Term", "name":"len", "arguments": [
+                { "kind":"variable", "sort":"Term", "name":"e" }
+            ]},
+            { "kind":"operator", "sort":"Type", "name":"num", "arguments":[] }
+        ]}
+    ]}
+]}
 ```
 
 | rule | (4.1h)
