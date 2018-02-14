@@ -430,6 +430,84 @@ crlf.language["VO"] = (function (constructor) {
     return constructor;
 })();
 
+crlf.language["proof"] = (function (constructor) {
+    var kind = {};
+    var compile = function compile_proof(ast) {  // { "kind":<string>, ... }
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(new VO.String("kind")));
+        VO.ensure(ast.value(new VO.String("kind")).hasType(VO.String));
+        var constructor = kind[ast.value(new VO.String("kind"))._value];
+        return new constructor(ast);
+    };
+    constructor = constructor || function proof_abt(ast) {
+        return compile(ast);
+    };
+    var prototype = constructor.prototype;
+    prototype.constructor = constructor;
+    kind["variable"] = (function (constructor) {
+        constructor = constructor || function proof_variable(ast) {
+            // { "kind":"variable", "sort":<string>, "name":<string> }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("variable")));
+            VO.ensure(ast.hasProperty(new VO.String("sort")));
+            VO.ensure(ast.value(new VO.String("sort")).hasType(VO.String));
+            this._sort = ast.value(new VO.String("sort"));
+            VO.ensure(ast.hasProperty(new VO.String("name")));
+            VO.ensure(ast.value(new VO.String("name")).hasType(VO.String));
+            this._name = ast.value(new VO.String("name"));
+        };
+        var prototype = constructor.prototype;
+        prototype.constructor = constructor;
+        prototype.substitute = function substitute(name, abt) {
+            // replace all occurances of variable `name` with `abt` in `this` target
+            return this;
+        };
+        prototype.free_variables = function FV() {
+            // return an Object mapping names to free variables in `this` target
+            return VO.emptyObject.append(this._name, this);
+        };
+        return constructor;
+    })();
+    kind["operator"] = (function (constructor) {
+        constructor = constructor || function proof_operator(ast) {
+            // { "kind":"operator", "sort":<string>, "name":<string>, "arguments":<array>[, "index":<value> ]}
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(new VO.String("kind")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("variable")));
+            VO.ensure(ast.hasProperty(new VO.String("sort")));
+            VO.ensure(ast.value(new VO.String("sort")).hasType(VO.String));
+            this._sort = ast.value(new VO.String("sort"));
+            VO.ensure(ast.hasProperty(new VO.String("name")));
+            VO.ensure(ast.value(new VO.String("name")).hasType(VO.String));
+            this._name = ast.value(new VO.String("name"));
+            VO.ensure(ast.hasProperty(new VO.String("arguments")));
+            VO.ensure(ast.value(new VO.String("arguments")).hasType(VO.Array));
+            let arguments = [];
+            ast.value(new VO.String("arguments")).reduce(function (v, x) {
+                arguments.push(compile(v));  // compile abt's
+                return x;
+            }, VO.null);
+            this._arguments = arguments;
+            if (ast.hasProperty(new VO.String("index")) === VO.true) {
+                this._index = ast.value(new VO.String("index"));
+            }
+        };
+        var prototype = constructor.prototype;
+        prototype.constructor = constructor;
+        prototype.substitute = function substitute(name, abt) {
+            // replace all occurances of variable `name` with `abt` in `this` target
+            return this;  // FIXME: WRONG IMPLEMENTATION! ITERATE OVER ARGUMENTS...
+        };
+        prototype.free_variables = function FV() {
+            // return an Object mapping names to free variables in `this` target
+            return VO.emptyObject.append(this._name, this);  // FIXME: WRONG IMPLEMENTATION! ITERATE OVER ARGUMENTS...
+        };
+        return constructor;
+    })();
+    return constructor;
+})();
+
 crlf.selfTest = (function () {
 
     var test_PEG = function test_PEG() {
