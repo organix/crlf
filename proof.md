@@ -77,39 +77,13 @@ Expressed as nested lists this would be:
 Expressed with _crlf_ this would look like:
 
 ```javascript
-{
-    "kind": "operator",
-    "sort": "Exp",
-    "name": "times",
-    "arguments": [
-        {
-            "kind": "operator",
-            "sort": "Exp",
-            "name": "num",
-            "index": 2,
-            "arguments": []
-        },
-        {
-            "kind": "operator",
-            "sort": "Exp",
-            "name": "plus",
-            "arguments": [
-                    {
-                        "kind": "operator",
-                        "sort": "Exp",
-                        "name": "num",
-                        "index": 3,
-                        "arguments": []
-                    },
-                    {
-                        "kind": "variable",
-                        "sort": "Exp",
-                        "name": "x"
-                    }
-            ]
-        }
-    ]
-}
+{ "kind":"operator", "sort":"Exp", "name":"times", "arguments":[
+    { "kind":"operator", "sort":"Exp", "name":"num", "index":2, "arguments":[] },
+    { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
+            { "kind":"operator", "sort":"Exp", "name":"num", "index":3, "arguments":[] },
+            { "kind":"variable", "sort":"Exp", "name":"x" }
+    ]}
+]}
 ```
 
 ## Abstract Binding Trees (abt)
@@ -136,7 +110,7 @@ A _binder_ can occur anywhere an _operator_ is expected.
 }
 ```
 
-The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt (usually an operator) within which the symbols are bound.
+The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt within which the symbols are bound.
 
 ----
 
@@ -212,6 +186,45 @@ The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt 
 |      | Γ ⊢ <var>e</var><sub>1</sub> : <var>τ</var><sub>1</sub>
 | ∧    | Γ, <var>x</var> : <var>τ</var><sub>1</sub> ⊢ <var>e</var><sub>2</sub> : <var>τ</var><sub>2</sub>
 | ⇒    | Γ ⊢ let(<var>e</var><sub>1</sub>; <var>x</var>.<var>e</var><sub>2</sub>) : <var>τ</var><sub>2</sub>
+
+```javascript
+{ "kind":"operator", "sort":"Logic", "name":"implication", "arguments":[
+    { "kind":"operator", "sort":"Logic", "name":"conjunction", "arguments":[
+        { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
+            { "kind":"variable", "sort":"Logic", "name":"Γ" },
+            { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
+                { "kind":"variable", "sort":"Term", "name":"e_1" },
+                { "kind":"variable", "sort":"Type", "name":"t_1" }
+            ]}
+        ]},
+        { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
+            { "kind":"operator", "sort":"Logic", "name":"conjunction", "arguments":[
+                { "kind":"variable", "sort":"Logic", "name":"Γ" },
+                { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
+                    { "kind":"variable", "sort":"Term", "name":"x" },
+                    { "kind":"variable", "sort":"Type", "name":"t_1" }
+                ]}
+            ]},
+            { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
+                { "kind":"variable", "sort":"Term", "name":"e_2" },
+                { "kind":"variable", "sort":"Type", "name":"t_2" }
+            ]}
+        ]}
+    ]},
+    { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
+        { "kind":"variable", "sort":"Logic", "name":"Γ" },
+        { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
+            { "kind":"operator", "sort":"Term", "name":"let", "arguments": [
+                { "kind":"variable", "sort":"Term", "name":"e_1" },
+                { "kind":"binder", "bindings":{"x":"t_1"}, "scope":
+                    { "kind":"variable", "sort":"Term", "name":"e_2" }
+                }
+            ]},
+            { "kind":"variable", "sort":"Type", "name":"t_2" }
+        ]}
+    ]}
+]}
+```
 
 ----
 
