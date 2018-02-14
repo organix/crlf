@@ -138,6 +138,26 @@ A _binder_ can occur anywhere an _operator_ is expected.
 
 The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt (usually an operator) within which the symbols are bound.
 
+----
+
+### Rule Examples
+
+| rule | (4.1f)
+|------|----
+|      | Γ ⊢ <var>e</var><sub>1</sub> : str
+| ∧    | Γ ⊢ <var>e</var><sub>2</sub> : str
+| ⇒    | Γ ⊢ cat(<var>e</var><sub>1</sub>; <var>e</var><sub>2</sub>) : str
+
+| rule | (4.1g)
+|------|----
+|      | Γ ⊢ <var>e</var> : str
+| ⇒    | Γ ⊢ len(<var>e</var>) : num
+
+| rule | (4.1h)
+|------|----
+|      | Γ ⊢ <var>e</var><sub>1</sub> : <var>τ</var><sub>1</sub>
+| ∧    | Γ, <var>x</var> : <var>τ</var><sub>1</sub> ⊢ <var>e</var><sub>2</sub> : <var>τ</var><sub>2</sub>
+| ⇒    | Γ ⊢ let(<var>e</var><sub>1</sub>; <var>x</var>.<var>e</var><sub>2</sub>) : <var>τ</var><sub>2</sub>
 
 ----
 
