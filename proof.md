@@ -11,9 +11,9 @@ This [crlf](README.md) language encodes the components of a proof.
 
 ## Abstract Syntax Trees (ast)
 
-An _abstract syntax tree_ represents the structure of a program. 
-The leaves are _variables_, which represent place-holders for subordinate Ast’s. 
-The nodes are _operators_ which combine zero or more subordinate Ast’s.
+An _abstract syntax tree_ (ast) represents the structure of a program. 
+The leaves are _variables_, which represent place-holders for subordinate ast’s. 
+The nodes are _operators_ which combine zero or more subordinate ast’s.
 
 * AST
     * Variable
@@ -112,9 +112,36 @@ Expressed with _crlf_ this would look like:
 }
 ```
 
+## Abstract Binding Trees (abt)
+
+An _abstract binding tree_ (abt) enriches an ast with the means to introduce new variables and symbols,
+called a _binding_, 
+with a specified range of significance, 
+called its _scope_.
+
+* ABT
+    * Variable
+    * Operator
+        * Binder
+
+A _binder_ can occur anywhere an _operator_ is expected.
+
+### Binder
+
+```javascript
+{
+    "kind": "binder",
+    "bindings": {..., <string>:<string>},
+    "scope": <abt>
+}
+```
+
+The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt (usually an operator) within which the symbols are bound.
+
+
 ----
 
-## Abstract Binding Trees (abt)
+## Legacy Notes...
 
 Abstract Binding Trees support a _replace_ operation `<abt>.replace { "name":<string>, "abt":<abt> }` which replaces all occurances of the named variable in the target with the `abt` parameter. Note that the `sort` of the abt must match the `sort` of the variable.
 
