@@ -80,8 +80,8 @@ Expressed with _crlf_ this would look like:
 { "kind":"operator", "sort":"Exp", "name":"times", "arguments":[
     { "kind":"operator", "sort":"Exp", "name":"num", "index":2, "arguments":[] },
     { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
-            { "kind":"operator", "sort":"Exp", "name":"num", "index":3, "arguments":[] },
-            { "kind":"variable", "sort":"Exp", "name":"x" }
+        { "kind":"operator", "sort":"Exp", "name":"num", "index":3, "arguments":[] },
+        { "kind":"variable", "sort":"Exp", "name":"x" }
     ]}
 ]}
 ```
