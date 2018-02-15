@@ -63,7 +63,7 @@ The abstract syntax of such a language consists of a single sort **Exp** generat
 The expression 2 × (3 + <var>x</var>) which involves a variable, <var>x</var>, would be represented by the ast:
 
 <pre align="center">
-times(num[2]; plus(num[3]; <var>x</var>))
+times(num[2];plus(num[3];<var>x</var>))
 </pre>
 
 Expressed as nested lists this would be:
@@ -118,7 +118,7 @@ The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt 
 |------|----
 |      | Γ ⊢ <var>e</var><sub>1</sub> : str
 | ∧    | Γ ⊢ <var>e</var><sub>2</sub> : str
-| ⇒    | Γ ⊢ cat(<var>e</var><sub>1</sub>; <var>e</var><sub>2</sub>) : str
+| ⇒    | Γ ⊢ cat(<var>e</var><sub>1</sub>;<var>e</var><sub>2</sub>) : str
 
 ```javascript
 { "kind":"operator", "sort":"Logic", "name":"implication", "arguments":[
@@ -183,7 +183,7 @@ The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt 
 |------|----
 |      | Γ ⊢ <var>e</var><sub>1</sub> : <var>τ</var><sub>1</sub>
 | ∧    | Γ, <var>x</var> : <var>τ</var><sub>1</sub> ⊢ <var>e</var><sub>2</sub> : <var>τ</var><sub>2</sub>
-| ⇒    | Γ ⊢ let(<var>e</var><sub>1</sub>; <var>x</var>.<var>e</var><sub>2</sub>) : <var>τ</var><sub>2</sub>
+| ⇒    | Γ ⊢ let(<var>e</var><sub>1</sub>;<var>x</var>.<var>e</var><sub>2</sub>) : <var>τ</var><sub>2</sub>
 
 ```javascript
 { "kind":"operator", "sort":"Logic", "name":"implication", "arguments":[
@@ -192,7 +192,7 @@ The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt 
             { "kind":"variable", "sort":"Logic", "name":"Γ" },
             { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
                 { "kind":"variable", "sort":"Term", "name":"e_1" },
-                { "kind":"variable", "sort":"Type", "name":"t_1" }
+                { "kind":"variable", "sort":"Type", "name":"τ_1" }
             ]}
         ]},
         { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
@@ -200,12 +200,12 @@ The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt 
                 { "kind":"variable", "sort":"Logic", "name":"Γ" },
                 { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
                     { "kind":"variable", "sort":"Term", "name":"x" },
-                    { "kind":"variable", "sort":"Type", "name":"t_1" }
+                    { "kind":"variable", "sort":"Type", "name":"τ_1" }
                 ]}
             ]},
             { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
                 { "kind":"variable", "sort":"Term", "name":"e_2" },
-                { "kind":"variable", "sort":"Type", "name":"t_2" }
+                { "kind":"variable", "sort":"Type", "name":"τ_2" }
             ]}
         ]}
     ]},
@@ -214,11 +214,70 @@ The `bindings` are a mapping from symbol names to sorts. The `scope` is the abt 
         { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
             { "kind":"operator", "sort":"Term", "name":"let", "arguments": [
                 { "kind":"variable", "sort":"Term", "name":"e_1" },
-                { "kind":"binder", "bindings":{"x":"t_1"}, "scope":
+                { "kind":"binder", "bindings":{"x":"τ_1"}, "scope":
                     { "kind":"variable", "sort":"Term", "name":"e_2" }
                 }
             ]},
-            { "kind":"variable", "sort":"Type", "name":"t_2" }
+            { "kind":"variable", "sort":"Type", "name":"τ_2" }
+        ]}
+    ]}
+]}
+```
+
+| rule | (5.4g)
+|------|----
+|      | <var>e</var><sub>1</sub> ↦ <var>e′</var><sub>1</sub>
+| ⇒    | let(<var>e</var><sub>1</sub>;<var>x</var>.<var>e</var><sub>2</sub>) ↦ let(<var>e′</var><sub>1</sub>;<var>x</var>.<var>e</var><sub>2</sub>)
+
+```javascript
+{ "kind":"operator", "sort":"Logic", "name":"implication", "arguments":[
+    { "kind":"operator", "sort":"Logic", "name":"conjunction", "arguments":[
+        { "kind":"operator", "sort":"Predicate", "name":"maps-to", "arguments":[
+            { "kind":"variable", "sort":"Term", "name":"e_1" },
+            { "kind":"variable", "sort":"Term", "name":"e′_1" }
+        ]}
+    ]},
+    { "kind":"operator", "sort":"Predicate", "name":"maps-to", "arguments":[
+        { "kind":"operator", "sort":"Term", "name":"let", "arguments": [
+            { "kind":"variable", "sort":"Term", "name":"e_1" },
+            { "kind":"binder", "bindings":{"x":"τ"}, "scope":
+                { "kind":"variable", "sort":"Term", "name":"e_2" }
+            }
+        ]},
+        { "kind":"operator", "sort":"Term", "name":"let", "arguments": [
+            { "kind":"variable", "sort":"Term", "name":"e′_1" },
+            { "kind":"binder", "bindings":{"x":"τ"}, "scope":
+                { "kind":"variable", "sort":"Term", "name":"e_2" }
+            }
+        ]}
+    ]}
+]}
+```
+
+| rule | (5.4h)
+|------|----
+|      | <var>e</var><sub>1</sub> val
+| ⇒    | let(<var>e</var><sub>1</sub>;<var>x</var>.<var>e</var><sub>2</sub>) ↦ [<var>e</var><sub>1</sub>/<var>x</var>]<var>e</var><sub>2</sub>
+
+```javascript
+{ "kind":"operator", "sort":"Logic", "name":"implication", "arguments":[
+    { "kind":"operator", "sort":"Logic", "name":"conjunction", "arguments":[
+        { "kind":"operator", "sort":"Predicate", "name":"has-sort", "arguments":[
+            { "kind":"variable", "sort":"Term", "name":"e" },
+            { "kind":"operator", "sort":"Sort", "name":"val", "arguments":[] }
+        ]}
+    ]},
+    { "kind":"operator", "sort":"Predicate", "name":"maps-to", "arguments":[
+        { "kind":"operator", "sort":"Term", "name":"let", "arguments": [
+            { "kind":"variable", "sort":"Term", "name":"e_1" },
+            { "kind":"binder", "bindings":{"x":"τ"}, "scope":
+                { "kind":"variable", "sort":"Term", "name":"e_2" }
+            }
+        ]},
+        { "kind":"operator", "sort":"Term", "name":"substitute", "arguments": [
+            { "kind":"variable", "sort":"Term", "name":"e_1" },
+            { "kind":"variable", "sort":"τ", "name":"x" },
+            { "kind":"variable", "sort":"Term", "name":"e_2" }
         ]}
     ]}
 ]}
