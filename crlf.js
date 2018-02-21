@@ -456,7 +456,8 @@ crlf.language["proof"] = (function (constructor) {
         };
         prototype.free_variables = function FV() {
             // return an Object mapping names to free variables in `this` target
-            return this._name.bind(this);
+            let fv = this._name.bind(this);
+            return fv;
         };
         let constructor = function proof_variable(ast) {
             // { "kind":"variable", "sort":<string>, "name":<string> }
@@ -481,7 +482,10 @@ crlf.language["proof"] = (function (constructor) {
         };
         prototype.free_variables = function FV() {
             // return an Object mapping names to free variables in `this` target
-            return VO.emptyObject.concatenate(this._name.bind(this));  // FIXME: WRONG IMPLEMENTATION! ITERATE OVER ARGUMENTS...
+            let fv = this._arguments.reduce(function (v, x) {
+                return x.concatenate(v.free_variables());
+            }, VO.emptyObject);
+            return fv;
         };
         let constructor = function proof_operator(ast) {
             // { "kind":"operator", "sort":<string>, "name":<string>, "arguments":<array>[, "index":<value> ]}
@@ -724,6 +728,8 @@ crlf.selfTest = (function () {
     };
     
     var test_proof = function test_proof() {
+        var value;
+
         var expr = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // times(num[2];plus(num[3];x))
             { "kind":"operator", "sort":"Exp", "name":"times", "arguments":[
                 { "kind":"operator", "sort":"Exp", "name":"num", "index":2, "arguments":[] },
@@ -733,7 +739,8 @@ crlf.selfTest = (function () {
                 ]}
             ]}
         }));
-        VO.ensure(VO.Boolean(expr));  // [FIXME: need a better assertion here!]
+        value = expr.free_variables();
+        VO.ensure(value.names.equals(VO.fromNative(["x"])));
     };
 
     return function selfTest() {
