@@ -444,8 +444,16 @@ crlf.language["proof"] = (function (constructor) {
     };
     var prototype = constructor.prototype;
     prototype.constructor = constructor;
-    kind["variable"] = (function (constructor) {
-        constructor = constructor || function proof_variable(ast) {
+    kind["variable"] = (function (prototype) {
+        prototype.substitute = function substitute(name, abt) {
+            // replace all occurances of variable `name` with `abt` in `this` target
+            return this;
+        };
+        prototype.free_variables = function FV() {
+            // return an Object mapping names to free variables in `this` target
+            return this._name.bind(this);
+        };
+        let constructor = function proof_variable(ast) {
             // { "kind":"variable", "sort":<string>, "name":<string> }
             VO.ensure(ast.hasType(VO.Object));
             VO.ensure(ast.hasProperty(new VO.String("kind")));
@@ -457,20 +465,20 @@ crlf.language["proof"] = (function (constructor) {
             VO.ensure(ast.value(new VO.String("name")).hasType(VO.String));
             this._name = ast.value(new VO.String("name"));
         };
-        var prototype = constructor.prototype;
         prototype.constructor = constructor;
+        constructor.prototype = prototype;
+        return constructor;
+    })(new VO.Value());
+    kind["operator"] = (function (prototype) {
         prototype.substitute = function substitute(name, abt) {
             // replace all occurances of variable `name` with `abt` in `this` target
-            return this;
+            return this;  // FIXME: WRONG IMPLEMENTATION! ITERATE OVER ARGUMENTS...
         };
         prototype.free_variables = function FV() {
             // return an Object mapping names to free variables in `this` target
-            return this._name.bind(this);
+            return VO.emptyObject.concatenate(this._name.bind(this));  // FIXME: WRONG IMPLEMENTATION! ITERATE OVER ARGUMENTS...
         };
-        return constructor;
-    })();
-    kind["operator"] = (function (constructor) {
-        constructor = constructor || function proof_operator(ast) {
+        let constructor = function proof_operator(ast) {
             // { "kind":"operator", "sort":<string>, "name":<string>, "arguments":<array>[, "index":<value> ]}
             VO.ensure(ast.hasType(VO.Object));
             VO.ensure(ast.hasProperty(new VO.String("kind")));
@@ -490,18 +498,10 @@ crlf.language["proof"] = (function (constructor) {
                 this._index = ast.value(new VO.String("index"));
             }
         };
-        var prototype = constructor.prototype;
         prototype.constructor = constructor;
-        prototype.substitute = function substitute(name, abt) {
-            // replace all occurances of variable `name` with `abt` in `this` target
-            return this;  // FIXME: WRONG IMPLEMENTATION! ITERATE OVER ARGUMENTS...
-        };
-        prototype.free_variables = function FV() {
-            // return an Object mapping names to free variables in `this` target
-            return VO.emptyObject.concatenate(this._name.bind(this));  // FIXME: WRONG IMPLEMENTATION! ITERATE OVER ARGUMENTS...
-        };
+        constructor.prototype = prototype;
         return constructor;
-    })();
+    })(new VO.Value());
     return constructor;
 })();
 
