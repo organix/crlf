@@ -113,8 +113,8 @@ crlf.language["PEG"] = (function (constructor) {
         prototype.match = function match_nothing(input) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
             return (VO.emptyObject  // match success
-                .append(new VO.String("value"), VO.emptyArray)
-                .append(new VO.String("remainder"), input));
+                .concatenate((new VO.String("value")).bind(VO.emptyArray))
+                .concatenate((new VO.String("remainder")).bind(input)));
         };
         return constructor;
     })();
@@ -129,10 +129,10 @@ crlf.language["PEG"] = (function (constructor) {
         prototype.constructor = constructor;
         prototype.match = function match_anything(input) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            if (input.length().greaterThan(VO.zero) === VO.true) {
+            if (input.length.greaterThan(VO.zero) === VO.true) {
                 return (VO.emptyObject  // match success
-                    .append(new VO.String("value"), input.value(VO.zero))
-                    .append(new VO.String("remainder"), input.extract(VO.one, input.length())));
+                    .concatenate((new VO.String("value")).bind(input.value(VO.zero)))
+                    .concatenate((new VO.String("remainder")).bind(input.skip(VO.one))));
             }
             return VO.false;  // match failure
         };
@@ -150,12 +150,12 @@ crlf.language["PEG"] = (function (constructor) {
         prototype.constructor = constructor;
         prototype.match = function match_terminal(input) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            if (input.length().greaterThan(VO.zero) === VO.true) {
+            if (input.length.greaterThan(VO.zero) === VO.true) {
                 var value = input.value(VO.zero);
                 if (value.equals(this._ast.value(new VO.String("value"))) === VO.true) {
                     return (VO.emptyObject  // match success
-                        .append(new VO.String("value"), value)
-                        .append(new VO.String("remainder"), input.extract(VO.one, input.length())));
+                        .concatenate((new VO.String("value")).bind(value))
+                        .concatenate((new VO.String("remainder")).bind(input.skip(VO.one))));
                 }
             }
             return VO.false;  // match failure
@@ -178,13 +178,13 @@ crlf.language["PEG"] = (function (constructor) {
         prototype.constructor = constructor;
         prototype.match = function match_range(input) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            if (input.length().greaterThan(VO.zero) === VO.true) {
+            if (input.length.greaterThan(VO.zero) === VO.true) {
                 var value = input.value(VO.zero);
                 if (value.greaterEqual(this._ast.value(new VO.String("from")))
                 .and(value.lessEqual(this._ast.value(new VO.String("to")))) === VO.true) {
                     return (VO.emptyObject  // match success
-                        .append(new VO.String("value"), value)
-                        .append(new VO.String("remainder"), input.extract(VO.one, input.length())));
+                        .concatenate((new VO.String("value")).bind(value))
+                        .concatenate((new VO.String("remainder")).bind(input.skip(VO.one))));
                 }
             }
             return VO.false;  // match failure
@@ -231,8 +231,8 @@ crlf.language["PEG"] = (function (constructor) {
         prototype.match = function match_sequence(input) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
             var match = (VO.emptyObject  // match success (default)
-                .append(new VO.String("value"), VO.emptyArray)
-                .append(new VO.String("remainder"), input));
+                .concatenate((new VO.String("value")).bind(VO.emptyArray))
+                .concatenate((new VO.String("remainder")).bind(input)));
             for (var i = 0; i < this._of.length; ++i) {
                 var rule = this._of[i];
                 var _match = rule.match(input);
@@ -240,11 +240,11 @@ crlf.language["PEG"] = (function (constructor) {
                     return VO.false;  // match failure
                 }
                 input = _match.value(new VO.String("remainder"));  // update input position
+                let s_value = new VO.String("value");
                 match = (VO.emptyObject  // update successful match
-                    .append(new VO.String("value"),
-                            match.value(new VO.String("value"))
-                                .append(_match.value(new VO.String("value"))))
-                    .append(new VO.String("remainder"), input));
+                    .concatenate(s_value.bind(
+                            match.value(s_value).append(_match.value(s_value))))
+                    .concatenate((new VO.String("remainder")).bind(input)));
             }
             return match;
         };
@@ -283,8 +283,8 @@ crlf.language["PEG"] = (function (constructor) {
     var match_repeat = function match_repeat(input, expr, min, max) {
         var count = 0;
         var match = (VO.emptyObject  // match success (default)
-            .append(new VO.String("value"), VO.emptyArray)
-            .append(new VO.String("remainder"), input));
+            .concatenate((new VO.String("value")).bind(VO.emptyArray))
+            .concatenate((new VO.String("remainder")).bind(input)));
         while ((max === undefined) || (count < max)) {
             var _match = expr.match(input);
             if (_match === VO.false) {
@@ -292,11 +292,11 @@ crlf.language["PEG"] = (function (constructor) {
             }
             count += 1;  // update match count
             input = _match.value(new VO.String("remainder"));  // update input position
+            let s_value = new VO.String("value");
             match = (VO.emptyObject  // update successful match
-                .append(new VO.String("value"),
-                        match.value(new VO.String("value"))
-                            .append(_match.value(new VO.String("value"))))
-                .append(new VO.String("remainder"), input));
+                .concatenate(s_value.bind(
+                        match.value(s_value).append(_match.value(s_value))))
+                .concatenate((new VO.String("remainder")).bind(input)));
         }
         if (count < min) {
             match = VO.false;  // match failure
@@ -465,7 +465,7 @@ crlf.language["proof"] = (function (constructor) {
         };
         prototype.free_variables = function FV() {
             // return an Object mapping names to free variables in `this` target
-            return VO.emptyObject.append(this._name, this);
+            return this._name.bind(this);
         };
         return constructor;
     })();
@@ -474,7 +474,7 @@ crlf.language["proof"] = (function (constructor) {
             // { "kind":"operator", "sort":<string>, "name":<string>, "arguments":<array>[, "index":<value> ]}
             VO.ensure(ast.hasType(VO.Object));
             VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("variable")));
+            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("operator")));
             VO.ensure(ast.hasProperty(new VO.String("sort")));
             VO.ensure(ast.value(new VO.String("sort")).hasType(VO.String));
             this._sort = ast.value(new VO.String("sort"));
@@ -483,12 +483,9 @@ crlf.language["proof"] = (function (constructor) {
             this._name = ast.value(new VO.String("name"));
             VO.ensure(ast.hasProperty(new VO.String("arguments")));
             VO.ensure(ast.value(new VO.String("arguments")).hasType(VO.Array));
-            let arguments = [];
-            ast.value(new VO.String("arguments")).reduce(function (v, x) {
-                arguments.push(compile(v));  // compile abt's
-                return x;
-            }, VO.null);
-            this._arguments = arguments;
+            this._arguments = ast.value(new VO.String("arguments")).reduce(function (v, x) {
+                return x.append(compile(v));  // compile abt's
+            }, VO.emptyArray);
             if (ast.hasProperty(new VO.String("index")) === VO.true) {
                 this._index = ast.value(new VO.String("index"));
             }
@@ -501,7 +498,7 @@ crlf.language["proof"] = (function (constructor) {
         };
         prototype.free_variables = function FV() {
             // return an Object mapping names to free variables in `this` target
-            return VO.emptyObject.append(this._name, this);  // FIXME: WRONG IMPLEMENTATION! ITERATE OVER ARGUMENTS...
+            return VO.emptyObject.concatenate(this._name.bind(this));  // FIXME: WRONG IMPLEMENTATION! ITERATE OVER ARGUMENTS...
         };
         return constructor;
     })();
@@ -624,12 +621,12 @@ crlf.selfTest = (function () {
         match = grammar.rule(new VO.String("digit0")).match(input);
         VO.ensure(match.hasType(VO.Object));
         VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(48)));  // "0"
-        VO.ensure(match.value(new VO.String("remainder")).length().equals(new VO.Number(1)));
+        VO.ensure(match.value(new VO.String("remainder")).length.equals(new VO.Number(1)));
 
         match = grammar.rule(new VO.String("digit0-9")).match(input);
         VO.ensure(match.hasType(VO.Object));
         VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(48)));  // "0"
-        VO.ensure(match.value(new VO.String("remainder")).length().equals(new VO.Number(1)));
+        VO.ensure(match.value(new VO.String("remainder")).length.equals(new VO.Number(1)));
 
         match = grammar.rule(new VO.String("digit1-9")).match(input);
         VO.ensure(match.equals(VO.false));
@@ -638,40 +635,40 @@ crlf.selfTest = (function () {
         match = grammar.rule(new VO.String("anything")).match(input);
         VO.ensure(match.hasType(VO.Object));
         VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(13)));  // "\r"
-        VO.ensure(match.value(new VO.String("remainder")).length().equals(new VO.Number(1)));
+        VO.ensure(match.value(new VO.String("remainder")).length.equals(new VO.Number(1)));
 
         match = grammar.rule(new VO.String("integer")).match(new VO.String("0"));
-        VO.ensure(match.equals(VO.false).not());
+        VO.ensure(match.equals(VO.false).not);
         VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative(48)));
-        VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
+        VO.ensure(match.value(new VO.String("remainder")).length.equals(VO.zero));
 
         match = grammar.rule(new VO.String("integer")).match(new VO.String("00"));
-        VO.ensure(match.equals(VO.false).not());
+        VO.ensure(match.equals(VO.false).not);
         VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative(48)));
         VO.ensure(match.value(new VO.String("remainder")).equals(VO.fromNative("0")));
 
         match = grammar.rule(new VO.String("integer")).match(new VO.String("1"));
-        VO.ensure(match.equals(VO.false).not());
+        VO.ensure(match.equals(VO.false).not);
         VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([49, []])));
-        VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
+        VO.ensure(match.value(new VO.String("remainder")).length.equals(VO.zero));
 
         match = grammar.rule(new VO.String("integer")).match(new VO.String("12"));
-        VO.ensure(match.equals(VO.false).not());
+        VO.ensure(match.equals(VO.false).not);
         VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([49, [50]])));
-        VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
+        VO.ensure(match.value(new VO.String("remainder")).length.equals(VO.zero));
 
         match = grammar.rule(new VO.String("integer")).match(new VO.String("123"));
-        VO.ensure(match.equals(VO.false).not());
+        VO.ensure(match.equals(VO.false).not);
         VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([49, [50, 51]])));
-        VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
+        VO.ensure(match.value(new VO.String("remainder")).length.equals(VO.zero));
 
         match = grammar.rule(new VO.String("integer")).match(new VO.String("3.14e+0"));
-        VO.ensure(match.equals(VO.false).not());
+        VO.ensure(match.equals(VO.false).not);
         VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([51, []])));
         VO.ensure(match.value(new VO.String("remainder")).equals(VO.fromNative(".14e+0")));
 
         match = grammar.rule(new VO.String("number")).match(new VO.String("3.14e+0"));
-        VO.ensure(match.equals(VO.false).not());
+        VO.ensure(match.equals(VO.false).not);
         VO.ensure(match.value(new VO.String("value"))
                   .equals(VO.fromNative([
                         [], 
@@ -679,7 +676,7 @@ crlf.selfTest = (function () {
                         [[46, [49, 52]]], 
                         [[101, [43], [48]]]
                     ])));
-        VO.ensure(match.value(new VO.String("remainder")).length().equals(VO.zero));
+        VO.ensure(match.value(new VO.String("remainder")).length.equals(VO.zero));
     };
 
     var test_VO = function test_VO() {
@@ -719,10 +716,24 @@ crlf.selfTest = (function () {
         value = expr.evaluate(context);
         VO.ensure(value.equals(new VO.Number(2)));
     };
+    
+    var test_proof = function test_proof() {
+        var expr = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // times(num[2];plus(num[3];x))
+            { "kind":"operator", "sort":"Exp", "name":"times", "arguments":[
+                { "kind":"operator", "sort":"Exp", "name":"num", "index":2, "arguments":[] },
+                { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
+                    { "kind":"operator", "sort":"Exp", "name":"num", "index":3, "arguments":[] },
+                    { "kind":"variable", "sort":"Exp", "name":"x" }
+                ]}
+            ]}
+        }));
+        VO.ensure(VO.Boolean(expr));  // [FIXME: need a better assertion here!]
+    };
 
     return function selfTest() {
         test_PEG();
         test_VO();
+        test_proof();
         return true;  // all tests passed
     };
 
