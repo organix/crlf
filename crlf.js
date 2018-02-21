@@ -432,17 +432,22 @@ crlf.language["VO"] = (function (constructor) {
 
 crlf.language["proof"] = (function (constructor) {
     var kind = {};
-    var compile = function compile_proof(ast) {  // { "kind":<string>, ... }
+    let s_kind = new VO.String("kind");
+    let s_sort = new VO.String("sort");
+    let s_name = new VO.String("name");
+    let s_arguments = new VO.String("arguments");
+    let s_index = new VO.String("index");
+    let compile = function compile_proof(ast) {  // { "kind":<string>, ... }
         VO.ensure(ast.hasType(VO.Object));
-        VO.ensure(ast.hasProperty(new VO.String("kind")));
-        VO.ensure(ast.value(new VO.String("kind")).hasType(VO.String));
-        var constructor = kind[ast.value(new VO.String("kind"))._value];
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).hasType(VO.String));
+        var constructor = kind[ast.value(s_kind)._value];
         return new constructor(ast);
     };
     constructor = constructor || function proof_abt(ast) {
         return compile(ast);
     };
-    var prototype = constructor.prototype;
+    let prototype = constructor.prototype;
     prototype.constructor = constructor;
     kind["variable"] = (function (prototype) {
         prototype.substitute = function substitute(name, abt) {
@@ -456,14 +461,14 @@ crlf.language["proof"] = (function (constructor) {
         let constructor = function proof_variable(ast) {
             // { "kind":"variable", "sort":<string>, "name":<string> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("variable")));
-            VO.ensure(ast.hasProperty(new VO.String("sort")));
-            VO.ensure(ast.value(new VO.String("sort")).hasType(VO.String));
-            this._sort = ast.value(new VO.String("sort"));
-            VO.ensure(ast.hasProperty(new VO.String("name")));
-            VO.ensure(ast.value(new VO.String("name")).hasType(VO.String));
-            this._name = ast.value(new VO.String("name"));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(new VO.String("variable")));
+            VO.ensure(ast.hasProperty(s_sort));
+            VO.ensure(ast.value(s_sort).hasType(VO.String));
+            this._sort = ast.value(s_sort);
+            VO.ensure(ast.hasProperty(s_name));
+            VO.ensure(ast.value(s_name).hasType(VO.String));
+            this._name = ast.value(s_name);
         };
         prototype.constructor = constructor;
         constructor.prototype = prototype;
@@ -481,21 +486,22 @@ crlf.language["proof"] = (function (constructor) {
         let constructor = function proof_operator(ast) {
             // { "kind":"operator", "sort":<string>, "name":<string>, "arguments":<array>[, "index":<value> ]}
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("operator")));
-            VO.ensure(ast.hasProperty(new VO.String("sort")));
-            VO.ensure(ast.value(new VO.String("sort")).hasType(VO.String));
-            this._sort = ast.value(new VO.String("sort"));
-            VO.ensure(ast.hasProperty(new VO.String("name")));
-            VO.ensure(ast.value(new VO.String("name")).hasType(VO.String));
-            this._name = ast.value(new VO.String("name"));
-            VO.ensure(ast.hasProperty(new VO.String("arguments")));
-            VO.ensure(ast.value(new VO.String("arguments")).hasType(VO.Array));
-            this._arguments = ast.value(new VO.String("arguments")).reduce(function (v, x) {
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(new VO.String("operator")));
+            VO.ensure(ast.hasProperty(s_sort));
+            VO.ensure(ast.value(s_sort).hasType(VO.String));
+            this._sort = ast.value(s_sort);
+            VO.ensure(ast.hasProperty(s_name));
+            VO.ensure(ast.value(s_name).hasType(VO.String));
+            this._name = ast.value(s_name);
+            VO.ensure(ast.hasProperty(s_arguments));
+            VO.ensure(ast.value(s_arguments).hasType(VO.Array));
+            this._arguments = ast.value(s_arguments).reduce(function (v, x) {
                 return x.append(compile(v));  // compile abt's
             }, VO.emptyArray);
-            if (ast.hasProperty(new VO.String("index")) === VO.true) {
-                this._index = ast.value(new VO.String("index"));
+            if (ast.hasProperty(s_index) === VO.true) {
+                VO.ensure(ast.value(s_index).hasType(VO.Value));
+                this._index = ast.value(s_index);
             }
         };
         prototype.constructor = constructor;
