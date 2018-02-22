@@ -762,9 +762,10 @@ crlf.selfTest = (function () {
     };
     
     var test_proof = function test_proof() {
+        var expr;
         var value;
 
-        var expr = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // times(num[2];plus(num[3];x))
+        expr = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // times(num[2];plus(num[3];x))
             { "kind":"operator", "sort":"Exp", "name":"times", "arguments":[
                 { "kind":"operator", "sort":"Exp", "name":"num", "index":2, "arguments":[] },
                 { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
@@ -775,6 +776,20 @@ crlf.selfTest = (function () {
         }));
         value = expr.free_variables();
         VO.ensure(value.names.equals(VO.fromNative(["x"])));
+
+        expr = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // ap(lam{τ}(x.x);y)
+            { "kind":"operator", "sort":"Term", "name":"ap", "arguments":[
+                { "kind":"operator", "sort":"Term", "name":"lam", "arguments": [
+                    { "kind":"variable", "sort":"Type", "name":"τ" },
+                    { "kind":"binder", "bindings":{"x":"τ"}, "scope":
+                        { "kind":"variable", "sort":"Term", "name":"x" }
+                    }
+                ]},
+                { "kind":"variable", "sort":"Term", "name":"y" }
+            ]}
+        }));
+        value = expr.free_variables();
+        VO.ensure(value.names.equals(VO.fromNative(["τ", "y"])));
     };
 
     return function selfTest() {
