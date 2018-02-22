@@ -437,6 +437,8 @@ crlf.language["proof"] = (function (constructor) {
     let s_name = new VO.String("name");
     let s_arguments = new VO.String("arguments");
     let s_index = new VO.String("index");
+    let s_bindings = new VO.String("bindings");
+    let s_scope = new VO.String("scope");
     let compile = function compile_proof(ast) {  // { "kind":<string>, ... }
         VO.ensure(ast.hasType(VO.Object));
         VO.ensure(ast.hasProperty(s_kind));
@@ -507,6 +509,32 @@ crlf.language["proof"] = (function (constructor) {
                 VO.ensure(ast.value(s_index).hasType(VO.Value));
                 this._index = ast.value(s_index);
             }
+        };
+        prototype.constructor = constructor;
+        constructor.prototype = prototype;
+        return constructor;
+    })(new VO.Value());
+    kind["binder"] = (function (prototype) {
+        prototype.substitute = function substitute(name, abt) {
+            // replace all occurances of variable `name` with `abt` in `this` target
+            return this._scope.substitute(name, abt);  // FIXME: WRONG IMPLEMENTATION! PRUNE BOUND VARIABLES...
+        };
+        prototype.free_variables = function FV() {
+            // return an Object mapping names to free variables in `this` target
+            let fv = this._scope.free_variables();  // FIXME: WRONG IMPLEMENTATION! PRUNE BOUND VARIABLES...
+            return fv;  // fv.subtract(this._bindings.names);  ??
+        };
+        let constructor = function proof_binder(ast) {
+            // { "kind":"binder", "bindings":{..., <string>:<string>}, "scope":<abt> }
+            VO.ensure(ast.hasType(VO.Object));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(new VO.String("binder")));
+            VO.ensure(ast.hasProperty(s_bindings));
+            VO.ensure(ast.value(s_bindings).hasType(VO.Object));
+            this._bindings = ast.value(s_bindings);
+            VO.ensure(ast.hasProperty(s_scope));
+            VO.ensure(ast.value(s_scope).hasType(VO.Object));
+            this._scope = compile(ast.value(s_scope));
         };
         prototype.constructor = constructor;
         constructor.prototype = prototype;
