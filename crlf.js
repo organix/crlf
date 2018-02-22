@@ -521,8 +521,14 @@ crlf.language["proof"] = (function (constructor) {
         };
         prototype.free_variables = function FV() {
             // return an Object mapping names to free variables in `this` target
-            let fv = this._scope.free_variables();  // FIXME: WRONG IMPLEMENTATION! PRUNE BOUND VARIABLES...
-            return fv;  // fv.subtract(this._bindings.names);  ??
+            let bv = this._bindings;
+            let fv = this._scope.free_variables().reduce(function (n, v, x) {
+                if (bv.hasProperty(n)) {
+                    return x;  // skip bound variable
+                }
+                return x.concatenate(n.bind(v));  // copy free variable
+            }, VO.emptyObject);
+            return fv;
         };
         let constructor = function proof_binder(ast) {
             // { "kind":"binder", "bindings":{..., <string>:<string>}, "scope":<abt> }
