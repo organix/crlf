@@ -131,9 +131,8 @@ Expressed as nested lists this would be:
                     * <var>e</var><sub>2</sub>
             * <var>e</var><sub>1</sub>
         * `has-type`
-            * `substitute`
+            * `substitute`<sub>[x]</sub>
                 * <var>e</var><sub>1</sub>
-                * <var>x</var>
                 * <var>e</var><sub>2</sub>
             * <var>τ</var><sub>2</sub>
 
@@ -143,8 +142,8 @@ Expressed with _crlf_ this would look like:
 { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
     { "kind":"variable", "sort":"Logic", "name":"Γ" },
     { "kind":"operator", "sort":"Predicate", "name":"equivalent", "arguments":[
-        { "kind":"operator", "sort":"Term", "name":"ap", "arguments": [
-            { "kind":"operator", "sort":"Term", "name":"lam", "arguments": [
+        { "kind":"operator", "sort":"Term", "name":"ap", "arguments":[
+            { "kind":"operator", "sort":"Term", "name":"lam", "arguments":[
                 { "kind":"variable", "sort":"Type", "name":"τ_1" },
                 { "kind":"binder", "bindings":{"x":"τ_1"}, "scope":
                     { "kind":"variable", "sort":"Term", "name":"e_2" }
@@ -153,9 +152,8 @@ Expressed with _crlf_ this would look like:
             { "kind":"variable", "sort":"Term", "name":"e_1" }
         ]},
         { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
-            { "kind":"operator", "sort":"Term", "name":"substitute", "arguments": [
+            { "kind":"operator", "sort":"Term", "name":"substitute", "index":"x" "arguments":[
                 { "kind":"variable", "sort":"Term", "name":"e_1" },
-                { "kind":"variable", "sort":"τ_1", "name":"x" },
                 { "kind":"variable", "sort":"Term", "name":"e_2" }
             ]},
             { "kind":"variable", "sort":"Type", "name":"τ_2" }
@@ -195,7 +193,7 @@ Expressed with _crlf_ this would look like:
     { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
         { "kind":"variable", "sort":"Logic", "name":"Γ" },
         { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
-            { "kind":"operator", "sort":"Term", "name":"cat", "arguments": [
+            { "kind":"operator", "sort":"Term", "name":"cat", "arguments":[
                 { "kind":"variable", "sort":"Term", "name":"e_1" },
                 { "kind":"variable", "sort":"Term", "name":"e_2" }
             ]},
@@ -224,7 +222,7 @@ Expressed with _crlf_ this would look like:
     { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
         { "kind":"variable", "sort":"Logic", "name":"Γ" },
         { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
-            { "kind":"operator", "sort":"Term", "name":"len", "arguments": [
+            { "kind":"operator", "sort":"Term", "name":"len", "arguments":[
                 { "kind":"variable", "sort":"Term", "name":"e" }
             ]},
             { "kind":"operator", "sort":"Type", "name":"num", "arguments":[] }
@@ -266,7 +264,7 @@ Expressed with _crlf_ this would look like:
     { "kind":"operator", "sort":"Logic", "name":"inference", "arguments":[
         { "kind":"variable", "sort":"Logic", "name":"Γ" },
         { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
-            { "kind":"operator", "sort":"Term", "name":"let", "arguments": [
+            { "kind":"operator", "sort":"Term", "name":"let", "arguments":[
                 { "kind":"variable", "sort":"Term", "name":"e_1" },
                 { "kind":"binder", "bindings":{"x":"τ_1"}, "scope":
                     { "kind":"variable", "sort":"Term", "name":"e_2" }
@@ -292,13 +290,13 @@ Expressed with _crlf_ this would look like:
         ]}
     ]},
     { "kind":"operator", "sort":"Predicate", "name":"maps-to", "arguments":[
-        { "kind":"operator", "sort":"Term", "name":"let", "arguments": [
+        { "kind":"operator", "sort":"Term", "name":"let", "arguments":[
             { "kind":"variable", "sort":"Term", "name":"e_1" },
             { "kind":"binder", "bindings":{"x":"τ"}, "scope":
                 { "kind":"variable", "sort":"Term", "name":"e_2" }
             }
         ]},
-        { "kind":"operator", "sort":"Term", "name":"let", "arguments": [
+        { "kind":"operator", "sort":"Term", "name":"let", "arguments":[
             { "kind":"variable", "sort":"Term", "name":"e′_1" },
             { "kind":"binder", "bindings":{"x":"τ"}, "scope":
                 { "kind":"variable", "sort":"Term", "name":"e_2" }
@@ -322,13 +320,13 @@ Expressed with _crlf_ this would look like:
         ]}
     ]},
     { "kind":"operator", "sort":"Predicate", "name":"maps-to", "arguments":[
-        { "kind":"operator", "sort":"Term", "name":"let", "arguments": [
+        { "kind":"operator", "sort":"Term", "name":"let", "arguments":[
             { "kind":"variable", "sort":"Term", "name":"e_1" },
             { "kind":"binder", "bindings":{"x":"τ"}, "scope":
                 { "kind":"variable", "sort":"Term", "name":"e_2" }
             }
         ]},
-        { "kind":"operator", "sort":"Term", "name":"substitute", "arguments": [
+        { "kind":"operator", "sort":"Term", "name":"substitute", "arguments":[
             { "kind":"variable", "sort":"Term", "name":"e_1" },
             { "kind":"variable", "sort":"τ", "name":"x" },
             { "kind":"variable", "sort":"Term", "name":"e_2" }

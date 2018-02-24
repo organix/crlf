@@ -779,7 +779,7 @@ crlf.selfTest = (function () {
 
         expr = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // ap(lam{τ}(x.x);y)
             { "kind":"operator", "sort":"Term", "name":"ap", "arguments":[
-                { "kind":"operator", "sort":"Term", "name":"lam", "arguments": [
+                { "kind":"operator", "sort":"Term", "name":"lam", "arguments":[
                     { "kind":"variable", "sort":"Type", "name":"τ" },
                     { "kind":"binder", "bindings":{"x":"τ"}, "scope":
                         { "kind":"variable", "sort":"Term", "name":"x" }
