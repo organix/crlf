@@ -451,10 +451,23 @@ crlf.language["proof"] = (function (constructor) {
     };
     let prototype = constructor.prototype;
     prototype.constructor = constructor;
-    kind["variable"] = (function (prototype) {
+    let Variable = kind["variable"] = (function (prototype) {
+        prototype.equals = function equals(that) {
+            if (this === that) {
+                return VO.true;
+            }
+            if ((this.hasType(Variable) === VO.true) 
+            &&  (that.hasType(Variable) === VO.true)) {
+                if (this._sort.equals(that._sort) === VO.false) {
+                    return VO.false;
+                }
+                return this._name.equals(that._name);
+            }
+            return VO.false;
+        };
         prototype.substitute = function substitute(name, abt) {
             VO.ensure(name.hasType(VO.String));
-            VO.ensure(abt.hasType(VO.Value));  // [FIXME] VO.ensure(abt.hasType(VO.Object));
+            VO.ensure(abt.hasType(VO.Value));  // [FIXME]? VO.ensure(abt.hasType(VO.Object));
             // replace all occurances of variable `name` with `abt` in `this` target
             if (this._name.equals(name)) {
                 VO.ensure(this._sort.equals(abt._sort));  // check type (sort) of substitution
@@ -483,16 +496,49 @@ crlf.language["proof"] = (function (constructor) {
         constructor.prototype = prototype;
         return constructor;
     })(new VO.Value());
-    kind["operator"] = (function (prototype) {
+    let Operator = kind["operator"] = (function (prototype) {
+        prototype.equals = function equals(that) {
+            if (this === that) {
+                return VO.true;
+            }
+            if ((this.hasType(Operator) === VO.true) 
+            &&  (that.hasType(Operator) === VO.true)) {
+                if (this._sort.equals(that._sort) === VO.false) {
+                    return VO.false;
+                }
+                if (this._name.equals(that._name) === VO.false) {
+                    return VO.false;
+                }
+                if (this._arguments.equals(that._arguments) === VO.false) {
+                    return VO.false;
+                }
+                if ((this._index === undefined) && (that._index === undefined)) {
+                    return VO.true;
+                }
+                return this._index.equals(that._index);
+            }
+            return VO.false;
+        };
+        prototype.copy = function copy() {  // duplicate object, but with EMPTY argument list
+            var ast = VO.emptyObject
+                .concatenate(s_kind.bind(new VO.String("operator")))
+                .concatenate(s_sort.bind(this._sort))
+                .concatenate(s_name.bind(this._name));
+            ast = ast.concatenate(s_arguments.bind(VO.emptyArray));  // empty argument list!
+            if (this._index !== undefined) {
+                ast = ast.concatenate(s_index.bind(this._index));
+            }
+            return new Operator(ast);
+        };
         prototype.substitute = function substitute(name, abt) {
             VO.ensure(name.hasType(VO.String));
-            VO.ensure(abt.hasType(VO.Value));  // [FIXME] VO.ensure(abt.hasType(VO.Object));
+            VO.ensure(abt.hasType(VO.Value));  // [FIXME]? VO.ensure(abt.hasType(VO.Object));
             // replace all occurances of variable `name` with `abt` in `this` target
-            let value = this//.copy();  [FIXME!] -------- CURRENT IMPLEMENTATION MUTATES THIS!! --------
-            let args = value._arguments.reduce(function (v, x) {
+            let value = this.copy();  // make a shallow copy...
+            let args = this._arguments.reduce(function (v, x) {
                 return x.append(v.substitute(name, abt));
             }, VO.emptyArray);
-            value._arguments = args;
+            value._arguments = args;  // replace arguments
             return value;
         };
         prototype.free_variables = function FV() {
@@ -527,10 +573,23 @@ crlf.language["proof"] = (function (constructor) {
         constructor.prototype = prototype;
         return constructor;
     })(new VO.Value());
-    kind["binder"] = (function (prototype) {
+    let Binder = kind["binder"] = (function (prototype) {
+        prototype.equals = function equals(that) {
+            if (this === that) {
+                return VO.true;
+            }
+            if ((this.hasType(Binder) === VO.true) 
+            &&  (that.hasType(Binder) === VO.true)) {
+                if (this._bindings.equals(that._bindings) === VO.false) {
+                    return VO.false;
+                }
+                return this._scope.equals(that._scope);
+            }
+            return VO.false;
+        };
         prototype.substitute = function substitute(name, abt) {
             VO.ensure(name.hasType(VO.String));
-            VO.ensure(abt.hasType(VO.Value));  // [FIXME] VO.ensure(abt.hasType(VO.Object));
+            VO.ensure(abt.hasType(VO.Value));  // [FIXME]? VO.ensure(abt.hasType(VO.Object));
             // replace all occurances of variable `name` with `abt` in `this` target
             return this._scope.substitute(name, abt);  // FIXME: WRONG IMPLEMENTATION! PRUNE BOUND VARIABLES...
         };
@@ -807,7 +866,7 @@ crlf.selfTest = (function () {
         }));
         value = expr.free_variables();
         VO.ensure(value.names.equals(VO.fromNative(["τ", "y"])));
-/*
+
         expr = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // plus(x;num[1])
             { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
                 { "kind":"variable", "sort":"Exp", "name":"x" },
@@ -825,7 +884,6 @@ crlf.selfTest = (function () {
         }));
         value = expr.substitute(new VO.String("x"), arg);
         VO.ensure(value.equals(expect));
-*/
     };
 
     return function selfTest() {
