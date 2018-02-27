@@ -453,7 +453,13 @@ crlf.language["proof"] = (function (constructor) {
     prototype.constructor = constructor;
     kind["variable"] = (function (prototype) {
         prototype.substitute = function substitute(name, abt) {
+            VO.ensure(name.hasType(VO.String));
+            VO.ensure(abt.hasType(VO.Value));  // [FIXME] VO.ensure(abt.hasType(VO.Object));
             // replace all occurances of variable `name` with `abt` in `this` target
+            if (this._name.equals(name)) {
+                VO.ensure(this._sort.equals(abt._sort));  // check type (sort) of substitution
+                return abt;
+            }
             return this;
         };
         prototype.free_variables = function FV() {
@@ -479,8 +485,15 @@ crlf.language["proof"] = (function (constructor) {
     })(new VO.Value());
     kind["operator"] = (function (prototype) {
         prototype.substitute = function substitute(name, abt) {
+            VO.ensure(name.hasType(VO.String));
+            VO.ensure(abt.hasType(VO.Value));  // [FIXME] VO.ensure(abt.hasType(VO.Object));
             // replace all occurances of variable `name` with `abt` in `this` target
-            return this;  // FIXME: WRONG IMPLEMENTATION! ITERATE OVER ARGUMENTS...
+            let value = this//.copy();  [FIXME!] -------- CURRENT IMPLEMENTATION MUTATES THIS!! --------
+            let args = value._arguments.reduce(function (v, x) {
+                return x.append(v.substitute(name, abt));
+            }, VO.emptyArray);
+            value._arguments = args;
+            return value;
         };
         prototype.free_variables = function FV() {
             // return an Object mapping names to free variables in `this` target
@@ -516,6 +529,8 @@ crlf.language["proof"] = (function (constructor) {
     })(new VO.Value());
     kind["binder"] = (function (prototype) {
         prototype.substitute = function substitute(name, abt) {
+            VO.ensure(name.hasType(VO.String));
+            VO.ensure(abt.hasType(VO.Value));  // [FIXME] VO.ensure(abt.hasType(VO.Object));
             // replace all occurances of variable `name` with `abt` in `this` target
             return this._scope.substitute(name, abt);  // FIXME: WRONG IMPLEMENTATION! PRUNE BOUND VARIABLES...
         };
@@ -764,6 +779,8 @@ crlf.selfTest = (function () {
     var test_proof = function test_proof() {
         var expr;
         var value;
+        var arg;
+        var expect;
 
         expr = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // times(num[2];plus(num[3];x))
             { "kind":"operator", "sort":"Exp", "name":"times", "arguments":[
@@ -790,9 +807,29 @@ crlf.selfTest = (function () {
         }));
         value = expr.free_variables();
         VO.ensure(value.names.equals(VO.fromNative(["τ", "y"])));
+/*
+        expr = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // plus(x;num[1])
+            { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
+                { "kind":"variable", "sort":"Exp", "name":"x" },
+                { "kind":"operator", "sort":"Exp", "name":"num", "index":1, "arguments":[] }
+            ]}
+        }));
+        arg = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // num[0]
+            { "kind":"operator", "sort":"Exp", "name":"num", "index":0, "arguments":[] }
+        }));
+        expect = crlf.compile(VO.fromNative({ "lang":"proof", "ast":  // plus(num[0];num[1])
+            { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
+                { "kind":"operator", "sort":"Exp", "name":"num", "index":0, "arguments":[] },
+                { "kind":"operator", "sort":"Exp", "name":"num", "index":1, "arguments":[] }
+            ]}
+        }));
+        value = expr.substitute(new VO.String("x"), arg);
+        VO.ensure(value.equals(expect));
+*/
     };
 
     return function selfTest() {
+        VO.selfTest();  // test imported package first
         test_PEG();
         test_VO();
         test_proof();
