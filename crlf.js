@@ -587,11 +587,23 @@ crlf.language["proof"] = (function (constructor) {
             }
             return VO.false;
         };
+        prototype.copy = function copy() {  // duplicate object, but with EMPTY argument list
+            var ast = VO.emptyObject
+                .concatenate(s_kind.bind(new VO.String("binder")))
+                .concatenate(s_bindings.bind(this._sort));
+            return new Binder(ast);
+        };
         prototype.substitute = function substitute(name, abt) {
             VO.ensure(name.hasType(VO.String));
             VO.ensure(abt.hasType(VO.Value));  // [FIXME]? VO.ensure(abt.hasType(VO.Object));
             // replace all occurances of variable `name` with `abt` in `this` target
-            return this._scope.substitute(name, abt);  // FIXME: WRONG IMPLEMENTATION! PRUNE BOUND VARIABLES...
+            let value = this.copy();  // make a shallow copy...
+            if (this._sort.hasProperty(name)) {
+                value._scope = this._scope;  // copy scope without substitutions
+            } else {
+                value._scope = this._scope.substitute(name, abt);  // replace scope
+            }
+            return value;
         };
         prototype.free_variables = function FV() {
             // return an Object mapping names to free variables in `this` target
@@ -612,9 +624,10 @@ crlf.language["proof"] = (function (constructor) {
             VO.ensure(ast.hasProperty(s_bindings));
             VO.ensure(ast.value(s_bindings).hasType(VO.Object));
             this._bindings = ast.value(s_bindings);
-            VO.ensure(ast.hasProperty(s_scope));
-            VO.ensure(ast.value(s_scope).hasType(VO.Object));
-            this._scope = compile(ast.value(s_scope));
+            if (ast.hasProperty(s_scope) === VO.true) {
+                VO.ensure(ast.value(s_scope).hasType(VO.Object));
+                this._scope = compile(ast.value(s_scope));
+            }
         };
         prototype.constructor = constructor;
         constructor.prototype = prototype;
