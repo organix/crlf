@@ -131,9 +131,10 @@ Expressed as nested lists this would be:
                     * <var>e</var><sub>2</sub>
             * <var>e</var><sub>1</sub>
         * `has-type`
-            * `substitute`<sub>[x]</sub>
+            * `substitute`
                 * <var>e</var><sub>1</sub>
-                * <var>e</var><sub>2</sub>
+                * binding {<var>x</var>}
+                    * <var>e</var><sub>2</sub>
             * <var>τ</var><sub>2</sub>
 
 Expressed with _crlf_ this would look like:
@@ -154,7 +155,9 @@ Expressed with _crlf_ this would look like:
         { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
             { "kind":"operator", "sort":"Term", "name":"substitute", "index":"x" "arguments":[
                 { "kind":"variable", "sort":"Term", "name":"e_1" },
-                { "kind":"variable", "sort":"Term", "name":"e_2" }
+                { "kind":"binder", "bindings":{"x":"τ_1"}, "scope":
+                    { "kind":"variable", "sort":"Term", "name":"e_2" }
+                }
             ]},
             { "kind":"variable", "sort":"Type", "name":"τ_2" }
         ]}
