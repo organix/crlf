@@ -155,7 +155,7 @@ Expressed with _crlf_ this would look like:
             { "kind":"variable", "sort":"Term", "name":"e_1" }
         ]},
         { "kind":"operator", "sort":"Predicate", "name":"has-type", "arguments":[
-            { "kind":"operator", "sort":"Term", "name":"substitute", "index":"x" "arguments":[
+            { "kind":"operator", "sort":"Term", "name":"substitute", "arguments":[
                 { "kind":"variable", "sort":"Term", "name":"e_1" },
                 { "kind":"binder", "bindings":{"x":"τ_1"}, "scope":
                     { "kind":"variable", "sort":"Term", "name":"e_2" }
