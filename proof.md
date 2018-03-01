@@ -98,6 +98,8 @@ called its _scope_.
     * Operator
     * Binder
 
+Abts support a _replace_ operation `<abt>.replace { "name":<string>, "abt":<abt> }` which replaces all occurances of the named variable in the target with the `abt` parameter. Note that the `sort` of the abt must match the `sort` of the variable.
+
 ### Binder
 
 ```javascript
@@ -339,57 +341,6 @@ Expressed with _crlf_ this would look like:
 ```
 
 ----
-
-## Legacy Notes...
-
-Abstract Binding Trees support a _replace_ operation `<abt>.replace { "name":<string>, "abt":<abt> }` which replaces all occurances of the named variable in the target with the `abt` parameter. Note that the `sort` of the abt must match the `sort` of the variable.
-
-### Value
-
-```javascript
-{
-    "kind": "value",
-    "sort": <string>,
-    "value": <value>
-}
-```
-
-### Variable
-
-```javascript
-{
-    "kind": "variable",
-    "sort": <string>,
-    "name": <string>
-}
-```
-
-Stands for an unspecified piece of syntax of a given `sort`. Variables are given meaning by substitution.
-
-### Operator
-
-```javascript
-{
-    "kind": "operator",
-    "sort": <string>,
-    "name": <string>,
-    "argument": <object>
-}
-```
-
-A combiner whose result has a given `sort`. The `argument` maps named properties to _abt_'s, each with an expected _sort_.
-
-### Abstractor
-
-```javascript
-{
-    "kind": "abstractor",
-    "names": <array>,
-    "abt": <abt>
-}
-```
-
-Binds zero or more named variables in `abt`.
 
 ## Proof Components
 
