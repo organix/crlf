@@ -539,11 +539,6 @@ crlf.language["proof"] = (function (constructor) {
                 return x.append(v.substitute(name, abt));
             }, VO.emptyArray);
             value._arguments = args;  // replace arguments
-            if (this._index !== undefined) {
-                if (this._index.hasType(Variable) === VO.true) {
-                    this._index = this._index.substitute(name, abt);  // replace index variable
-                }
-            }
             return value;
         };
         prototype.free_variables = function FV() {
@@ -551,11 +546,6 @@ crlf.language["proof"] = (function (constructor) {
             let fv = this._arguments.reduce(function (v, x) {
                 return x.concatenate(v.free_variables());
             }, VO.emptyObject);
-            if (this._index !== undefined) {
-                if (this._index.hasType(Variable) === VO.true) {
-                    fv.concatenate(this._index.free_variables());
-                }
-            }
             return fv;
         };
         let constructor = function proof_operator(ast) {
@@ -577,12 +567,6 @@ crlf.language["proof"] = (function (constructor) {
             if (ast.hasProperty(s_index) === VO.true) {
                 VO.ensure(ast.value(s_index).hasType(VO.Value));
                 this._index = ast.value(s_index);
-                if (this._index.hasType(VO.Object)) {  // compile index variable
-                    var x = compile(this._index);
-                    if (x.hasType(Variable) === VO.true) {
-                        this._index = x;
-                    }
-                }
             }
         };
         prototype.constructor = constructor;
