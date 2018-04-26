@@ -253,7 +253,7 @@ The element `<value>` at the parameter value 0-based index in the target.
 
 #### `<array>.append <value>`
 
-The `<array>` consisting of the elemtns of target followed by the new element parameter.
+The `<array>` consisting of the elements of target followed by the new element parameter.
 
 #### `<array>.concatenate <array>`
 
