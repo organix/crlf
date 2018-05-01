@@ -131,6 +131,7 @@ VO.Value = (function (self) {
         return operation;  // return operation bound to target object method
     };
     var constructor = function Value() {
+        if (!(this instanceof Value)) { return new Value(); }  // if called without "new" keyword...
 //        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
     };
     self.constructor = constructor;
@@ -158,6 +159,7 @@ VO.Combiner = (function (self) {
         return new VO.Combiner(composition);
     };
     var constructor = function Combiner(operative) {
+        if (!(this instanceof Combiner)) { return new Combiner(operative); }  // if called without "new" keyword...
         VO.ensure(VO.Boolean(typeof operative === "function"));
         this._oper = operative;
         deepFreeze(this);
@@ -177,6 +179,7 @@ VO.Data = (function (self) {
         }
     });
     var constructor = function Data() {
+        if (!(this instanceof Data)) { return new Data(); }  // if called without "new" keyword...
 //        deepFreeze(this);  // can't freeze because we need mutable prototypes
     };
     self.constructor = constructor;
@@ -277,6 +280,7 @@ VO.Number = (function (self) {
         return new VO.Number(this._value * that._value);
     };
     var constructor = function Number(value) {
+        if (!(this instanceof Number)) { return new Number(value); }  // if called without "new" keyword...
         VO.ensure(VO.Boolean(typeof value === "number"));
         this._value = value;
         deepFreeze(this);
@@ -296,6 +300,7 @@ VO.Composite = (function (self) {
         VO.throw("Not Implemented");  // FIXME!
     };
     var constructor = function Composite() {
+        if (!(this instanceof Composite)) { return new Composite(); }  // if called without "new" keyword...
 //        deepFreeze(this);  // can't freeze because we need mutable prototypes
     };
     self.constructor = constructor;
