@@ -404,6 +404,7 @@ VO.String = (function (self) {
         }
     });
     var constructor = function String(value) {
+        if (!(this instanceof String)) { return new String(value); }  // if called without "new" keyword...
         if (value === undefined) {
             return VO.emptyString;
         }
@@ -513,6 +514,7 @@ VO.Array = (function (self) {
         }
     });
     var constructor = function Array(value) {
+        if (!(this instanceof Array)) { return new Array(value); }  // if called without "new" keyword...
         if (value === undefined) {
             return VO.emptyArray;
         }
@@ -611,6 +613,7 @@ VO.Object = (function (self) {
         VO.throw("Not Implemented");  // FIXME!
     };
     var constructor = function Object(value) {
+        if (!(this instanceof Object)) { return new Object(value); }  // if called without "new" keyword...
         if (value === undefined) {
             return VO.emptyObject;
         }
@@ -630,6 +633,7 @@ VO.Expression = (function (self) {
         VO.throw("Not Implemented");
     };
     var constructor = function Expression() {
+        if (!(this instanceof Expression)) { return new Expression(); }  // if called without "new" keyword...
 //        deepFreeze(this);  // can't freeze Expressions because we need mutable prototypes
     };
     self.constructor = constructor;
@@ -643,6 +647,7 @@ VO.ValueExpr = (function (self) {
         return this._value;
     };
     var constructor = function ValueExpr(value) {
+        if (!(this instanceof ValueExpr)) { return new ValueExpr(value); }  // if called without "new" keyword...
         VO.ensure(value.hasType(VO.Value));
         this._value = value;
     };
@@ -658,6 +663,7 @@ VO.VariableExpr = (function (self) {
         return context.value(this._name);
     };
     var constructor = function VariableExpr(name) {
+        if (!(this instanceof VariableExpr)) { return new VariableExpr(name); }  // if called without "new" keyword...
         VO.ensure(name.hasType(VO.String));
         this._name = name;
     };
@@ -676,6 +682,7 @@ VO.CombineExpr = (function (self) {
         return operation.operate(this._data, context);
     };
     var constructor = function CombineExpr(expr, data) {
+        if (!(this instanceof CombineExpr)) { return new CombineExpr(expr, data); }  // if called without "new" keyword...
         VO.ensure(expr.hasType(VO.Expression));
         VO.ensure(data.hasType(VO.Value));
         this._expr = expr;
@@ -711,6 +718,7 @@ VO.Operation = (function (self) {
         return new VO.Operation(composition);
     };
     var constructor = function Operation(operative) {
+        if (!(this instanceof Operation)) { return new Operation(operative); }  // if called without "new" keyword...
         VO.ensure(VO.Boolean(typeof operative === "function"));
         this._oper = operative;
         deepFreeze(this);
@@ -757,6 +765,7 @@ VO.MethodExpr = (function (self) {
         return operation;  // return applicative bound to target object
     };
     var constructor = function MethodExpr(target, selector) {
+        if (!(this instanceof MethodExpr)) { return new MethodExpr(target, selector); }  // if called without "new" keyword...
         VO.ensure(target.hasType(VO.Expression));
         VO.ensure(selector.hasType(VO.Expression));
         this._this = target;
