@@ -947,42 +947,44 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyString.hasType(VO.Object).not);
 
         VO.ensure(VO.emptyString.length.equals(VO.zero));
-        VO.ensure(sampleString.length.equals(new VO.Number(13)));
-        VO.ensure(sampleString.value(VO.zero).equals(new VO.Number(72)));  // "H"
-        VO.ensure(sampleString.value(new VO.Number(6)).equals(new VO.Number(32)));  // " "
-        VO.ensure(sampleString.value(sampleString.length.plus(VO.minusOne)).equals(new VO.Number(33)));  // "!"
+        VO.ensure(sampleString.length.equals(VO.Number(13)));
+        VO.ensure(sampleString.value(VO.zero).equals(VO.Number(72)));  // "H"
+        VO.ensure(sampleString.value(VO.Number(6)).equals(VO.Number(32)));  // " "
+        VO.ensure(sampleString.value(sampleString.length.plus(VO.minusOne)).equals(VO.Number(33)));  // "!"
         VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:0})).equals(VO.emptyString));
         VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:1})).length.equals(VO.one));
         VO.ensure(sampleString.extract(VO.fromNative({from:1, upto:1})).length.equals(VO.zero));
         VO.ensure(sampleString
-                  .extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleString.length)))
+                  .extract(VO.fromNative({from:0}).concatenate((VO.String("upto")).bind(sampleString.length)))
                   .equals(sampleString));
-        VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:5})).equals(new VO.String("Hello")));
-        VO.ensure(sampleString.skip(new VO.Number(7)).take(new VO.Number(5)).equals(new VO.String("World")));
+        VO.ensure(sampleString.extract(VO.fromNative({from:0, upto:5})).equals(VO.String("Hello")));
+        VO.ensure(sampleString.skip(VO.Number(7)).take(VO.Number(5)).equals(VO.String("World")));
         VO.ensure(VO.emptyString.concatenate(VO.emptyString).equals(VO.emptyString));
         VO.ensure(sampleString.concatenate(VO.emptyString).equals(sampleString));
         VO.ensure(VO.emptyString.concatenate(sampleString).equals(sampleString));
-        VO.ensure(sampleString.take(new VO.Number(6))
-                  .concatenate(sampleString.skip(new VO.Number(6)))
+        VO.ensure(sampleString.take(VO.Number(6))
+                  .concatenate(sampleString.skip(VO.Number(6)))
                   .equals(sampleString));
-        VO.ensure(new VO.String("foo").bind(new VO.Number(42)).equals(VO.fromNative({ "foo": 42 })));
+        VO.ensure(VO.String("foo").bind(VO.Number(42)).equals(VO.fromNative({ "foo": 42 })));
 
-        VO.ensure(VO.emptyString.append(new VO.Number(72)).append(new VO.Number(105))
-                  .equals(new VO.String("Hi")));
+        VO.ensure(VO.emptyString.append(VO.Number(72)).append(VO.Number(105))
+                  .equals(VO.String("Hi")));
         VO.ensure(sampleString.reduce(
                       function (c, x) {
                           return x.plus(VO.one);
                       }, VO.zero)
                   .equals(sampleString.length));
 
-//        VO.ensure(VO.emptyString.equals(VO.String("")));  // ERROR: VO.String("") === undefined
+        VO.ensure(VO.emptyString.equals(VO.String()));
+        VO.ensure(VO.emptyString.equals(VO.String("")));
         VO.ensure(VO.emptyString.equals(new VO.String("")));
-        VO.ensure(VO.Boolean(VO.emptyString !== new VO.String("")));
-        VO.ensure(VO.Boolean(VO.emptyString === new VO.String()));
+        VO.ensure(VO.Boolean(VO.emptyString !== VO.String("")));
+        VO.ensure(VO.Boolean(VO.emptyString === VO.String()));
+        VO.ensure(VO.Boolean(new VO.String() === VO.String()));
 
-        VO.ensure(VO.emptyString.asJSON.equals(new VO.String('""')));
-        VO.ensure(sampleString.asJSON.equals(new VO.String('"Hello, World!"')));
-        VO.ensure((new VO.String(" \r\n")).asJSON.equals(new VO.String('" \\r\\n"')));
+        VO.ensure(VO.emptyString.asJSON.equals(VO.String('""')));
+        VO.ensure(sampleString.asJSON.equals(VO.String('"Hello, World!"')));
+        VO.ensure(VO.String(" \r\n").asJSON.equals(VO.String('" \\r\\n"')));
 
         // Array
         VO.ensure(VO.emptyArray.equals(VO.zero).not);
@@ -1000,21 +1002,21 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyArray.hasType(VO.Object).not);
 
         VO.ensure(VO.emptyArray.length.equals(VO.zero));
-        VO.ensure(sampleArray.length.equals(new VO.Number(8)));
+        VO.ensure(sampleArray.length.equals(VO.Number(8)));
         VO.ensure(sampleArray.value(VO.zero).equals(VO.null));
-        VO.ensure(sampleArray.value(new VO.Number(4)).equals(new VO.Number(1)));
+        VO.ensure(sampleArray.value(VO.Number(4)).equals(VO.Number(1)));
         VO.ensure(sampleArray.value(sampleArray.length.plus(VO.minusOne)).equals(VO.emptyObject));
         VO.ensure(sampleArray.extract(VO.fromNative({from:0, upto:0})).equals(VO.emptyArray));
         VO.ensure(sampleArray.extract(VO.fromNative({from:0, upto:1})).length.equals(VO.one));
         VO.ensure(sampleArray.extract(VO.fromNative({from:1, upto:1})).length.equals(VO.zero));
         VO.ensure(sampleArray
-                  .extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleArray.length)))
+                  .extract(VO.fromNative({from:0}).concatenate((VO.String("upto")).bind(sampleArray.length)))
                   .equals(sampleArray));
         VO.ensure(VO.emptyArray.concatenate(VO.emptyArray).equals(VO.emptyArray));
         VO.ensure(sampleArray.concatenate(VO.emptyArray).equals(sampleArray));
         VO.ensure(VO.emptyArray.concatenate(sampleArray).equals(sampleArray));
-        VO.ensure(sampleArray.take(new VO.Number(4))
-                  .concatenate(sampleArray.skip(new VO.Number(4)))
+        VO.ensure(sampleArray.take(VO.Number(4))
+                  .concatenate(sampleArray.skip(VO.Number(4)))
                   .equals(sampleArray));
 
         VO.ensure(sampleArray.reduce(
@@ -1022,20 +1024,22 @@ VO.selfTest = (function () {
                           return x.plus(VO.one);
                       }, VO.zero)
                   .equals(sampleArray.length));
-        VO.ensure(VO.emptyArray.append(new VO.Number(72)).append(new VO.Number(105))
+        VO.ensure(VO.emptyArray.append(VO.Number(72)).append(VO.Number(105))
                   .reduce(
                       function (v, x) {
                           return x.append(v);
                       }, VO.emptyString)
-                  .equals(new VO.String("Hi")));
+                  .equals(VO.String("Hi")));
         VO.ensure(sampleString.asArray.asString.equals(sampleString));
 
-//        VO.ensure(VO.emptyArray.equals(VO.Array([])));  // ERROR: VO.Array([]) === undefined
+        VO.ensure(VO.emptyArray.equals(VO.Array()));
+        VO.ensure(VO.emptyArray.equals(VO.Array([])));
         VO.ensure(VO.emptyArray.equals(new VO.Array([])));
-        VO.ensure(VO.Boolean(VO.emptyArray !== new VO.Array([])));
-        VO.ensure(VO.Boolean(VO.emptyArray === new VO.Array()));
+        VO.ensure(VO.Boolean(VO.emptyArray !== VO.Array([])));
+        VO.ensure(VO.Boolean(VO.emptyArray === VO.Array()));
+        VO.ensure(VO.Boolean(new VO.Array() === VO.Array()));
 
-        VO.ensure(VO.emptyArray.asJSON.equals(new VO.String('[]')));
+        VO.ensure(VO.emptyArray.asJSON.equals(VO.String('[]')));
 
         // Object
         VO.ensure(VO.emptyObject.equals(VO.zero).not);
@@ -1053,22 +1057,22 @@ VO.selfTest = (function () {
         VO.ensure(VO.emptyObject.hasType(VO.Object));
 
         VO.ensure(VO.emptyObject.names.equals(VO.emptyArray));
-        VO.ensure(sampleObject.names.length.equals(new VO.Number(8)));
-        VO.ensure(VO.emptyObject.hasProperty(new VO.String("zero")).not);
-        VO.ensure(sampleObject.hasProperty(new VO.String("zero")));
-        VO.ensure(sampleObject.hasProperty(new VO.String("none")).not);
-        VO.ensure(sampleObject.value(new VO.String("zero")).equals(VO.zero));
-        VO.ensure(sampleObject.value(new VO.String("one")).equals(new VO.Number(1)));
-        VO.ensure(sampleObject.value(new VO.String("emptyObject")).equals(VO.emptyObject));
+        VO.ensure(sampleObject.names.length.equals(VO.Number(8)));
+        VO.ensure(VO.emptyObject.hasProperty(VO.String("zero")).not);
+        VO.ensure(sampleObject.hasProperty(VO.String("zero")));
+        VO.ensure(sampleObject.hasProperty(VO.String("none")).not);
+        VO.ensure(sampleObject.value(VO.String("zero")).equals(VO.zero));
+        VO.ensure(sampleObject.value(VO.String("one")).equals(VO.Number(1)));
+        VO.ensure(sampleObject.value(VO.String("emptyObject")).equals(VO.emptyObject));
         VO.ensure(sampleObject.extract(VO.emptyArray).equals(VO.emptyObject));
-        VO.ensure(sampleObject.extract(VO.emptyArray.append(new VO.String("zero")))
+        VO.ensure(sampleObject.extract(VO.emptyArray.append(VO.String("zero")))
                   .names.length.equals(VO.one));
         VO.ensure(sampleObject.extract(VO.fromNative(["zero","one"]))
                   .names.length.equals(VO.two));
         VO.ensure(sampleObject.extract(VO.fromNative(["zero","one"]))
-                  .value(new VO.String("zero")).equals(VO.zero));
+                  .value(VO.String("zero")).equals(VO.zero));
         VO.ensure(sampleObject.extract(VO.fromNative(["zero","one"]))
-                  .value(new VO.String("one")).equals(VO.one));
+                  .value(VO.String("one")).equals(VO.one));
         VO.ensure(sampleObject.extract(sampleObject.names)
                   .equals(sampleObject));
         VO.ensure(VO.emptyObject.concatenate(VO.emptyObject).equals(VO.emptyObject));
@@ -1077,11 +1081,11 @@ VO.selfTest = (function () {
         VO.ensure(sampleObject.extract(VO.fromNative(["zero"]))
                   .concatenate(sampleObject.extract(VO.fromNative(["one"])))
                   .equals(sampleObject.extract(VO.fromNative(["one","zero"]))));
-        tmp = new VO.Object({ a: VO.true, b: VO.false })
-            .concatenate(new VO.Object({ b: VO.true, c: VO.true }));
-        VO.ensure(tmp.value(new VO.String("a"))
-                  .and(tmp.value(new VO.String("b")))
-                  .and(tmp.value(new VO.String("c"))));
+        tmp = VO.Object({ a: VO.true, b: VO.false })
+            .concatenate(VO.Object({ b: VO.true, c: VO.true }));
+        VO.ensure(tmp.value(VO.String("a"))
+                  .and(tmp.value(VO.String("b")))
+                  .and(tmp.value(VO.String("c"))));
 
         VO.ensure(sampleObject.reduce(
                       function (n, v, x) {
@@ -1094,20 +1098,22 @@ VO.selfTest = (function () {
                       }, VO.emptyArray)
                   .equals(sampleObject.names));
         VO.ensure(VO.emptyObject
-                  .concatenate((new VO.String("space")).bind(new VO.Number(33)))
-                  .concatenate((new VO.String("bang")).bind(new VO.Number(34)))
+                  .concatenate((VO.String("space")).bind(VO.Number(32)))
+                  .concatenate((VO.String("bang")).bind(VO.Number(33)))
                   .reduce(
                       function (n, v, x) {
                           return x.times(v);
                       }, VO.one)
-                  .equals(new VO.Number(33 * 34)));
+                  .equals(VO.Number(32 * 33)));
 
-//        VO.ensure(VO.emptyObject.equals(VO.Object({})));  // ERROR: VO.Object({}) === undefined
+        VO.ensure(VO.emptyObject.equals(VO.Object()));
+        VO.ensure(VO.emptyObject.equals(VO.Object({})));
         VO.ensure(VO.emptyObject.equals(new VO.Object({})));
-        VO.ensure(VO.Boolean(VO.emptyObject !== new VO.Object({})));
-        VO.ensure(VO.Boolean(VO.emptyObject === new VO.Object()));
+        VO.ensure(VO.Boolean(VO.emptyObject !== VO.Object({})));
+        VO.ensure(VO.Boolean(VO.emptyObject === VO.Object()));
+        VO.ensure(VO.Boolean(new VO.Object() === VO.Object()));
 
-        VO.ensure(VO.emptyObject.asJSON.equals(new VO.String('{}')));
+        VO.ensure(VO.emptyObject.asJSON.equals(VO.String('{}')));
 
         VO.ensure(VO.fromNative(
             {
@@ -1126,36 +1132,36 @@ VO.selfTest = (function () {
             )).equals(sampleObject));
 
         // Expression
-        VO.ensure(new VO.ValueExpr(new VO.Null()).evaluate(VO.emptyObject).equals(VO.null));
-        VO.ensure(new VO.ValueExpr(new VO.Number(2)).evaluate(sampleObject).equals(VO.two));
-        VO.ensure(new VO.ValueExpr(sampleArray).evaluate(sampleObject).equals(sampleArray));
-        VO.ensure(new VO.ValueExpr(sampleObject).evaluate(sampleObject).equals(sampleObject));
+        VO.ensure(VO.ValueExpr(VO.Null()).evaluate(VO.emptyObject).equals(VO.null));
+        VO.ensure(VO.ValueExpr(VO.Number(2)).evaluate(sampleObject).equals(VO.two));
+        VO.ensure(VO.ValueExpr(sampleArray).evaluate(sampleObject).equals(sampleArray));
+        VO.ensure(VO.ValueExpr(sampleObject).evaluate(sampleObject).equals(sampleObject));
 
-        VO.ensure(new VO.VariableExpr(new VO.String("one")).evaluate(sampleObject).equals(VO.one));
-        VO.ensure(new VO.VariableExpr(new VO.String("emptyObject"))
+        VO.ensure(VO.VariableExpr(VO.String("one")).evaluate(sampleObject).equals(VO.one));
+        VO.ensure(VO.VariableExpr(VO.String("emptyObject"))
                   .evaluate(sampleContext).equals(VO.emptyObject));
-        VO.ensure(new VO.VariableExpr(new VO.String("arrayOf"))
+        VO.ensure(VO.VariableExpr(VO.String("arrayOf"))
                   .evaluate(sampleContext).equals(VO.arrayOper));
 
-        VO.ensure(new VO.CombineExpr(VO.quoteOper, sampleArray)
+        VO.ensure(VO.CombineExpr(VO.quoteOper, sampleArray)
                   .evaluate(VO.emptyObject).equals(sampleArray));
-        VO.ensure(new VO.CombineExpr(VO.arrayOper, 
-                                     sampleObject.reduce(function (n, v, x) {
-                                         return x.append(new VO.VariableExpr(n));
-                                     }, VO.emptyArray))
+        VO.ensure(VO.CombineExpr(VO.arrayOper, 
+                                 sampleObject.reduce(function (n, v, x) {
+                                     return x.append(VO.VariableExpr(n));
+                                 }, VO.emptyArray))
                   .evaluate(sampleObject).equals(sampleArray));
-        VO.ensure(new VO.CombineExpr(new VO.VariableExpr(new VO.String("arrayOf")), 
-                                     sampleObject.reduce(function (n, v, x) {
-                                         return x.append(new VO.VariableExpr(n));
-                                     }, VO.emptyArray))
+        VO.ensure(VO.CombineExpr(VO.VariableExpr(VO.String("arrayOf")), 
+                                 sampleObject.reduce(function (n, v, x) {
+                                     return x.append(VO.VariableExpr(n));
+                                 }, VO.emptyArray))
                   .evaluate(sampleContext).equals(sampleArray));
-        VO.ensure(new VO.CombineExpr(
-                        new VO.MethodExpr(
-                            new VO.VariableExpr(new VO.String("one")), 
-                            new VO.ValueExpr(new VO.String("plus"))),
+        VO.ensure(VO.CombineExpr(
+                        VO.MethodExpr(
+                            VO.VariableExpr(VO.String("one")), 
+                            VO.ValueExpr(VO.String("plus"))),
                         VO.emptyArray.append(
-                            new VO.ValueExpr(VO.one)))
-                  .evaluate(sampleContext).equals(new VO.Number(2)));
+                            VO.ValueExpr(VO.two)))
+                  .evaluate(sampleContext).equals(VO.Number(3)));
 
         return true;  // all tests passed
     };
