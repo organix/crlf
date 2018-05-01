@@ -777,8 +777,8 @@ VO.MethodExpr = (function (self) {
 })();
 
 VO.selfTest = (function () {
-    var sampleString = new VO.String("Hello, World!");
-    var sampleArray = new VO.Array([
+    var sampleString = VO.String("Hello, World!");
+    var sampleArray = VO.Array([
         VO.null,
         VO.true,
         VO.false,
@@ -788,7 +788,7 @@ VO.selfTest = (function () {
         VO.emptyArray,
         VO.emptyObject
     ]);
-    var sampleObject = new VO.Object({
+    var sampleObject = VO.Object({
         "null": VO.null,
         "true": VO.true,
         "false": VO.false,
@@ -798,7 +798,7 @@ VO.selfTest = (function () {
         "emptyArray": VO.emptyArray,
         "emptyObject": VO.emptyObject
     });
-    var sampleContext = sampleObject.concatenate(new VO.Object({
+    var sampleContext = sampleObject.concatenate(VO.Object({
         "quote": VO.quoteOper,
         "arrayOf": VO.arrayOper
     }));
@@ -821,10 +821,11 @@ VO.selfTest = (function () {
 
         VO.ensure(VO.null.equals(VO.Null()));
         VO.ensure(VO.null.equals(new VO.Null()));
-        VO.ensure(VO.Boolean(VO.null === new VO.Null()));
-        VO.ensure(VO.Boolean(new VO.Null() === new VO.Null()));
+        VO.ensure(VO.Boolean(VO.null === VO.Null()));
+        VO.ensure(VO.Boolean(VO.Null() === VO.Null()));
+        VO.ensure(VO.Boolean(VO.Null() === new VO.Null()));
 
-        VO.ensure(VO.null.asJSON.equals(new VO.String("null")));
+        VO.ensure(VO.null.asJSON.equals(VO.String("null")));
 
         // Boolean
         VO.ensure(VO.true.equals(VO.null).not);
@@ -864,15 +865,17 @@ VO.selfTest = (function () {
 
         VO.ensure(VO.true.equals(VO.Boolean(true)));
         VO.ensure(VO.true.equals(new VO.Boolean(true)));
-        VO.ensure(VO.Boolean(VO.true === new VO.Boolean(true)));
-        VO.ensure(VO.Boolean(new VO.Boolean(true) === new VO.Boolean(true)));
+        VO.ensure(VO.Boolean(VO.true === VO.Boolean(true)));
+        VO.ensure(VO.Boolean(VO.Boolean(true) === VO.Boolean(true)));
+        VO.ensure(VO.Boolean(VO.Boolean(true) === new VO.Boolean(true)));
         VO.ensure(VO.false.equals(VO.Boolean(false)));
         VO.ensure(VO.false.equals(new VO.Boolean(false)));
-        VO.ensure(VO.Boolean(VO.false === new VO.Boolean(false)));
-        VO.ensure(VO.Boolean(new VO.Boolean(false) === new VO.Boolean(false)));
+        VO.ensure(VO.Boolean(VO.false === VO.Boolean(false)));
+        VO.ensure(VO.Boolean(VO.Boolean(false) === VO.Boolean(false)));
+        VO.ensure(VO.Boolean(VO.Boolean(false) === new VO.Boolean(false)));
 
-        VO.ensure(VO.true.asJSON.equals(new VO.String("true")));
-        VO.ensure(VO.false.asJSON.equals(new VO.String("false")));
+        VO.ensure(VO.true.asJSON.equals(VO.String("true")));
+        VO.ensure(VO.false.asJSON.equals(VO.String("false")));
 
         // Number
         VO.ensure(VO.zero.equals(VO.zero));
@@ -915,17 +918,18 @@ VO.selfTest = (function () {
         VO.ensure(VO.one.times(VO.minusOne).equals(VO.minusOne));
         VO.ensure(VO.two.times(VO.minusOne).equals(new VO.Number(-2)));
 
-//        VO.ensure(VO.zero.equals(VO.Number(0)));  // ERROR: VO.Number(0) === undefined
+        VO.ensure(VO.zero.equals(VO.Number(0)));
         VO.ensure(VO.zero.equals(new VO.Number(0)));
-        VO.ensure(VO.Boolean(VO.zero !== new VO.Number(0)));
-        VO.ensure(VO.one.equals(new VO.Number(1)));
-        VO.ensure(VO.Boolean(VO.one !== new VO.Number(1)));
+        VO.ensure(VO.Boolean(VO.Number(0) !== VO.Number(0)));
+        VO.ensure(VO.Boolean(VO.zero !== VO.Number(0)));
+        VO.ensure(VO.one.equals(VO.Number(1)));
+        VO.ensure(VO.Boolean(VO.one !== VO.Number(1)));
 
-        VO.ensure(VO.zero.asJSON.equals(new VO.String("0")));
-        VO.ensure(VO.one.asJSON.equals(new VO.String("1")));
-        VO.ensure(VO.two.asJSON.equals(new VO.String("2")));
-        VO.ensure(VO.minusOne.asJSON.equals(new VO.String("-1")));
-        VO.ensure((new VO.Number(42)).asJSON.equals(new VO.String("42")));
+        VO.ensure(VO.zero.asJSON.equals(VO.String("0")));
+        VO.ensure(VO.one.asJSON.equals(VO.String("1")));
+        VO.ensure(VO.two.asJSON.equals(VO.String("2")));
+        VO.ensure(VO.minusOne.asJSON.equals(VO.String("-1")));
+        VO.ensure((VO.Number(42)).asJSON.equals(VO.String("42")));
 
         // String
         VO.ensure(VO.emptyString.equals(VO.zero).not);
