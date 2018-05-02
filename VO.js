@@ -31,7 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 "use strict";
 
 var VO = module.exports;
-VO.version = "0.0.0";
+VO.version = "0.0.1";
 
 //VO.log = console.log;
 VO.log = function () {};
