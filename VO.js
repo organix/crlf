@@ -95,18 +95,18 @@ VO.fromNative = function fromNative(native) {  // convert native JS value to VO 
     VO.throw(native);  // no VO equivalent
 };
 
-VO.Value = (function (self) {
-    self = self || {};
-    self.equals = function equals(that) {
+VO.Value = (function (proto) {
+    proto = proto || {};
+    proto.equals = function equals(that) {
         if (this === that) {
             return VO.true;
         }
         return VO.false;
     };
-    self.hasType = function hasType(type) {
+    proto.hasType = function hasType(type) {
         return VO.Boolean(this instanceof type);
     };
-    self.combine = function combine(name) {  // data-value combiner is abstract field accessor
+    proto.combine = function combine(name) {  // data-value combiner is abstract field accessor
         VO.ensure(this.hasType(VO.Value));
         VO.ensure(name.hasType(VO.String));
         var member = this[name._value];
@@ -117,7 +117,7 @@ VO.Value = (function (self) {
         VO.ensure(member.hasType(VO.Value));
         return member;
     };
-    self.method = function method(name) {  // create adapter for native method
+    proto.method = function method(name) {  // create adapter for native method
         VO.ensure(this.hasType(VO.Value));
         var target = this;  // this is the target object
         VO.ensure(name.hasType(VO.String));
@@ -134,19 +134,19 @@ VO.Value = (function (self) {
         if (!(this instanceof Value)) { return new Value(); }  // if called without "new" keyword...
 //        deepFreeze(this);  // can't freeze Values because we need mutable prototypes
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     return constructor;
 })();
 
-VO.Combiner = (function (self) {
-    self = self || new VO.Value();
-    self.combine = function combine(value) {  // delegate to native operative function
+VO.Combiner = (function (proto) {
+    proto = proto || new VO.Value();
+    proto.combine = function combine(value) {  // delegate to native operative function
         VO.ensure(this.hasType(VO.Combiner));
         VO.ensure(value.hasType(VO.Value));
         return this._oper(value);
     };
-    self.concatenate = function concatenate(that) {
+    proto.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.Combiner));
         var first = this._oper;
         VO.ensure(this.hasType(VO.Combiner));
@@ -164,14 +164,14 @@ VO.Combiner = (function (self) {
         this._oper = operative;
         deepFreeze(this);
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     return constructor;
 })();
 
-VO.Data = (function (self) {
-    self = self || new VO.Value();
-    Object.defineProperty(self, 'asJSON', {
+VO.Data = (function (proto) {
+    proto = proto || new VO.Value();
+    Object.defineProperty(proto, 'asJSON', {
         enumerable: true,
         get: function () {
             VO.ensure(this.hasType(VO.Data));
@@ -182,13 +182,13 @@ VO.Data = (function (self) {
         if (!(this instanceof Data)) { return new Data(); }  // if called without "new" keyword...
 //        deepFreeze(this);  // can't freeze because we need mutable prototypes
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     return constructor;
 })();
 
-VO.Null = (function (self) {
-    self = self || new VO.Data();
+VO.Null = (function (proto) {
+    proto = proto || new VO.Data();
     var constructor = function Null() {
         if (VO.null === undefined) {
             this._value = null;
@@ -196,14 +196,14 @@ VO.Null = (function (self) {
         }
         return VO.null;
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     VO.null = new constructor();
     return constructor;
 })();
 
-VO.Boolean = (function (self) {
-    self = self || new VO.Data();
+VO.Boolean = (function (proto) {
+    proto = proto || new VO.Data();
     var constructor = function Boolean(value) {
         if (value) {
             if (VO.true === undefined) {
@@ -219,8 +219,8 @@ VO.Boolean = (function (self) {
             return VO.false;
         }
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     deepFreeze(constructor);
     let T = new constructor(true);  // assigns VO.true
     let F = new constructor(false);  // assigns VO.false
@@ -235,9 +235,9 @@ VO.Boolean = (function (self) {
     return constructor;
 })();
 
-VO.Number = (function (self) {
-    self = self || new VO.Data();
-    self.equals = function equals(that) {
+VO.Number = (function (proto) {
+    proto = proto || new VO.Data();
+    proto.equals = function equals(that) {
         if (this === that) {
             return VO.true;
         }
@@ -249,32 +249,32 @@ VO.Number = (function (self) {
         }
         return VO.false;
     };
-    self.lessThan = function lessThan(that) {
+    proto.lessThan = function lessThan(that) {
         VO.ensure(this.hasType(VO.Number));
         VO.ensure(that.hasType(VO.Number));
         return VO.Boolean(this._value < that._value);
     };
-    self.lessEqual = function lessEqual(that) {
+    proto.lessEqual = function lessEqual(that) {
         VO.ensure(this.hasType(VO.Number));
         VO.ensure(that.hasType(VO.Number));
         return VO.Boolean(this._value <= that._value);
     };
-    self.greaterEqual = function greaterEqual(that) {
+    proto.greaterEqual = function greaterEqual(that) {
         VO.ensure(this.hasType(VO.Number));
         VO.ensure(that.hasType(VO.Number));
         return VO.Boolean(this._value >= that._value);
     };
-    self.greaterThan = function greaterThan(that) {
+    proto.greaterThan = function greaterThan(that) {
         VO.ensure(this.hasType(VO.Number));
         VO.ensure(that.hasType(VO.Number));
         return VO.Boolean(this._value > that._value);
     };
-    self.plus = function plus(that) {
+    proto.plus = function plus(that) {
         VO.ensure(this.hasType(VO.Number));
         VO.ensure(that.hasType(VO.Number));
         return new VO.Number(this._value + that._value);
     };
-    self.times = function times(that) {
+    proto.times = function times(that) {
         VO.ensure(this.hasType(VO.Number));
         VO.ensure(that.hasType(VO.Number));
         return new VO.Number(this._value * that._value);
@@ -285,8 +285,8 @@ VO.Number = (function (self) {
         this._value = value;
         deepFreeze(this);
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     VO.minusOne = new constructor(-1);
     VO.zero = new constructor(0);
     VO.one = new constructor(1);
@@ -294,23 +294,23 @@ VO.Number = (function (self) {
     return constructor;
 })();
 
-VO.Composite = (function (self) {
-    self = self || new VO.Data();
-    self.value = function value(selector) {  // extract a component of the composite
+VO.Composite = (function (proto) {
+    proto = proto || new VO.Data();
+    proto.value = function value(selector) {  // extract a component of the composite
         VO.throw("Not Implemented");  // FIXME!
     };
     var constructor = function Composite() {
         if (!(this instanceof Composite)) { return new Composite(); }  // if called without "new" keyword...
 //        deepFreeze(this);  // can't freeze because we need mutable prototypes
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     return constructor;
 })();
 
-VO.String = (function (self) {
-    self = self || new VO.Composite();
-    self.equals = function equals(that) {
+VO.String = (function (proto) {
+    proto = proto || new VO.Composite();
+    proto.equals = function equals(that) {
         if (this === that) {
             return VO.true;
         }
@@ -322,26 +322,26 @@ VO.String = (function (self) {
         }
         return VO.false;
     };
-    Object.defineProperty(self, 'length', {
+    Object.defineProperty(proto, 'length', {
         enumerable: true,
         get: function () {
             VO.ensure(this.hasType(VO.String));
             return new VO.Number(this._value.length);
         }
     });
-    self.value = function value(offset) {
+    proto.value = function value(offset) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(offset.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
         VO.ensure(offset.lessThan(this.length));  // offset < length
         return new VO.Number(this._value.codePointAt(offset._value));
     };
-    self.concatenate = function concatenate(that) {
+    proto.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(that.hasType(VO.String));
         return new VO.String(this._value + that._value);
     };
-    self.skip = function skip(count) {
+    proto.skip = function skip(count) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(count.hasType(VO.Number));
         VO.ensure(count.greaterEqual(VO.zero));  // count >= 0
@@ -350,14 +350,14 @@ VO.String = (function (self) {
         }
         return new VO.String(this._value.slice(count._value, this._value.length));
     };
-    self.take = function take(count) {
+    proto.take = function take(count) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(count.hasType(VO.Number));
         VO.ensure(count.greaterEqual(VO.zero));  // count >= 0
         VO.ensure(count.lessEqual(this.length));  // count <= length
         return new VO.String(this._value.slice(0, count._value));
     };
-    self.extract = function extract(interval) {
+    proto.extract = function extract(interval) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(interval.hasType(VO.Object));
         VO.ensure(interval.hasProperty(new VO.String("from")));
@@ -371,19 +371,19 @@ VO.String = (function (self) {
         VO.ensure(upto.lessEqual(this.length));  // upto <= length
         return new VO.String(this._value.slice(from._value, upto._value));
     };
-    self.append = function append(value) {
+    proto.append = function append(value) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(value.hasType(VO.Number));
         return new VO.String(this._value + String.fromCodePoint(value._value));
     };
-    self.bind = function bind(value) {
+    proto.bind = function bind(value) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(value.hasType(VO.Value));
         var obj = {};
         obj[this._value] = value;
         return new VO.Object(obj);
     };
-    self.reduce = function reduce(func, value) {
+    proto.reduce = function reduce(func, value) {
         VO.ensure(this.hasType(VO.String));
         if (typeof func === "function") {
             for (var i = 0; i < this._value.length; ++i) {
@@ -394,7 +394,7 @@ VO.String = (function (self) {
         }
         VO.throw("Not Implemented");  // FIXME!
     };
-    Object.defineProperty(self, 'asArray', {
+    Object.defineProperty(proto, 'asArray', {
         enumerable: true,
         get: function () {
             VO.ensure(this.hasType(VO.String));
@@ -412,15 +412,15 @@ VO.String = (function (self) {
         this._value = value;
         deepFreeze(this);
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     VO.emptyString = new constructor("");
     return constructor;
 })();
 
-VO.Array = (function (self) {
-    self = self || new VO.Composite();
-    self.equals = function equals(that) {
+VO.Array = (function (proto) {
+    proto = proto || new VO.Composite();
+    proto.equals = function equals(that) {
         if (this === that) {
             return VO.true;
         }
@@ -439,26 +439,26 @@ VO.Array = (function (self) {
         }
         return VO.false;
     };
-    Object.defineProperty(self, 'length', {
+    Object.defineProperty(proto, 'length', {
         enumerable: true,
         get: function () {
             VO.ensure(this.hasType(VO.Array));
             return new VO.Number(this._value.length);
         }
     });
-    self.value = function value(offset) {
+    proto.value = function value(offset) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(offset.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
         VO.ensure(offset.lessThan(this.length));  // offset < length
         return this._value[offset._value];
     };
-    self.concatenate = function concatenate(that) {
+    proto.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(that.hasType(VO.Array));
         return new VO.Array(this._value.concat(that._value));
     };
-    self.skip = function skip(count) {
+    proto.skip = function skip(count) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(count.hasType(VO.Number));
         VO.ensure(count.greaterEqual(VO.zero));  // count >= 0
@@ -467,14 +467,14 @@ VO.Array = (function (self) {
         }
         return new VO.Array(this._value.slice(count._value, this._value.length));
     };
-    self.take = function take(count) {
+    proto.take = function take(count) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(count.hasType(VO.Number));
         VO.ensure(count.greaterEqual(VO.zero));  // count >= 0
         VO.ensure(count.lessEqual(this.length));  // count <= length
         return new VO.Array(this._value.slice(0, count._value));
     };
-    self.extract = function extract(interval) {
+    proto.extract = function extract(interval) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(interval.hasType(VO.Object));
         VO.ensure(interval.hasProperty(new VO.String("from")));
@@ -488,12 +488,12 @@ VO.Array = (function (self) {
         VO.ensure(upto.lessEqual(this.length));  // upto <= length
         return new VO.Array(this._value.slice(from._value, upto._value));
     };
-    self.append = function append(value) {
+    proto.append = function append(value) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(value.hasType(VO.Value));
         return new VO.Array(this._value.concat(value));
     };
-    self.reduce = function reduce(func, value) {
+    proto.reduce = function reduce(func, value) {
         VO.ensure(this.hasType(VO.Array));
         if (typeof func === "function") {
             for (var i = 0; i < this._value.length; ++i) {
@@ -503,7 +503,7 @@ VO.Array = (function (self) {
         }
         VO.throw("Not Implemented");  // FIXME!
     };
-    Object.defineProperty(self, 'asString', {
+    Object.defineProperty(proto, 'asString', {
         enumerable: true,
         get: function () {
             VO.ensure(this.hasType(VO.Array));
@@ -522,15 +522,15 @@ VO.Array = (function (self) {
         this._value = value;
         deepFreeze(this);
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     VO.emptyArray = new constructor([]);
     return constructor;
 })();
 
-VO.Object = (function (self) {
-    self = self || new VO.Composite();
-    self.equals = function equals(that) {
+VO.Object = (function (proto) {
+    proto = proto || new VO.Composite();
+    proto.equals = function equals(that) {
         if (this === that) {
             return VO.true;
         }
@@ -551,18 +551,18 @@ VO.Object = (function (self) {
         }
         return VO.false;
     };
-    self.hasProperty = function hasProperty(name) {
+    proto.hasProperty = function hasProperty(name) {
         VO.ensure(this.hasType(VO.Object));
         VO.ensure(name.hasType(VO.String));
         return VO.Boolean(this._value.hasOwnProperty(name._value));
     };
-    self.value = function value(name) {
+    proto.value = function value(name) {
         VO.ensure(this.hasType(VO.Object));
         VO.ensure(name.hasType(VO.String));
         VO.ensure(this.hasProperty(name));
         return this._value[name._value];
     };
-    self.concatenate = function concatenate(that) {
+    proto.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.Object));
         VO.ensure(that.hasType(VO.Object));
         var result = {};
@@ -574,7 +574,7 @@ VO.Object = (function (self) {
         });
         return new VO.Object(result);
     };
-    self.extract = function extract(names) {
+    proto.extract = function extract(names) {
         VO.ensure(this.hasType(VO.Object));
         VO.ensure(names.hasType(VO.Array));
         var from = this;  // capture this use in reduce
@@ -583,7 +583,7 @@ VO.Object = (function (self) {
             return v.concatenate(n.bind(from.value(n)));
         }, VO.emptyObject);
     };
-    Object.defineProperty(self, 'names', {
+    Object.defineProperty(proto, 'names', {
         enumerable: true,
         get: function () {
 /*
@@ -600,7 +600,7 @@ VO.Object = (function (self) {
             return new VO.Array(keys);
         }
     });
-    self.reduce = function reduce(func, value) {
+    proto.reduce = function reduce(func, value) {
         VO.ensure(this.hasType(VO.Object));
         if (typeof func === "function") {
             var keys = Object.keys(this._value);
@@ -621,29 +621,29 @@ VO.Object = (function (self) {
         this._value = value;
         deepFreeze(this);
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     VO.emptyObject = new constructor({});
     return constructor;
 })();
 
-VO.Expression = (function (self) {
-    self = self || new VO.Value();
-    self.evaluate = function evaluate(/* context */) {
+VO.Expression = (function (proto) {
+    proto = proto || new VO.Value();
+    proto.evaluate = function evaluate(/* context */) {
         VO.throw("Not Implemented");
     };
     var constructor = function Expression() {
         if (!(this instanceof Expression)) { return new Expression(); }  // if called without "new" keyword...
 //        deepFreeze(this);  // can't freeze Expressions because we need mutable prototypes
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     return constructor;
 })();
 
-VO.ValueExpr = (function (self) {
-    self = self || new VO.Expression();
-    self.evaluate = function evaluate(/* context */) {
+VO.ValueExpr = (function (proto) {
+    proto = proto || new VO.Expression();
+    proto.evaluate = function evaluate(/* context */) {
         return this._value;
     };
     var constructor = function ValueExpr(value) {
@@ -651,14 +651,14 @@ VO.ValueExpr = (function (self) {
         VO.ensure(value.hasType(VO.Value));
         this._value = value;
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     return constructor;
 })();
 
-VO.VariableExpr = (function (self) {
-    self = self || new VO.Expression();
-    self.evaluate = function evaluate(context) {
+VO.VariableExpr = (function (proto) {
+    proto = proto || new VO.Expression();
+    proto.evaluate = function evaluate(context) {
 //        VO.ensure(context.hasType(VO.Object));
         return context.value(this._name);
     };
@@ -667,14 +667,14 @@ VO.VariableExpr = (function (self) {
         VO.ensure(name.hasType(VO.String));
         this._name = name;
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     return constructor;
 })();
 
-VO.CombineExpr = (function (self) {
-    self = self || new VO.Expression();
-    self.evaluate = function evaluate(context) {
+VO.CombineExpr = (function (proto) {
+    proto = proto || new VO.Expression();
+    proto.evaluate = function evaluate(context) {
 //        VO.ensure(context.hasType(VO.Object));
         var operation = this._expr.evaluate(context);
 //        VO.ensure(VO.Boolean(typeof operation.operate === "function"));
@@ -688,24 +688,24 @@ VO.CombineExpr = (function (self) {
         this._expr = expr;
         this._data = data;
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     return constructor;
 })();
 
-VO.Operation = (function (self) {
-    self = self || new VO.Expression();
-    self.evaluate = function evaluate(context) {
+VO.Operation = (function (proto) {
+    proto = proto || new VO.Expression();
+    proto.evaluate = function evaluate(context) {
 //        VO.ensure(context.hasType(VO.Object));
         return this;  // operations evaluate to themselves
     };
-    self.operate = function operate(value, context) {
+    proto.operate = function operate(value, context) {
         VO.ensure(value.hasType(VO.Value));
 //        VO.ensure(context.hasType(VO.Object));
         var operative = this._oper;
         return operative(value, context);
     };
-    self.concatenate = function concatenate(that) {
+    proto.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.Operation));
         var first = this._oper;
         VO.ensure(that.hasType(VO.Operation));
@@ -723,8 +723,8 @@ VO.Operation = (function (self) {
         this._oper = operative;
         deepFreeze(this);
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     /* return unevaluated argument */
     VO.quoteOper = new constructor(function quoteOper(value/*, context*/) {
         VO.ensure(value.hasType(VO.Value));
@@ -752,9 +752,9 @@ VO.Operation = (function (self) {
     return constructor;
 })();
 
-VO.MethodExpr = (function (self) {
-    self = self || new VO.Expression();
-    self.evaluate = function evaluate(context) {
+VO.MethodExpr = (function (proto) {
+    proto = proto || new VO.Expression();
+    proto.evaluate = function evaluate(context) {
         VO.ensure(context.hasType(VO.Object));
         var selector = this._name.evaluate(context);  // evaluate name expression to get selector
         VO.ensure(selector.hasType(VO.String));
@@ -771,8 +771,8 @@ VO.MethodExpr = (function (self) {
         this._this = target;
         this._name = selector;
     };
-    self.constructor = constructor;
-    constructor.prototype = self;
+    proto.constructor = constructor;
+    constructor.prototype = proto;
     return constructor;
 })();
 
