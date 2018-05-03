@@ -45,17 +45,17 @@ crlf.factory = function compile_crlf(source) {  // { "lang": <string>, "ast": <v
     VO.ensure(source.hasProperty(VO.String("ast")));
     VO.ensure(source.value(VO.String("ast")).hasType(VO.Value));
     var name = source.value(VO.String("lang"))._value;
-    var factory = crlf.language[name];  // find compiler for specified language
+    var compiler = crlf.language[name];  // find compiler for specified language
     var ast = source.value(VO.String("ast"));
-    crlf.log('language:', name, '->', factory, ast);
-    return factory(ast);  // compile crlf language ast
+    crlf.log('language:', name, '->', compiler, ast);
+    return compiler(ast);  // compile crlf language ast
 };
 
-crlf.language = {};  // language factory namespace
+crlf.language = {};  // language compiler namespace
 
 crlf.language["PEG"] = (function (constructor) {
     var kind = {};
-    var factory = function compile_PEG(ast) {  // { "kind": <string>, ... }
+    var compiler = function compile_PEG(ast) {  // { "kind": <string>, ... }
         return new constructor(ast);  // delegate to top-level constructor
     };
     var compile_expr = function compile_expr(ast, grammar) {  // { "kind": <string>, ... }
@@ -360,7 +360,7 @@ crlf.language["PEG"] = (function (constructor) {
         };
         return constructor;
     })();
-    return factory;
+    return compiler;
 })();
 
 crlf.language["VO"] = (function (compiler) {
@@ -437,7 +437,7 @@ crlf.language["proof"] = (function (constructor) {
     let s_index = new VO.String("index");
     let s_bindings = new VO.String("bindings");
     let s_scope = new VO.String("scope");
-    let factory = function compile_proof(ast) {  // { "kind":<string>, ... }
+    let compiler = function compile_proof(ast) {  // { "kind":<string>, ... }
         VO.ensure(ast.hasType(VO.Object));
         VO.ensure(ast.hasProperty(s_kind));
         VO.ensure(ast.value(s_kind).hasType(VO.String));
@@ -560,7 +560,7 @@ crlf.language["proof"] = (function (constructor) {
             VO.ensure(ast.hasProperty(s_arguments));
             VO.ensure(ast.value(s_arguments).hasType(VO.Array));
             this._arguments = ast.value(s_arguments).reduce(function (v, x) {
-                return x.append(factory(v));  // compile abt's
+                return x.append(compiler(v));  // compile abt's
             }, VO.emptyArray);
             if (ast.hasProperty(s_index) === VO.true) {
                 VO.ensure(ast.value(s_index).hasType(VO.Value));
@@ -624,14 +624,14 @@ crlf.language["proof"] = (function (constructor) {
             this._bindings = ast.value(s_bindings);
             if (ast.hasProperty(s_scope) === VO.true) {
                 VO.ensure(ast.value(s_scope).hasType(VO.Object));
-                this._scope = factory(ast.value(s_scope));
+                this._scope = compiler(ast.value(s_scope));
             }
         };
         prototype.constructor = constructor;
         constructor.prototype = prototype;
         return constructor;
     })(new VO.Value());
-    return factory;
+    return compiler;
 })();
 
 crlf.selfTest = (function () {
