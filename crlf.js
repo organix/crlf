@@ -363,74 +363,69 @@ crlf.language["PEG"] = (function (constructor) {
     return factory;
 })();
 
-crlf.language["VO"] = (function (constructor) {
+crlf.language["VO"] = (function (compiler) {
     var kind = {};
-    var factory = function compile_VO(ast) {  // { "kind": <string>, ... }
+    compiler = compiler || function compile_VO(ast) {  // { "kind": <string>, ... } | [ ...<expr> ]
         if (ast.hasType(VO.Array) === VO.true) {
             return ast.reduce(function (v, x) {
-                return x.append(factory(v));  // compile expressions
+                return x.append(compiler(v));  // compile expressions
             }, VO.emptyArray);
         }
         VO.ensure(ast.hasType(VO.Object));
-        VO.ensure(ast.hasProperty(new VO.String("kind")));
-        VO.ensure(ast.value(new VO.String("kind")).hasType(VO.String));
-        var constructor = kind[ast.value(new VO.String("kind"))._value];
-        return new constructor(ast);
+        VO.ensure(ast.hasProperty(VO.String("kind")));
+        VO.ensure(ast.value(VO.String("kind")).hasType(VO.String));
+        var factory = kind[ast.value(VO.String("kind"))._value];
+        return factory(ast);
     };
-//    constructor = constructor || function VO_expression(ast) {
-//        return compile(ast);
-//    };
-//    var prototype = constructor.prototype;
-//    prototype.constructor = constructor;
-    kind["value"] = (function (constructor) {
-        constructor = constructor || function VO_value(ast) {  // { "kind": "value", "value": <value> }
+    kind["value"] = (function (factory) {
+        factory = factory || function VO_value(ast) {  // { "kind": "value", "value": <value> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("value")));
-            VO.ensure(ast.hasProperty(new VO.String("value")));
-            VO.ensure(ast.value(new VO.String("value")).hasType(VO.Value));
-            return new VO.ValueExpr(ast.value(new VO.String("value")));
+            VO.ensure(ast.hasProperty(VO.String("kind")));
+            VO.ensure(ast.value(VO.String("kind")).equals(VO.String("value")));
+            VO.ensure(ast.hasProperty(VO.String("value")));
+            VO.ensure(ast.value(VO.String("value")).hasType(VO.Value));
+            return VO.ValueExpr(ast.value(VO.String("value")));
         };
-        return constructor;
+        return factory;
     })();
-    kind["variable"] = (function (constructor) {
-        constructor = constructor || function VO_variable(ast) {  // { "kind": "variable", "name": <string> }
+    kind["variable"] = (function (factory) {
+        factory = factory || function VO_variable(ast) {  // { "kind": "variable", "name": <string> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("variable")));
-            VO.ensure(ast.hasProperty(new VO.String("name")));
-            VO.ensure(ast.value(new VO.String("name")).hasType(VO.String));
-            return new VO.VariableExpr(ast.value(new VO.String("name")));
+            VO.ensure(ast.hasProperty(VO.String("kind")));
+            VO.ensure(ast.value(VO.String("kind")).equals(VO.String("variable")));
+            VO.ensure(ast.hasProperty(VO.String("name")));
+            VO.ensure(ast.value(VO.String("name")).hasType(VO.String));
+            return VO.VariableExpr(ast.value(VO.String("name")));
         };
-        return constructor;
+        return factory;
     })();
-    kind["combination"] = (function (constructor) {
-        constructor = constructor || function VO_combination(ast) {  // { "kind": "combination", "operative": <expression>, "parameter": <value> }
+    kind["combination"] = (function (factory) {
+        factory = factory || function VO_combination(ast) {  // { "kind": "combination", "operative": <expression>, "parameter": <value> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("combination")));
-            VO.ensure(ast.hasProperty(new VO.String("operative")));
-            var operative = factory(ast.value(new VO.String("operative")));
-            VO.ensure(ast.hasProperty(new VO.String("parameter")));
-            var parameter = factory(ast.value(new VO.String("parameter")));
-            return new VO.CombineExpr(operative, parameter);
+            VO.ensure(ast.hasProperty(VO.String("kind")));
+            VO.ensure(ast.value(VO.String("kind")).equals(VO.String("combination")));
+            VO.ensure(ast.hasProperty(VO.String("operative")));
+            var operative = compiler(ast.value(VO.String("operative")));
+            VO.ensure(ast.hasProperty(VO.String("parameter")));
+            var parameter = compiler(ast.value(VO.String("parameter")));
+            return VO.CombineExpr(operative, parameter);
         };
-        return constructor;
+        return factory;
     })();
-    kind["method"] = (function (constructor) {
-        constructor = constructor || function VO_method(ast) {  // { "kind": "method", "target": <expression>, "selector": <expression> }
+    kind["method"] = (function (factory) {
+        factory = factory || function VO_method(ast) {  // { "kind": "method", "target": <expression>, "selector": <expression> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("method")));
-            VO.ensure(ast.hasProperty(new VO.String("target")));
-            var target = factory(ast.value(new VO.String("target")));
-            VO.ensure(ast.hasProperty(new VO.String("selector")));
-            var selector = factory(ast.value(new VO.String("selector")));
-            return new VO.MethodExpr(target, selector);
+            VO.ensure(ast.hasProperty(VO.String("kind")));
+            VO.ensure(ast.value(VO.String("kind")).equals(VO.String("method")));
+            VO.ensure(ast.hasProperty(VO.String("target")));
+            var target = compiler(ast.value(VO.String("target")));
+            VO.ensure(ast.hasProperty(VO.String("selector")));
+            var selector = compiler(ast.value(VO.String("selector")));
+            return VO.MethodExpr(target, selector);
         };
-        return constructor;
+        return factory;
     })();
-    return factory;
+    return compiler;
 })();
 
 crlf.language["proof"] = (function (constructor) {
