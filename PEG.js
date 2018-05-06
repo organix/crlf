@@ -186,6 +186,80 @@ PEG.Anything = (function (proto) {
     return constructor;
 })();
 
+PEG.kind["terminal"] = (function (factory) {
+    factory = factory || function PEG_terminal(ast, grammar) {  // { "kind": "terminal", "value": <value> }
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("terminal")));
+        VO.ensure(ast.hasProperty(s_value));
+        return PEG.Terminal(ast.value(s_value));
+    };
+    return factory;
+})();
+
+PEG.Terminal = (function (proto) {
+    proto = proto || PEG.Pattern();
+    proto.match = function match(input) {  // { value:, remainder: } | false
+        VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+        if (input.length.greaterThan(VO.zero) === VO.true) {
+            var value = input.value(VO.zero);
+            if (this._value.equals(value) === VO.true) {
+                return (VO.emptyObject  // match success
+                    .concatenate(s_value.bind(value))
+                    .concatenate(s_remainder.bind(input.skip(VO.one))));
+            }
+        }
+        return VO.false;  // match failure
+    };
+    var constructor = function Terminal(value) {
+        if (!(this instanceof Terminal)) { return new Terminal(value); }  // if called without "new" keyword...
+        this._value = value;
+    };
+    proto.constructor = constructor;
+    constructor.prototype = proto;
+    return constructor;
+})();
+
+PEG.kind["range"] = (function (factory) {
+    factory = factory || function PEG_range(ast, grammar) {  // { "kind": "range", "from": <number>, "to": <number> }
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("range")));
+        VO.ensure(ast.hasProperty(VO.String("from")));
+        VO.ensure(ast.hasProperty(VO.String("to")));
+        return PEG.Range(ast.value(VO.String("from")), ast.value(VO.String("to")));
+    };
+    return factory;
+})();
+
+PEG.Range = (function (proto) {
+    proto = proto || PEG.Pattern();
+    proto.match = function match(input) {  // { value:, remainder: } | false
+        VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+        if (input.length.greaterThan(VO.zero) === VO.true) {
+            var value = input.value(VO.zero);
+            if (this._from.lessEqual(value)
+                .and(this._to.greaterEqual(value)) === VO.true) {
+                return (VO.emptyObject  // match success
+                    .concatenate(s_value.bind(value))
+                    .concatenate(s_remainder.bind(input.skip(VO.one))));
+            }
+        }
+        return VO.false;  // match failure
+    };
+    var constructor = function Range(from, to) {
+        if (!(this instanceof Range)) { return new Range(from, to); }  // if called without "new" keyword...
+        VO.ensure(from.hasType(VO.Number));
+        VO.ensure(to.hasType(VO.Number));
+        VO.ensure(from.lessEqual(to));
+        this._from = from;
+        this._to = to;
+    };
+    proto.constructor = constructor;
+    constructor.prototype = proto;
+    return constructor;
+})();
+
 PEG.kind["rule"] = (function (factory) {
     factory = factory || function PEG_rule(ast, grammar) {  // { "kind": "rule", "name": <string> }
         VO.ensure(ast.hasType(VO.Object));
@@ -275,131 +349,6 @@ PEG.Optional = (function (proto) {  // optional(expr) = alternative(expr, nothin
 var REMOVE_THIS_JUNK = (function () {
     var kind = {};
 
-    kind["fail"] = (function (constructor) {
-        constructor = constructor || function PEG_fail(ast, g) {  // { "kind": "fail" }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("fail")));
-            this._ast = ast;
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_fail(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            return VO.false;  // match failure
-        };
-        return constructor;
-    })();
-    kind["nothing"] = (function (constructor) {
-        constructor = constructor || function PEG_nothing(ast, g) {  // { "kind": "nothing" }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("nothing")));
-            this._ast = ast;
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_nothing(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            return (VO.emptyObject  // match success
-                .concatenate(s_value.bind(VO.emptyArray))
-                .concatenate(s_remainder.bind(input)));
-        };
-        return constructor;
-    })();
-    kind["anything"] = (function (constructor) {
-        constructor = constructor || function PEG_anything(ast, g) {  // { "kind": "anything" }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("anything")));
-            this._ast = ast;
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_anything(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            if (input.length.greaterThan(VO.zero) === VO.true) {
-                return (VO.emptyObject  // match success
-                    .concatenate(s_value.bind(input.value(VO.zero)))
-                    .concatenate(s_remainder.bind(input.skip(VO.one))));
-            }
-            return VO.false;  // match failure
-        };
-        return constructor;
-    })();
-    kind["terminal"] = (function (constructor) {
-        constructor = constructor || function PEG_terminal(ast, g) {  // { "kind": "terminal", "value": <value> }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("terminal")));
-            VO.ensure(ast.hasProperty(s_value));
-            this._ast = ast;
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_terminal(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            if (input.length.greaterThan(VO.zero) === VO.true) {
-                var value = input.value(VO.zero);
-                if (value.equals(this._ast.value(s_value)) === VO.true) {
-                    return (VO.emptyObject  // match success
-                        .concatenate(s_value.bind(value))
-                        .concatenate(s_remainder.bind(input.skip(VO.one))));
-                }
-            }
-            return VO.false;  // match failure
-        };
-        return constructor;
-    })();
-    kind["range"] = (function (constructor) {
-        constructor = constructor || function PEG_range(ast, g) {  // { "kind": "range", "from": <number>, "to": <number> }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("range")));
-            VO.ensure(ast.hasProperty(VO.String("from")));
-            VO.ensure(ast.value(VO.String("from")).hasType(VO.Number));
-            VO.ensure(ast.hasProperty(VO.String("to")));
-            VO.ensure(ast.value(VO.String("to")).hasType(VO.Number));
-            VO.ensure(ast.value(VO.String("from")).lessEqual(ast.value(VO.String("to"))));
-            this._ast = ast;
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_range(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            if (input.length.greaterThan(VO.zero) === VO.true) {
-                var value = input.value(VO.zero);
-                if (value.greaterEqual(this._ast.value(VO.String("from")))
-                .and(value.lessEqual(this._ast.value(VO.String("to")))) === VO.true) {
-                    return (VO.emptyObject  // match success
-                        .concatenate(s_value.bind(value))
-                        .concatenate(s_remainder.bind(input.skip(VO.one))));
-                }
-            }
-            return VO.false;  // match failure
-        };
-        return constructor;
-    })();
-    kind["rule"] = (function (constructor) {  // apply named rule to input
-        constructor = constructor || function PEG_rule(ast, g) {  // { "kind": "rule", "name": <string> }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("rule")));
-            VO.ensure(ast.hasProperty(VO.String("name")));
-            VO.ensure(ast.value(VO.String("name")).hasType(VO.String));
-            this._ast = ast;
-            this._grammar = g;
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_rule(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            var name = this._ast.value(VO.String("name"));
-            var rule = this._grammar.rule(name);
-            return rule.match(input);
-        };
-        return constructor;
-    })();
     kind["sequence"] = (function (constructor) {
         constructor = constructor || function PEG_sequence(ast, g) {  // { "kind": "sequence", "of": <array> }
             VO.ensure(ast.hasType(VO.Object));
@@ -636,13 +585,13 @@ PEG.selfTest = (function () {
                             { "kind": "terminal", "value": 69 }
                         ]
                     },
+*/
                     "decimal-point": { "kind": "terminal", "value": 46 },
                     "plus": { "kind": "terminal", "value": 43 },
                     "minus": { "kind": "terminal", "value": 45 },
                     "digit0": { "kind": "terminal", "value": 48 },
                     "digit1-9": { "kind": "range", "from": 49, "to": 57 },
                     "digit0-9": { "kind": "range", "from": 48, "to": 57 },
-*/
                     "anything": { "kind": "anything" },
                     "nothing": { "kind": "nothing" },
                     "fail": { "kind": "fail" }
@@ -663,16 +612,13 @@ PEG.selfTest = (function () {
         match = grammar.rule(VO.String("anything")).match(VO.emptyArray);
         VO.ensure(match.equals(VO.false));
 
-/*
         match = grammar.rule(VO.String("digit0")).match(VO.emptyString);
         VO.ensure(match.equals(VO.false));
-*/
 
         input = VO.fromNative("0\n");
         match = grammar.rule(VO.String("fail")).match(input);
         VO.ensure(match.equals(VO.false));
 
-/*
         match = grammar.rule(VO.String("digit0")).match(input);
         VO.ensure(match.hasType(VO.Object));
         VO.ensure(match.value(s_value).equals(VO.Number(48)));  // "0"
@@ -685,7 +631,6 @@ PEG.selfTest = (function () {
 
         match = grammar.rule(VO.String("digit1-9")).match(input);
         VO.ensure(match.equals(VO.false));
-*/
 
         input = VO.fromNative("\r\n");
         match = grammar.rule(VO.String("anything")).match(input);
