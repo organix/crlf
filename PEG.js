@@ -38,17 +38,16 @@ PEG.version = "0.0.1";
 PEG.log = console.log;
 //PEG.log = function () {};
 
-let s_kind = VO.String("kind");
-let s_input = VO.String("input");
-let s_value = VO.String("value");
-let s_remainder = VO.String("remainder");
+var s_kind = VO.String("kind");
+var s_value = VO.String("value");
+var s_remainder = VO.String("remainder");
 
 PEG.kind = {};  // matching operator factory namespace
 
 PEG.factory = function compile_PEG(source) {  // { "kind": "grammar", "rules": <object> }
     VO.ensure(source.hasType(VO.Object));
-    VO.ensure(source.hasProperty(VO.String("kind")));
-    VO.ensure(source.value(VO.String("kind")).equals(VO.String("grammar")));
+    VO.ensure(source.hasProperty(s_kind));
+    VO.ensure(source.value(s_kind).equals(VO.String("grammar")));
     VO.ensure(source.hasProperty(VO.String("rules")));
     VO.ensure(source.value(VO.String("rules")).hasType(VO.Object));
     var grammar = source.value(VO.String("rules")).reduce(function (n, v, x) {
@@ -61,9 +60,9 @@ PEG.Grammar = (function (proto) {
     proto = proto || VO.Value();
     proto.compile = function compile(ast) {  // { "kind": <string>, ... }
         VO.ensure(ast.hasType(VO.Object));
-        VO.ensure(ast.hasProperty(VO.String("kind")));
-        VO.ensure(ast.value(VO.String("kind")).hasType(VO.String));
-        var _kind = ast.value(VO.String("kind"))._value;
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).hasType(VO.String));
+        var _kind = ast.value(s_kind)._value;
         var factory = PEG.kind[_kind];
         var expr = factory(ast, this);
         return expr;
@@ -111,8 +110,8 @@ PEG.Pattern = (function (proto) {
 PEG.kind["fail"] = (function (factory) {
     factory = factory || function PEG_fail(ast, grammar) {  // { "kind": "fail" }
         VO.ensure(ast.hasType(VO.Object));
-        VO.ensure(ast.hasProperty(VO.String("kind")));
-        VO.ensure(ast.value(VO.String("kind")).equals(VO.String("fail")));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("fail")));
         return PEG.Fail();
     };
     return factory;
@@ -135,8 +134,8 @@ PEG.Fail = (function (proto) {
 PEG.kind["nothing"] = (function (factory) {
     factory = factory || function PEG_nothing(ast, grammar) {  // { "kind": "nothing" }
         VO.ensure(ast.hasType(VO.Object));
-        VO.ensure(ast.hasProperty(VO.String("kind")));
-        VO.ensure(ast.value(VO.String("kind")).equals(VO.String("nothing")));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("nothing")));
         return PEG.Nothing();
     };
     return factory;
@@ -147,8 +146,8 @@ PEG.Nothing = (function (proto) {
     proto.match = function match(input) {  // { value:, remainder: } | false
         VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
         return (VO.emptyObject  // match success
-            .concatenate((VO.String("value")).bind(VO.emptyArray))
-            .concatenate((VO.String("remainder")).bind(input)));
+            .concatenate(s_value.bind(VO.emptyArray))
+            .concatenate(s_remainder.bind(input)));
     };
     var constructor = function Nothing() {
         if (!(this instanceof Nothing)) { return new Nothing(); }  // if called without "new" keyword...
@@ -161,8 +160,8 @@ PEG.Nothing = (function (proto) {
 PEG.kind["anything"] = (function (factory) {
     factory = factory || function PEG_anything(ast, grammar) {  // { "kind": "anything" }
         VO.ensure(ast.hasType(VO.Object));
-        VO.ensure(ast.hasProperty(VO.String("kind")));
-        VO.ensure(ast.value(VO.String("kind")).equals(VO.String("anything")));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("anything")));
         return PEG.Anything();
     };
     return factory;
@@ -174,8 +173,8 @@ PEG.Anything = (function (proto) {
         VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
         if (input.length.greaterThan(VO.zero) === VO.true) {
             return (VO.emptyObject  // match success
-                .concatenate((VO.String("value")).bind(input.value(VO.zero)))
-                .concatenate((VO.String("remainder")).bind(input.skip(VO.one))));
+                .concatenate(s_value.bind(input.value(VO.zero)))
+                .concatenate(s_remainder.bind(input.skip(VO.one))));
         }
         return VO.false;  // match failure
     };
@@ -190,8 +189,8 @@ PEG.Anything = (function (proto) {
 PEG.kind["rule"] = (function (factory) {
     factory = factory || function PEG_rule(ast, grammar) {  // { "kind": "rule", "name": <string> }
         VO.ensure(ast.hasType(VO.Object));
-        VO.ensure(ast.hasProperty(VO.String("kind")));
-        VO.ensure(ast.value(VO.String("kind")).equals(VO.String("rule")));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("rule")));
         VO.ensure(ast.hasProperty(VO.String("name")));
         VO.ensure(ast.value(VO.String("name")).hasType(VO.String));
         return PEG.Rule(ast.value(VO.String("name")), grammar);
@@ -218,7 +217,7 @@ PEG.Rule = (function (proto) {
     return constructor;
 })();
 
-let match_repeat = function match_repeat(input, expr, min, max) {
+var match_repeat = function match_repeat(input, expr, min, max) {
     var count = 0;
     var match = (VO.emptyObject  // match success (default)
         .concatenate(s_value.bind(VO.emptyArray))
@@ -244,8 +243,8 @@ let match_repeat = function match_repeat(input, expr, min, max) {
 PEG.kind["optional"] = (function (factory) {
     factory = factory || function PEG_optional(ast, grammar) {  // { "kind": "optional", "expr": <object> }
         VO.ensure(ast.hasType(VO.Object));
-        VO.ensure(ast.hasProperty(VO.String("kind")));
-        VO.ensure(ast.value(VO.String("kind")).equals(VO.String("optional")));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("optional")));
         VO.ensure(ast.hasProperty(VO.String("expr")));
         VO.ensure(ast.value(VO.String("expr")).hasType(VO.Object));
         var expr = grammar.compile(ast.value(VO.String("expr")));  // compile expression
@@ -279,8 +278,8 @@ var REMOVE_THIS_JUNK = (function () {
     kind["fail"] = (function (constructor) {
         constructor = constructor || function PEG_fail(ast, g) {  // { "kind": "fail" }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("fail")));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("fail")));
             this._ast = ast;
         };
         var prototype = constructor.prototype;
@@ -294,8 +293,8 @@ var REMOVE_THIS_JUNK = (function () {
     kind["nothing"] = (function (constructor) {
         constructor = constructor || function PEG_nothing(ast, g) {  // { "kind": "nothing" }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("nothing")));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("nothing")));
             this._ast = ast;
         };
         var prototype = constructor.prototype;
@@ -303,16 +302,16 @@ var REMOVE_THIS_JUNK = (function () {
         prototype.match = function match_nothing(input) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
             return (VO.emptyObject  // match success
-                .concatenate((new VO.String("value")).bind(VO.emptyArray))
-                .concatenate((new VO.String("remainder")).bind(input)));
+                .concatenate(s_value.bind(VO.emptyArray))
+                .concatenate(s_remainder.bind(input)));
         };
         return constructor;
     })();
     kind["anything"] = (function (constructor) {
         constructor = constructor || function PEG_anything(ast, g) {  // { "kind": "anything" }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("anything")));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("anything")));
             this._ast = ast;
         };
         var prototype = constructor.prototype;
@@ -321,8 +320,8 @@ var REMOVE_THIS_JUNK = (function () {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
             if (input.length.greaterThan(VO.zero) === VO.true) {
                 return (VO.emptyObject  // match success
-                    .concatenate((new VO.String("value")).bind(input.value(VO.zero)))
-                    .concatenate((new VO.String("remainder")).bind(input.skip(VO.one))));
+                    .concatenate(s_value.bind(input.value(VO.zero)))
+                    .concatenate(s_remainder.bind(input.skip(VO.one))));
             }
             return VO.false;  // match failure
         };
@@ -331,9 +330,9 @@ var REMOVE_THIS_JUNK = (function () {
     kind["terminal"] = (function (constructor) {
         constructor = constructor || function PEG_terminal(ast, g) {  // { "kind": "terminal", "value": <value> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("terminal")));
-            VO.ensure(ast.hasProperty(new VO.String("value")));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("terminal")));
+            VO.ensure(ast.hasProperty(s_value));
             this._ast = ast;
         };
         var prototype = constructor.prototype;
@@ -342,10 +341,10 @@ var REMOVE_THIS_JUNK = (function () {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
             if (input.length.greaterThan(VO.zero) === VO.true) {
                 var value = input.value(VO.zero);
-                if (value.equals(this._ast.value(new VO.String("value"))) === VO.true) {
+                if (value.equals(this._ast.value(s_value)) === VO.true) {
                     return (VO.emptyObject  // match success
-                        .concatenate((new VO.String("value")).bind(value))
-                        .concatenate((new VO.String("remainder")).bind(input.skip(VO.one))));
+                        .concatenate(s_value.bind(value))
+                        .concatenate(s_remainder.bind(input.skip(VO.one))));
                 }
             }
             return VO.false;  // match failure
@@ -355,13 +354,13 @@ var REMOVE_THIS_JUNK = (function () {
     kind["range"] = (function (constructor) {
         constructor = constructor || function PEG_range(ast, g) {  // { "kind": "range", "from": <number>, "to": <number> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("range")));
-            VO.ensure(ast.hasProperty(new VO.String("from")));
-            VO.ensure(ast.value(new VO.String("from")).hasType(VO.Number));
-            VO.ensure(ast.hasProperty(new VO.String("to")));
-            VO.ensure(ast.value(new VO.String("to")).hasType(VO.Number));
-            VO.ensure(ast.value(new VO.String("from")).lessEqual(ast.value(new VO.String("to"))));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("range")));
+            VO.ensure(ast.hasProperty(VO.String("from")));
+            VO.ensure(ast.value(VO.String("from")).hasType(VO.Number));
+            VO.ensure(ast.hasProperty(VO.String("to")));
+            VO.ensure(ast.value(VO.String("to")).hasType(VO.Number));
+            VO.ensure(ast.value(VO.String("from")).lessEqual(ast.value(VO.String("to"))));
             this._ast = ast;
         };
         var prototype = constructor.prototype;
@@ -370,11 +369,11 @@ var REMOVE_THIS_JUNK = (function () {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
             if (input.length.greaterThan(VO.zero) === VO.true) {
                 var value = input.value(VO.zero);
-                if (value.greaterEqual(this._ast.value(new VO.String("from")))
-                .and(value.lessEqual(this._ast.value(new VO.String("to")))) === VO.true) {
+                if (value.greaterEqual(this._ast.value(VO.String("from")))
+                .and(value.lessEqual(this._ast.value(VO.String("to")))) === VO.true) {
                     return (VO.emptyObject  // match success
-                        .concatenate((new VO.String("value")).bind(value))
-                        .concatenate((new VO.String("remainder")).bind(input.skip(VO.one))));
+                        .concatenate(s_value.bind(value))
+                        .concatenate(s_remainder.bind(input.skip(VO.one))));
                 }
             }
             return VO.false;  // match failure
@@ -384,10 +383,10 @@ var REMOVE_THIS_JUNK = (function () {
     kind["rule"] = (function (constructor) {  // apply named rule to input
         constructor = constructor || function PEG_rule(ast, g) {  // { "kind": "rule", "name": <string> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("rule")));
-            VO.ensure(ast.hasProperty(new VO.String("name")));
-            VO.ensure(ast.value(new VO.String("name")).hasType(VO.String));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("rule")));
+            VO.ensure(ast.hasProperty(VO.String("name")));
+            VO.ensure(ast.value(VO.String("name")).hasType(VO.String));
             this._ast = ast;
             this._grammar = g;
         };
@@ -395,7 +394,7 @@ var REMOVE_THIS_JUNK = (function () {
         prototype.constructor = constructor;
         prototype.match = function match_rule(input) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            var name = this._ast.value(new VO.String("name"));
+            var name = this._ast.value(VO.String("name"));
             var rule = this._grammar.rule(name);
             return rule.match(input);
         };
@@ -404,13 +403,13 @@ var REMOVE_THIS_JUNK = (function () {
     kind["sequence"] = (function (constructor) {
         constructor = constructor || function PEG_sequence(ast, g) {  // { "kind": "sequence", "of": <array> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("sequence")));
-            VO.ensure(ast.hasProperty(new VO.String("of")));
-            VO.ensure(ast.value(new VO.String("of")).hasType(VO.Array));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("sequence")));
+            VO.ensure(ast.hasProperty(VO.String("of")));
+            VO.ensure(ast.value(VO.String("of")).hasType(VO.Array));
             this._ast = ast;
             var rules = [];
-            ast.value(new VO.String("of")).reduce(function (v, x) {
+            ast.value(VO.String("of")).reduce(function (v, x) {
                 rules.push(compile_expr(v, g));  // compile rules
                 return x;
             }, VO.null);
@@ -421,20 +420,20 @@ var REMOVE_THIS_JUNK = (function () {
         prototype.match = function match_sequence(input) {
             VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
             var match = (VO.emptyObject  // match success (default)
-                .concatenate((new VO.String("value")).bind(VO.emptyArray))
-                .concatenate((new VO.String("remainder")).bind(input)));
+                .concatenate(s_value.bind(VO.emptyArray))
+                .concatenate(s_remainder.bind(input)));
             for (var i = 0; i < this._of.length; ++i) {
                 var rule = this._of[i];
                 var _match = rule.match(input);
                 if (_match === VO.false) {
                     return VO.false;  // match failure
                 }
-                input = _match.value(new VO.String("remainder"));  // update input position
-                let s_value = new VO.String("value");
+                input = _match.value(s_remainder);  // update input position
+                let s_value = s_value;
                 match = (VO.emptyObject  // update successful match
                     .concatenate(s_value.bind(
                             match.value(s_value).append(_match.value(s_value))))
-                    .concatenate((new VO.String("remainder")).bind(input)));
+                    .concatenate(s_remainder.bind(input)));
             }
             return match;
         };
@@ -443,13 +442,13 @@ var REMOVE_THIS_JUNK = (function () {
     kind["alternative"] = (function (constructor) {
         constructor = constructor || function PEG_alternative(ast, g) {  // { "kind": "alternative", "of": <array> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("alternative")));
-            VO.ensure(ast.hasProperty(new VO.String("of")));
-            VO.ensure(ast.value(new VO.String("of")).hasType(VO.Array));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("alternative")));
+            VO.ensure(ast.hasProperty(VO.String("of")));
+            VO.ensure(ast.value(VO.String("of")).hasType(VO.Array));
             this._ast = ast;
             var rules = [];
-            ast.value(new VO.String("of")).reduce(function (v, x) {
+            ast.value(VO.String("of")).reduce(function (v, x) {
                 rules.push(compile_expr(v, g));  // compile rules
                 return x;
             }, VO.null);
@@ -473,20 +472,20 @@ var REMOVE_THIS_JUNK = (function () {
     var match_repeat = function match_repeat(input, expr, min, max) {
         var count = 0;
         var match = (VO.emptyObject  // match success (default)
-            .concatenate((new VO.String("value")).bind(VO.emptyArray))
-            .concatenate((new VO.String("remainder")).bind(input)));
+            .concatenate(s_value.bind(VO.emptyArray))
+            .concatenate(s_remainder.bind(input)));
         while ((max === undefined) || (count < max)) {
             var _match = expr.match(input);
             if (_match === VO.false) {
                 break;  // match failure
             }
             count += 1;  // update match count
-            input = _match.value(new VO.String("remainder"));  // update input position
-            let s_value = new VO.String("value");
+            input = _match.value(s_remainder);  // update input position
+            let s_value = s_value;
             match = (VO.emptyObject  // update successful match
                 .concatenate(s_value.bind(
                         match.value(s_value).append(_match.value(s_value))))
-                .concatenate((new VO.String("remainder")).bind(input)));
+                .concatenate(s_remainder.bind(input)));
         }
         if (count < min) {
             match = VO.false;  // match failure
@@ -496,12 +495,12 @@ var REMOVE_THIS_JUNK = (function () {
     kind["star"] = (function (constructor) {  // star(expr) = alternative(sequence(expr, star(expr)), nothing)
         constructor = constructor || function PEG_star(ast, g) {  // { "kind": "star", "expr": <object> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("star")));
-            VO.ensure(ast.hasProperty(new VO.String("expr")));
-            VO.ensure(ast.value(new VO.String("expr")).hasType(VO.Object));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("star")));
+            VO.ensure(ast.hasProperty(VO.String("expr")));
+            VO.ensure(ast.value(VO.String("expr")).hasType(VO.Object));
             this._ast = ast;
-            this._expr = compile_expr(ast.value(new VO.String("expr")), g);  // compile expression
+            this._expr = compile_expr(ast.value(VO.String("expr")), g);  // compile expression
         };
         var prototype = constructor.prototype;
         prototype.constructor = constructor;
@@ -514,12 +513,12 @@ var REMOVE_THIS_JUNK = (function () {
     kind["plus"] = (function (constructor) {  // plus(expr) = sequence(expr, star(expr))
         constructor = constructor || function PEG_plus(ast, g) {  // { "kind": "plus", "expr": <object> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("plus")));
-            VO.ensure(ast.hasProperty(new VO.String("expr")));
-            VO.ensure(ast.value(new VO.String("expr")).hasType(VO.Object));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("plus")));
+            VO.ensure(ast.hasProperty(VO.String("expr")));
+            VO.ensure(ast.value(VO.String("expr")).hasType(VO.Object));
             this._ast = ast;
-            this._expr = compile_expr(ast.value(new VO.String("expr")), g);  // compile expression
+            this._expr = compile_expr(ast.value(VO.String("expr")), g);  // compile expression
         };
         var prototype = constructor.prototype;
         prototype.constructor = constructor;
@@ -532,12 +531,12 @@ var REMOVE_THIS_JUNK = (function () {
     kind["optional"] = (function (constructor) {  // optional(expr) = alternative(expr, nothing)
         constructor = constructor || function PEG_optional(ast, g) {  // { "kind": "optional", "expr": <object> }
             VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(new VO.String("kind")));
-            VO.ensure(ast.value(new VO.String("kind")).equals(new VO.String("optional")));
-            VO.ensure(ast.hasProperty(new VO.String("expr")));
-            VO.ensure(ast.value(new VO.String("expr")).hasType(VO.Object));
+            VO.ensure(ast.hasProperty(s_kind));
+            VO.ensure(ast.value(s_kind).equals(VO.String("optional")));
+            VO.ensure(ast.hasProperty(VO.String("expr")));
+            VO.ensure(ast.value(VO.String("expr")).hasType(VO.Object));
             this._ast = ast;
-            this._expr = compile_expr(ast.value(new VO.String("expr")), g);  // compile expression
+            this._expr = compile_expr(ast.value(VO.String("expr")), g);  // compile expression
         };
         var prototype = constructor.prototype;
         prototype.constructor = constructor;
@@ -655,17 +654,17 @@ PEG.selfTest = (function () {
 
         match = grammar.rule(VO.String("nothing")).match(VO.emptyString);
         VO.ensure(match.hasType(VO.Object));
-        VO.ensure(match.value(VO.String("remainder")).equals(VO.emptyString));
+        VO.ensure(match.value(s_remainder).equals(VO.emptyString));
 
         match = grammar.rule(VO.String("nothing")).match(VO.emptyArray);
         VO.ensure(match.hasType(VO.Object));
-        VO.ensure(match.value(VO.String("remainder")).equals(VO.emptyArray));
+        VO.ensure(match.value(s_remainder).equals(VO.emptyArray));
 
         match = grammar.rule(VO.String("anything")).match(VO.emptyArray);
         VO.ensure(match.equals(VO.false));
 
 /*
-        match = grammar.rule(new VO.String("digit0")).match(VO.emptyString);
+        match = grammar.rule(VO.String("digit0")).match(VO.emptyString);
         VO.ensure(match.equals(VO.false));
 */
 
@@ -674,68 +673,68 @@ PEG.selfTest = (function () {
         VO.ensure(match.equals(VO.false));
 
 /*
-        match = grammar.rule(new VO.String("digit0")).match(input);
+        match = grammar.rule(VO.String("digit0")).match(input);
         VO.ensure(match.hasType(VO.Object));
-        VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(48)));  // "0"
-        VO.ensure(match.value(new VO.String("remainder")).length.equals(new VO.Number(1)));
+        VO.ensure(match.value(s_value).equals(VO.Number(48)));  // "0"
+        VO.ensure(match.value(s_remainder).length.equals(VO.Number(1)));
 
-        match = grammar.rule(new VO.String("digit0-9")).match(input);
+        match = grammar.rule(VO.String("digit0-9")).match(input);
         VO.ensure(match.hasType(VO.Object));
-        VO.ensure(match.value(new VO.String("value")).equals(new VO.Number(48)));  // "0"
-        VO.ensure(match.value(new VO.String("remainder")).length.equals(new VO.Number(1)));
+        VO.ensure(match.value(s_value).equals(VO.Number(48)));  // "0"
+        VO.ensure(match.value(s_remainder).length.equals(VO.Number(1)));
 
-        match = grammar.rule(new VO.String("digit1-9")).match(input);
+        match = grammar.rule(VO.String("digit1-9")).match(input);
         VO.ensure(match.equals(VO.false));
 */
 
         input = VO.fromNative("\r\n");
         match = grammar.rule(VO.String("anything")).match(input);
         VO.ensure(match.hasType(VO.Object));
-        VO.ensure(match.value(VO.String("value")).equals(VO.Number(13)));  // "\r"
-        VO.ensure(match.value(VO.String("remainder")).length.equals(VO.Number(1)));
-        VO.ensure(match.value(VO.String("remainder")).equals(VO.String("\n")));
+        VO.ensure(match.value(s_value).equals(VO.Number(13)));  // "\r"
+        VO.ensure(match.value(s_remainder).length.equals(VO.Number(1)));
+        VO.ensure(match.value(s_remainder).equals(VO.String("\n")));
 
 /*
-        match = grammar.rule(new VO.String("integer")).match(new VO.String("0"));
+        match = grammar.rule(VO.String("integer")).match(VO.String("0"));
         VO.ensure(match.equals(VO.false).not);
-        VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative(48)));
-        VO.ensure(match.value(new VO.String("remainder")).length.equals(VO.zero));
+        VO.ensure(match.value(s_value).equals(VO.fromNative(48)));
+        VO.ensure(match.value(s_remainder).length.equals(VO.zero));
 
-        match = grammar.rule(new VO.String("integer")).match(new VO.String("00"));
+        match = grammar.rule(VO.String("integer")).match(VO.String("00"));
         VO.ensure(match.equals(VO.false).not);
-        VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative(48)));
-        VO.ensure(match.value(new VO.String("remainder")).equals(VO.fromNative("0")));
+        VO.ensure(match.value(s_value).equals(VO.fromNative(48)));
+        VO.ensure(match.value(s_remainder).equals(VO.fromNative("0")));
 
-        match = grammar.rule(new VO.String("integer")).match(new VO.String("1"));
+        match = grammar.rule(VO.String("integer")).match(VO.String("1"));
         VO.ensure(match.equals(VO.false).not);
-        VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([49, []])));
-        VO.ensure(match.value(new VO.String("remainder")).length.equals(VO.zero));
+        VO.ensure(match.value(s_value).equals(VO.fromNative([49, []])));
+        VO.ensure(match.value(s_remainder).length.equals(VO.zero));
 
-        match = grammar.rule(new VO.String("integer")).match(new VO.String("12"));
+        match = grammar.rule(VO.String("integer")).match(VO.String("12"));
         VO.ensure(match.equals(VO.false).not);
-        VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([49, [50]])));
-        VO.ensure(match.value(new VO.String("remainder")).length.equals(VO.zero));
+        VO.ensure(match.value(s_value).equals(VO.fromNative([49, [50]])));
+        VO.ensure(match.value(s_remainder).length.equals(VO.zero));
 
-        match = grammar.rule(new VO.String("integer")).match(new VO.String("123"));
+        match = grammar.rule(VO.String("integer")).match(VO.String("123"));
         VO.ensure(match.equals(VO.false).not);
-        VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([49, [50, 51]])));
-        VO.ensure(match.value(new VO.String("remainder")).length.equals(VO.zero));
+        VO.ensure(match.value(s_value).equals(VO.fromNative([49, [50, 51]])));
+        VO.ensure(match.value(s_remainder).length.equals(VO.zero));
 
-        match = grammar.rule(new VO.String("integer")).match(new VO.String("3.14e+0"));
+        match = grammar.rule(VO.String("integer")).match(VO.String("3.14e+0"));
         VO.ensure(match.equals(VO.false).not);
-        VO.ensure(match.value(new VO.String("value")).equals(VO.fromNative([51, []])));
-        VO.ensure(match.value(new VO.String("remainder")).equals(VO.fromNative(".14e+0")));
+        VO.ensure(match.value(s_value).equals(VO.fromNative([51, []])));
+        VO.ensure(match.value(s_remainder).equals(VO.fromNative(".14e+0")));
 
-        match = grammar.rule(new VO.String("number")).match(new VO.String("3.14e+0"));
+        match = grammar.rule(VO.String("number")).match(VO.String("3.14e+0"));
         VO.ensure(match.equals(VO.false).not);
-        VO.ensure(match.value(new VO.String("value"))
+        VO.ensure(match.value(s_value)
                   .equals(VO.fromNative([
                         [], 
                         [51, []], 
                         [[46, [49, 52]]], 
                         [[101, [43], [48]]]
                     ])));
-        VO.ensure(match.value(new VO.String("remainder")).length.equals(VO.zero));
+        VO.ensure(match.value(s_remainder).length.equals(VO.zero));
 */
     };
 
