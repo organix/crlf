@@ -69,9 +69,13 @@ PEG.Grammar = (function (proto) {
     };
     proto.compile_rule = function compile_rule(name, ast) {  // { "kind": <string>, ... }
         VO.ensure(name.hasType(VO.String));
+        PEG.log('Object.isFrozen(this)', Object.isFrozen(this));
         var expr = this.compile(ast);
 //        this._rules[name._value] = expr;
-        this._rules = this._rules.concatenate(name.bind(expr));
+        var new_rule = name.bind(expr);
+        var rules = this._rules.concatenate(new_rule);
+        this._rules = rules; //this._rules.concatenate(name.bind(expr));
+        VO.ensure(VO.Boolean(this._rules === rules));  // [FIXME: <-- THIS FAILS!]
         PEG.log('rule:', name._value, ':=', expr);
         return this;
     };
@@ -395,6 +399,64 @@ var match_repeat = function match_repeat(input, expr, min, max) {
     return match;
 };
 
+PEG.kind["star"] = (function (factory) {
+    factory = factory || function PEG_star(ast, grammar) {  // { "kind": "star", "expr": <object> }
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("star")));
+        VO.ensure(ast.hasProperty(VO.String("expr")));
+        VO.ensure(ast.value(VO.String("expr")).hasType(VO.Object));
+        var expr = grammar.compile(ast.value(VO.String("expr")));  // compile expression
+        return PEG.Star(expr);
+    };
+    return factory;
+})();
+
+PEG.Star = (function (proto) {  // star(expr) = alternative(sequence(expr, star(expr)), nothing)
+    proto = proto || PEG.Pattern();
+    proto.match = function match(input) {  // { value:, remainder: } | false
+        VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+        return match_repeat(input, this._expr, 0);
+    };
+    var constructor = function Star(expr) {
+        if (!(this instanceof Star)) { return new Star(expr); }  // if called without "new" keyword...
+        VO.ensure(expr.hasType(PEG.Pattern));
+        this._expr = expr;
+    };
+    proto.constructor = constructor;
+    constructor.prototype = proto;
+    return constructor;
+})();
+
+PEG.kind["plus"] = (function (factory) {
+    factory = factory || function PEG_plus(ast, grammar) {  // { "kind": "plus", "expr": <object> }
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("plus")));
+        VO.ensure(ast.hasProperty(VO.String("expr")));
+        VO.ensure(ast.value(VO.String("expr")).hasType(VO.Object));
+        var expr = grammar.compile(ast.value(VO.String("expr")));  // compile expression
+        return PEG.Plus(expr);
+    };
+    return factory;
+})();
+
+PEG.Plus = (function (proto) {  // plus(expr) = sequence(expr, star(expr))
+    proto = proto || PEG.Pattern();
+    proto.match = function match(input) {  // { value:, remainder: } | false
+        VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+        return match_repeat(input, this._expr, 1);
+    };
+    var constructor = function Plus(expr) {
+        if (!(this instanceof Plus)) { return new Plus(expr); }  // if called without "new" keyword...
+        VO.ensure(expr.hasType(PEG.Pattern));
+        this._expr = expr;
+    };
+    proto.constructor = constructor;
+    constructor.prototype = proto;
+    return constructor;
+})();
+
 PEG.kind["optional"] = (function (factory) {
     factory = factory || function PEG_optional(ast, grammar) {  // { "kind": "optional", "expr": <object> }
         VO.ensure(ast.hasType(VO.Object));
@@ -415,7 +477,7 @@ PEG.Optional = (function (proto) {  // optional(expr) = alternative(expr, nothin
         return match_repeat(input, this._expr, 0, 1);
     };
     var constructor = function Optional(expr) {
-        if (!(this instanceof Optional)) { return new Optional(); }  // if called without "new" keyword...
+        if (!(this instanceof Optional)) { return new Optional(expr); }  // if called without "new" keyword...
         VO.ensure(expr.hasType(PEG.Pattern));
         this._expr = expr;
     };
@@ -453,42 +515,6 @@ var REMOVE_THIS_JUNK = (function () {
         }
         return match;
     };
-    kind["star"] = (function (constructor) {  // star(expr) = alternative(sequence(expr, star(expr)), nothing)
-        constructor = constructor || function PEG_star(ast, g) {  // { "kind": "star", "expr": <object> }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("star")));
-            VO.ensure(ast.hasProperty(VO.String("expr")));
-            VO.ensure(ast.value(VO.String("expr")).hasType(VO.Object));
-            this._ast = ast;
-            this._expr = compile_expr(ast.value(VO.String("expr")), g);  // compile expression
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_star(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            return match_repeat(input, this._expr, 0);
-        };
-        return constructor;
-    })();
-    kind["plus"] = (function (constructor) {  // plus(expr) = sequence(expr, star(expr))
-        constructor = constructor || function PEG_plus(ast, g) {  // { "kind": "plus", "expr": <object> }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("plus")));
-            VO.ensure(ast.hasProperty(VO.String("expr")));
-            VO.ensure(ast.value(VO.String("expr")).hasType(VO.Object));
-            this._ast = ast;
-            this._expr = compile_expr(ast.value(VO.String("expr")), g);  // compile expression
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_plus(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            return match_repeat(input, this._expr, 1);
-        };
-        return constructor;
-    })();
     kind["optional"] = (function (constructor) {  // optional(expr) = alternative(expr, nothing)
         constructor = constructor || function PEG_optional(ast, g) {  // { "kind": "optional", "expr": <object> }
             VO.ensure(ast.hasType(VO.Object));
@@ -525,7 +551,6 @@ PEG.selfTest = (function () {
 */
                 "kind": "grammar",
                 "rules": {
-/*
                     "number": {
                         "kind": "sequence",
                         "of": [
@@ -590,7 +615,6 @@ PEG.selfTest = (function () {
                             }
                         ]
                     },
-*/
                     "e": {
                         "kind": "alternative",
                         "of": [
@@ -612,6 +636,7 @@ PEG.selfTest = (function () {
             }
 */
         }));
+        PEG.log('grammar:', grammar);
 
         match = grammar.rule(VO.String("nothing")).match(VO.emptyString);
         VO.ensure(match.hasType(VO.Object));
@@ -656,7 +681,6 @@ PEG.selfTest = (function () {
         VO.ensure(match.value(s_value).equals(VO.fromNative(69)));
         VO.ensure(match.value(s_remainder).length.equals(VO.zero));
 
-/*
         match = grammar.rule(VO.String("integer")).match(VO.String("0"));
         VO.ensure(match.equals(VO.false).not);
         VO.ensure(match.value(s_value).equals(VO.fromNative(48)));
@@ -697,7 +721,6 @@ PEG.selfTest = (function () {
                         [[101, [43], [48]]]
                     ])));
         VO.ensure(match.value(s_remainder).length.equals(VO.zero));
-*/
     };
 
     return function selfTest() {
