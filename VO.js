@@ -112,7 +112,7 @@ VO.Value = (function (proto) {
         var member = this[name._value];
         VO.ensure(VO.Boolean(member !== undefined));
         if (typeof member === 'function') {
-            member = new VO.Combiner(member.bind(this));  // wrap native function
+            member = VO.Combiner(member.bind(this));  // wrap native function
         }
         VO.ensure(member.hasType(VO.Value));
         return member;
@@ -123,7 +123,7 @@ VO.Value = (function (proto) {
         VO.ensure(name.hasType(VO.String));
         var method = target[name._value];  // extract native method from target
         VO.ensure(VO.Boolean(typeof method === "function"));
-        var operation = new VO.Operation(function methodCall(args/*, context*/) {
+        var operation = VO.Operation(function methodCall(args/*, context*/) {
             VO.ensure(args.hasType(VO.Array));
 //            VO.ensure(context.hasType(VO.Object));
             return method.apply(target, args._value);  // call native method on target object
@@ -140,7 +140,7 @@ VO.Value = (function (proto) {
 })();
 
 VO.Combiner = (function (proto) {
-    proto = proto || new VO.Value();
+    proto = proto || VO.Value();
     proto.combine = function combine(value) {  // delegate to native operative function
         VO.ensure(this.hasType(VO.Combiner));
         VO.ensure(value.hasType(VO.Value));
@@ -156,7 +156,7 @@ VO.Combiner = (function (proto) {
             value = second(value);  // apply that operative second
             return value;  // return final value
         }
-        return new VO.Combiner(composition);
+        return VO.Combiner(composition);
     };
     var constructor = function Combiner(operative) {
         if (!(this instanceof Combiner)) { return new Combiner(operative); }  // if called without "new" keyword...
@@ -170,12 +170,12 @@ VO.Combiner = (function (proto) {
 })();
 
 VO.Data = (function (proto) {
-    proto = proto || new VO.Value();
+    proto = proto || VO.Value();
     Object.defineProperty(proto, 'asJSON', {
         enumerable: true,
         get: function () {
             VO.ensure(this.hasType(VO.Data));
-            return new VO.String(JSON.stringify(this._value));
+            return VO.String(JSON.stringify(this._value));
         }
     });
     var constructor = function Data() {
@@ -188,7 +188,7 @@ VO.Data = (function (proto) {
 })();
 
 VO.Null = (function (proto) {
-    proto = proto || new VO.Data();
+    proto = proto || VO.Data();
     var constructor = function Null() {
         if (VO.null === undefined) {
             this._value = null;
@@ -203,7 +203,7 @@ VO.Null = (function (proto) {
 })();
 
 VO.Boolean = (function (proto) {
-    proto = proto || new VO.Data();
+    proto = proto || VO.Data();
     var constructor = function Boolean(value) {
         if (value) {
             if (VO.true === undefined) {
@@ -236,7 +236,7 @@ VO.Boolean = (function (proto) {
 })();
 
 VO.Number = (function (proto) {
-    proto = proto || new VO.Data();
+    proto = proto || VO.Data();
     proto.equals = function equals(that) {
         if (this === that) {
             return VO.true;
@@ -272,12 +272,12 @@ VO.Number = (function (proto) {
     proto.plus = function plus(that) {
         VO.ensure(this.hasType(VO.Number));
         VO.ensure(that.hasType(VO.Number));
-        return new VO.Number(this._value + that._value);
+        return VO.Number(this._value + that._value);
     };
     proto.times = function times(that) {
         VO.ensure(this.hasType(VO.Number));
         VO.ensure(that.hasType(VO.Number));
-        return new VO.Number(this._value * that._value);
+        return VO.Number(this._value * that._value);
     };
     var constructor = function Number(value) {
         if (!(this instanceof Number)) { return new Number(value); }  // if called without "new" keyword...
@@ -295,7 +295,7 @@ VO.Number = (function (proto) {
 })();
 
 VO.Composite = (function (proto) {
-    proto = proto || new VO.Data();
+    proto = proto || VO.Data();
     proto.value = function value(selector) {  // extract a component of the composite
         VO.throw("Not Implemented");  // FIXME!
     };
@@ -309,7 +309,7 @@ VO.Composite = (function (proto) {
 })();
 
 VO.String = (function (proto) {
-    proto = proto || new VO.Composite();
+    proto = proto || VO.Composite();
     proto.equals = function equals(that) {
         if (this === that) {
             return VO.true;
@@ -326,7 +326,7 @@ VO.String = (function (proto) {
         enumerable: true,
         get: function () {
             VO.ensure(this.hasType(VO.String));
-            return new VO.Number(this._value.length);
+            return VO.Number(this._value.length);
         }
     });
     proto.value = function value(offset) {
@@ -334,12 +334,12 @@ VO.String = (function (proto) {
         VO.ensure(offset.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(offset));  // 0 <= offset
         VO.ensure(offset.lessThan(this.length));  // offset < length
-        return new VO.Number(this._value.codePointAt(offset._value));
+        return VO.Number(this._value.codePointAt(offset._value));
     };
     proto.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(that.hasType(VO.String));
-        return new VO.String(this._value + that._value);
+        return VO.String(this._value + that._value);
     };
     proto.skip = function skip(count) {
         VO.ensure(this.hasType(VO.String));
@@ -348,46 +348,46 @@ VO.String = (function (proto) {
         if (count._value >= this._value.length) {  // count >= length
             return VO.emptyString;
         }
-        return new VO.String(this._value.slice(count._value, this._value.length));
+        return VO.String(this._value.slice(count._value, this._value.length));
     };
     proto.take = function take(count) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(count.hasType(VO.Number));
         VO.ensure(count.greaterEqual(VO.zero));  // count >= 0
         VO.ensure(count.lessEqual(this.length));  // count <= length
-        return new VO.String(this._value.slice(0, count._value));
+        return VO.String(this._value.slice(0, count._value));
     };
     proto.extract = function extract(interval) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(interval.hasType(VO.Object));
-        VO.ensure(interval.hasProperty(new VO.String("from")));
-        VO.ensure(interval.hasProperty(new VO.String("upto")));
-        let from = interval.value(new VO.String("from"));
-        let upto = interval.value(new VO.String("upto"));
+        VO.ensure(interval.hasProperty(VO.String("from")));
+        VO.ensure(interval.hasProperty(VO.String("upto")));
+        let from = interval.value(VO.String("from"));
+        let upto = interval.value(VO.String("upto"));
         VO.ensure(from.hasType(VO.Number));
         VO.ensure(upto.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(from));  // 0 <= from
         VO.ensure(from.lessEqual(upto));  // from <= upto
         VO.ensure(upto.lessEqual(this.length));  // upto <= length
-        return new VO.String(this._value.slice(from._value, upto._value));
+        return VO.String(this._value.slice(from._value, upto._value));
     };
     proto.append = function append(value) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(value.hasType(VO.Number));
-        return new VO.String(this._value + String.fromCodePoint(value._value));
+        return VO.String(this._value + String.fromCodePoint(value._value));
     };
     proto.bind = function bind(value) {
         VO.ensure(this.hasType(VO.String));
         VO.ensure(value.hasType(VO.Value));
         var obj = {};
         obj[this._value] = value;
-        return new VO.Object(obj);
+        return VO.Object(obj);
     };
     proto.reduce = function reduce(func, value) {
         VO.ensure(this.hasType(VO.String));
         if (typeof func === "function") {
             for (var i = 0; i < this._value.length; ++i) {
-                var c = new VO.Number(this._value.codePointAt(i));
+                var c = VO.Number(this._value.codePointAt(i));
                 value = func(c, value);
             }
             return value;
@@ -419,7 +419,7 @@ VO.String = (function (proto) {
 })();
 
 VO.Array = (function (proto) {
-    proto = proto || new VO.Composite();
+    proto = proto || VO.Composite();
     proto.equals = function equals(that) {
         if (this === that) {
             return VO.true;
@@ -443,7 +443,7 @@ VO.Array = (function (proto) {
         enumerable: true,
         get: function () {
             VO.ensure(this.hasType(VO.Array));
-            return new VO.Number(this._value.length);
+            return VO.Number(this._value.length);
         }
     });
     proto.value = function value(offset) {
@@ -456,7 +456,7 @@ VO.Array = (function (proto) {
     proto.concatenate = function concatenate(that) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(that.hasType(VO.Array));
-        return new VO.Array(this._value.concat(that._value));
+        return VO.Array(this._value.concat(that._value));
     };
     proto.skip = function skip(count) {
         VO.ensure(this.hasType(VO.Array));
@@ -465,33 +465,33 @@ VO.Array = (function (proto) {
         if (count._value >= this._value.length) {  // count >= length
             return VO.emptyArray;
         }
-        return new VO.Array(this._value.slice(count._value, this._value.length));
+        return VO.Array(this._value.slice(count._value, this._value.length));
     };
     proto.take = function take(count) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(count.hasType(VO.Number));
         VO.ensure(count.greaterEqual(VO.zero));  // count >= 0
         VO.ensure(count.lessEqual(this.length));  // count <= length
-        return new VO.Array(this._value.slice(0, count._value));
+        return VO.Array(this._value.slice(0, count._value));
     };
     proto.extract = function extract(interval) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(interval.hasType(VO.Object));
-        VO.ensure(interval.hasProperty(new VO.String("from")));
-        VO.ensure(interval.hasProperty(new VO.String("upto")));
-        let from = interval.value(new VO.String("from"));
-        let upto = interval.value(new VO.String("upto"));
+        VO.ensure(interval.hasProperty(VO.String("from")));
+        VO.ensure(interval.hasProperty(VO.String("upto")));
+        let from = interval.value(VO.String("from"));
+        let upto = interval.value(VO.String("upto"));
         VO.ensure(from.hasType(VO.Number));
         VO.ensure(upto.hasType(VO.Number));
         VO.ensure(VO.zero.lessEqual(from));  // 0 <= from
         VO.ensure(from.lessEqual(upto));  // from <= upto
         VO.ensure(upto.lessEqual(this.length));  // upto <= length
-        return new VO.Array(this._value.slice(from._value, upto._value));
+        return VO.Array(this._value.slice(from._value, upto._value));
     };
     proto.append = function append(value) {
         VO.ensure(this.hasType(VO.Array));
         VO.ensure(value.hasType(VO.Value));
-        return new VO.Array(this._value.concat(value));
+        return VO.Array(this._value.concat(value));
     };
     proto.reduce = function reduce(func, value) {
         VO.ensure(this.hasType(VO.Array));
@@ -529,7 +529,7 @@ VO.Array = (function (proto) {
 })();
 
 VO.Object = (function (proto) {
-    proto = proto || new VO.Composite();
+    proto = proto || VO.Composite();
     proto.equals = function equals(that) {
         if (this === that) {
             return VO.true;
@@ -572,7 +572,7 @@ VO.Object = (function (proto) {
         Object.keys(that._value).forEach(function (key) {
             result[key] = that._value[key];  // argument/replace with properties from that
         });
-        return new VO.Object(result);
+        return VO.Object(result);
     };
     proto.extract = function extract(names) {
         VO.ensure(this.hasType(VO.Object));
@@ -595,9 +595,9 @@ VO.Object = (function (proto) {
             VO.ensure(this.hasType(VO.Object));
             var keys = Object.keys(this._value);
             for (var i = 0; i < keys.length; ++i) {
-                keys[i] = new VO.String(keys[i]);  // convert to VO.String
+                keys[i] = VO.String(keys[i]);  // convert to VO.String
             }
-            return new VO.Array(keys);
+            return VO.Array(keys);
         }
     });
     proto.reduce = function reduce(func, value) {
@@ -606,7 +606,7 @@ VO.Object = (function (proto) {
             var keys = Object.keys(this._value);
             for (var i = 0; i < keys.length; ++i) {
                 var key = keys[i];
-                value = func(new VO.String(key), this._value[key], value);
+                value = func(VO.String(key), this._value[key], value);
             }
             return value;
         }
@@ -628,7 +628,7 @@ VO.Object = (function (proto) {
 })();
 
 VO.Expression = (function (proto) {
-    proto = proto || new VO.Value();
+    proto = proto || VO.Value();
     proto.evaluate = function evaluate(/* context */) {
         VO.throw("Not Implemented");
     };
@@ -642,7 +642,7 @@ VO.Expression = (function (proto) {
 })();
 
 VO.ValueExpr = (function (proto) {
-    proto = proto || new VO.Expression();
+    proto = proto || VO.Expression();
     proto.evaluate = function evaluate(/* context */) {
         return this._value;
     };
@@ -657,7 +657,7 @@ VO.ValueExpr = (function (proto) {
 })();
 
 VO.VariableExpr = (function (proto) {
-    proto = proto || new VO.Expression();
+    proto = proto || VO.Expression();
     proto.evaluate = function evaluate(context) {
 //        VO.ensure(context.hasType(VO.Object));
         return context.value(this._name);
@@ -673,7 +673,7 @@ VO.VariableExpr = (function (proto) {
 })();
 
 VO.CombineExpr = (function (proto) {
-    proto = proto || new VO.Expression();
+    proto = proto || VO.Expression();
     proto.evaluate = function evaluate(context) {
 //        VO.ensure(context.hasType(VO.Object));
         var operation = this._expr.evaluate(context);
@@ -694,7 +694,7 @@ VO.CombineExpr = (function (proto) {
 })();
 
 VO.Operation = (function (proto) {
-    proto = proto || new VO.Expression();
+    proto = proto || VO.Expression();
     proto.evaluate = function evaluate(context) {
 //        VO.ensure(context.hasType(VO.Object));
         return this;  // operations evaluate to themselves
@@ -715,7 +715,7 @@ VO.Operation = (function (proto) {
             value = second(value, context);  // apply that operative second
             return value;  // return final value
         }
-        return new VO.Operation(composition);
+        return VO.Operation(composition);
     };
     var constructor = function Operation(operative) {
         if (!(this instanceof Operation)) { return new Operation(operative); }  // if called without "new" keyword...
@@ -753,7 +753,7 @@ VO.Operation = (function (proto) {
 })();
 
 VO.MethodExpr = (function (proto) {
-    proto = proto || new VO.Expression();
+    proto = proto || VO.Expression();
     proto.evaluate = function evaluate(context) {
         VO.ensure(context.hasType(VO.Object));
         var selector = this._name.evaluate(context);  // evaluate name expression to get selector
