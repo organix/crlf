@@ -280,11 +280,95 @@ PEG.Rule = (function (proto) {
         return rule.match(input);
     };
     var constructor = function Rule(name, grammar) {
-        if (!(this instanceof Rule)) { return new Rule(); }  // if called without "new" keyword...
+        if (!(this instanceof Rule)) { return new Rule(name, grammar); }  // if called without "new" keyword...
         VO.ensure(name.hasType(VO.String));
         VO.ensure(grammar.hasType(PEG.Grammar));
         this._name = name;
         this._grammar = grammar;
+    };
+    proto.constructor = constructor;
+    constructor.prototype = proto;
+    return constructor;
+})();
+
+PEG.kind["sequence"] = (function (factory) {
+    factory = factory || function PEG_sequence(ast, grammar) {  // { "kind": "sequence", "of": <array> }
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("sequence")));
+        VO.ensure(ast.hasProperty(VO.String("of")));
+        VO.ensure(ast.value(VO.String("of")).hasType(VO.Array));
+        var _of = ast.value(VO.String("of")).reduce(function (v, x) {
+            var expr = grammar.compile(v);  // compile expression
+            return x.append(expr);
+        }, VO.emptyArray);
+        return PEG.Sequence(_of);
+    };
+    return factory;
+})();
+
+PEG.Sequence = (function (proto) {
+    proto = proto || PEG.Pattern();
+    proto.match = function match(input) {  // { value:, remainder: } | false
+        VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+        var match = this._of.reduce(function (v, x) {
+            if (x === VO.false) {
+                return VO.false;  // propagate failure
+            }
+            var _match = v.match(x.value(s_remainder));
+            if (_match === VO.false) {
+                return VO.false;  // match failure
+            }
+            var _value = x.value(s_value).append(_match.value(s_value));
+            return (_match.concatenate(s_value.bind(_value)));  // update successful match
+        }, (VO.emptyObject  // match success (default)
+            .concatenate(s_value.bind(VO.emptyArray))
+            .concatenate(s_remainder.bind(input)))
+        );
+        return match;
+    };
+    var constructor = function Sequence(_of) {
+        if (!(this instanceof Sequence)) { return new Sequence(_of); }  // if called without "new" keyword...
+        VO.ensure(_of.hasType(VO.Array));
+        this._of = _of;
+    };
+    proto.constructor = constructor;
+    constructor.prototype = proto;
+    return constructor;
+})();
+
+PEG.kind["alternative"] = (function (factory) {
+    factory = factory || function PEG_alternative(ast, grammar) {  // { "kind": "alternative", "of": <array> }
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("alternative")));
+        VO.ensure(ast.hasProperty(VO.String("of")));
+        VO.ensure(ast.value(VO.String("of")).hasType(VO.Array));
+        var _of = ast.value(VO.String("of")).reduce(function (v, x) {
+            var expr = grammar.compile(v);  // compile expression
+            return x.append(expr);
+        }, VO.emptyArray);
+        return PEG.Alternative(_of);
+    };
+    return factory;
+})();
+
+PEG.Alternative = (function (proto) {
+    proto = proto || PEG.Pattern();
+    proto.match = function match(input) {  // { value:, remainder: } | false
+        VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
+        var match = this._of.reduce(function (v, x) {
+            if (x !== VO.false) {
+                return x;  // propagate success
+            }
+            return v.match(input);
+        }, VO.false);  // default match failure
+        return match;
+    };
+    var constructor = function Alternative(_of) {
+        if (!(this instanceof Alternative)) { return new Alternative(_of); }  // if called without "new" keyword...
+        VO.ensure(_of.hasType(VO.Array));
+        this._of = _of;
     };
     proto.constructor = constructor;
     constructor.prototype = proto;
@@ -297,16 +381,13 @@ var match_repeat = function match_repeat(input, expr, min, max) {
         .concatenate(s_value.bind(VO.emptyArray))
         .concatenate(s_remainder.bind(input)));
     while ((max === undefined) || (count < max)) {
-        var _match = expr.match(input);
+        var _match = expr.match(match.value(s_remainder));  // match at current position
         if (_match === VO.false) {
             break;  // match failure
         }
         count += 1;  // update match count
-        input = _match.value(s_remainder);  // update input position
-        match = (VO.emptyObject  // update successful match
-            .concatenate(s_value.bind(
-                    match.value(s_value).append(_match.value(s_value))))
-            .concatenate(s_remainder.bind(input)));
+        var _value = match.value(s_value).append(_match.value(s_value));  // update value
+        match = _match.concatenate(s_value.bind(_value));  // update successful match
     }
     if (count < min) {
         match = VO.false;  // match failure
@@ -349,75 +430,6 @@ PEG.Optional = (function (proto) {  // optional(expr) = alternative(expr, nothin
 var REMOVE_THIS_JUNK = (function () {
     var kind = {};
 
-    kind["sequence"] = (function (constructor) {
-        constructor = constructor || function PEG_sequence(ast, g) {  // { "kind": "sequence", "of": <array> }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("sequence")));
-            VO.ensure(ast.hasProperty(VO.String("of")));
-            VO.ensure(ast.value(VO.String("of")).hasType(VO.Array));
-            this._ast = ast;
-            var rules = [];
-            ast.value(VO.String("of")).reduce(function (v, x) {
-                rules.push(compile_expr(v, g));  // compile rules
-                return x;
-            }, VO.null);
-            this._of = rules;
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_sequence(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            var match = (VO.emptyObject  // match success (default)
-                .concatenate(s_value.bind(VO.emptyArray))
-                .concatenate(s_remainder.bind(input)));
-            for (var i = 0; i < this._of.length; ++i) {
-                var rule = this._of[i];
-                var _match = rule.match(input);
-                if (_match === VO.false) {
-                    return VO.false;  // match failure
-                }
-                input = _match.value(s_remainder);  // update input position
-                let s_value = s_value;
-                match = (VO.emptyObject  // update successful match
-                    .concatenate(s_value.bind(
-                            match.value(s_value).append(_match.value(s_value))))
-                    .concatenate(s_remainder.bind(input)));
-            }
-            return match;
-        };
-        return constructor;
-    })();
-    kind["alternative"] = (function (constructor) {
-        constructor = constructor || function PEG_alternative(ast, g) {  // { "kind": "alternative", "of": <array> }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("alternative")));
-            VO.ensure(ast.hasProperty(VO.String("of")));
-            VO.ensure(ast.value(VO.String("of")).hasType(VO.Array));
-            this._ast = ast;
-            var rules = [];
-            ast.value(VO.String("of")).reduce(function (v, x) {
-                rules.push(compile_expr(v, g));  // compile rules
-                return x;
-            }, VO.null);
-            this._of = rules;
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_alternative(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            for (var i = 0; i < this._of.length; ++i) {
-                var rule = this._of[i];
-                var match = rule.match(input);
-                if (match !== VO.false) {
-                    return match;  // match success
-                }
-            }
-            return VO.false;  // match failure
-        };
-        return constructor;
-    })();
     var match_repeat = function match_repeat(input, expr, min, max) {
         var count = 0;
         var match = (VO.emptyObject  // match success (default)
@@ -578,6 +590,7 @@ PEG.selfTest = (function () {
                             }
                         ]
                     },
+*/
                     "e": {
                         "kind": "alternative",
                         "of": [
@@ -585,7 +598,6 @@ PEG.selfTest = (function () {
                             { "kind": "terminal", "value": 69 }
                         ]
                     },
-*/
                     "decimal-point": { "kind": "terminal", "value": 46 },
                     "plus": { "kind": "terminal", "value": 43 },
                     "minus": { "kind": "terminal", "value": 45 },
@@ -638,6 +650,11 @@ PEG.selfTest = (function () {
         VO.ensure(match.value(s_value).equals(VO.Number(13)));  // "\r"
         VO.ensure(match.value(s_remainder).length.equals(VO.Number(1)));
         VO.ensure(match.value(s_remainder).equals(VO.String("\n")));
+
+        match = grammar.rule(VO.String("e")).match(VO.String("E"));
+        VO.ensure(match.equals(VO.false).not);
+        VO.ensure(match.value(s_value).equals(VO.fromNative(69)));
+        VO.ensure(match.value(s_remainder).length.equals(VO.zero));
 
 /*
         match = grammar.rule(VO.String("integer")).match(VO.String("0"));
