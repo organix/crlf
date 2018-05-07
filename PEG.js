@@ -35,8 +35,8 @@ var VO = require("VO.js");
 var PEG = module.exports;
 PEG.version = "0.0.1";
 
-PEG.log = console.log;
-//PEG.log = function () {};
+//PEG.log = console.log;
+PEG.log = function () {};
 
 var s_kind = VO.String("kind");
 var s_value = VO.String("value");
@@ -540,97 +540,90 @@ PEG.selfTest = (function () {
         var input;
         var match;
 
-        var grammar = PEG.factory(VO.fromNative({
-/*
-            "lang": "PEG",
-            "ast": {
-*/
-                "kind": "grammar",
-                "rules": {
-                    "number": {
-                        "kind": "sequence",
-                        "of": [
-                            {
-                                "kind": "optional",
-                                "expr": { "kind": "rule", "name": "minus" }
-                            },
-                            { "kind": "rule", "name": "integer" },
-                            {
-                                "kind": "optional",
-                                "expr": { "kind": "rule", "name": "frac" }
-                            },
-                            {
-                                "kind": "optional",
-                                "expr": { "kind": "rule", "name": "exp" }
-                            }
-                        ]
-                    },
-                    "integer": {
-                        "kind": "alternative",
-                        "of": [
-                            { "kind": "rule", "name": "digit0" },
-                            {
-                                "kind": "sequence",
+        var grammar = PEG.factory(VO.fromNative({ //"lang": "PEG", "ast": {
+            "kind": "grammar",
+            "rules": {
+                "number": {
+                    "kind": "sequence",
+                    "of": [
+                        {
+                            "kind": "optional",
+                            "expr": { "kind": "rule", "name": "minus" }
+                        },
+                        { "kind": "rule", "name": "integer" },
+                        {
+                            "kind": "optional",
+                            "expr": { "kind": "rule", "name": "frac" }
+                        },
+                        {
+                            "kind": "optional",
+                            "expr": { "kind": "rule", "name": "exp" }
+                        }
+                    ]
+                },
+                "integer": {
+                    "kind": "alternative",
+                    "of": [
+                        { "kind": "rule", "name": "digit0" },
+                        {
+                            "kind": "sequence",
+                            "of": [
+                                { "kind": "rule", "name": "digit1-9" },
+                                {
+                                    "kind": "star",
+                                    "expr": { "kind": "rule", "name": "digit0-9" }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "frac": {
+                    "kind": "sequence",
+                    "of": [
+                        { "kind": "rule", "name": "decimal-point" },
+                        {
+                            "kind": "plus",
+                            "expr": { "kind": "rule", "name": "digit0-9" }
+                        }
+                    ]
+                },
+                "exp": {
+                    "kind": "sequence",
+                    "of": [
+                        { "kind": "rule", "name": "e" },
+                        {
+                            "kind": "optional",
+                            "expr": {
+                                "kind": "alternative",
                                 "of": [
-                                    { "kind": "rule", "name": "digit1-9" },
-                                    {
-                                        "kind": "star",
-                                        "expr": { "kind": "rule", "name": "digit0-9" }
-                                    }
+                                    { "kind": "rule", "name": "minus" },
+                                    { "kind": "rule", "name": "plus" }
                                 ]
                             }
-                        ]
-                    },
-                    "frac": {
-                        "kind": "sequence",
-                        "of": [
-                            { "kind": "rule", "name": "decimal-point" },
-                            {
-                                "kind": "plus",
-                                "expr": { "kind": "rule", "name": "digit0-9" }
-                            }
-                        ]
-                    },
-                    "exp": {
-                        "kind": "sequence",
-                        "of": [
-                            { "kind": "rule", "name": "e" },
-                            {
-                                "kind": "optional",
-                                "expr": {
-                                    "kind": "alternative",
-                                    "of": [
-                                        { "kind": "rule", "name": "minus" },
-                                        { "kind": "rule", "name": "plus" }
-                                    ]
-                                }
-                            },
-                            {
-                                "kind": "plus",
-                                "expr": { "kind": "rule", "name": "digit0-9" }
-                            }
-                        ]
-                    },
-                    "e": {
-                        "kind": "alternative",
-                        "of": [
-                            { "kind": "terminal", "value": 101 },
-                            { "kind": "terminal", "value": 69 }
-                        ]
-                    },
-                    "decimal-point": { "kind": "terminal", "value": 46 },
-                    "plus": { "kind": "terminal", "value": 43 },
-                    "minus": { "kind": "terminal", "value": 45 },
-                    "digit0": { "kind": "terminal", "value": 48 },
-                    "digit1-9": { "kind": "range", "from": 49, "to": 57 },
-                    "digit0-9": { "kind": "range", "from": 48, "to": 57 },
-                    "anything": { "kind": "anything" },
-                    "nothing": { "kind": "nothing" },
-                    "fail": { "kind": "fail" }
-                }
-/*
-            }
-*/
+                        },
+                        {
+                            "kind": "plus",
+                            "expr": { "kind": "rule", "name": "digit0-9" }
+                        }
+                    ]
+                },
+                "e": {
+                    "kind": "alternative",
+                    "of": [
+                        { "kind": "terminal", "value": 101 },
+                        { "kind": "terminal", "value": 69 }
+                    ]
+                },
+                "decimal-point": { "kind": "terminal", "value": 46 },
+                "plus": { "kind": "terminal", "value": 43 },
+                "minus": { "kind": "terminal", "value": 45 },
+                "digit0": { "kind": "terminal", "value": 48 },
+                "digit1-9": { "kind": "range", "from": 49, "to": 57 },
+                "digit0-9": { "kind": "range", "from": 48, "to": 57 },
+                "anything": { "kind": "anything" },
+                "nothing": { "kind": "nothing" },
+                "fail": { "kind": "fail" }
+            }//}
         }));
         PEG.log('grammar:', grammar);
 
