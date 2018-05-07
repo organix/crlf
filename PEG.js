@@ -42,7 +42,7 @@ var s_kind = VO.String("kind");
 var s_value = VO.String("value");
 var s_remainder = VO.String("remainder");
 
-PEG.kind = {};  // matching operator factory namespace
+PEG.kind = {};  // matching-operator factory namespace
 
 PEG.factory = function compile_PEG(source) {  // { "kind": "grammar", "rules": <object> }
     VO.ensure(source.hasType(VO.Object));
@@ -70,22 +70,19 @@ PEG.Grammar = (function (proto) {
     proto.compile_rule = function compile_rule(name, ast) {  // { "kind": <string>, ... }
         VO.ensure(name.hasType(VO.String));
         var expr = this.compile(ast);
-        var rules = this._rules.concatenate(name.bind(expr));
-        this._rules = rules;  // replace rules with updated version
+        this._rules[name._value] = expr;
         PEG.log('rule:', name._value, ':=', expr);
-        return this;
+        return this;  // return "updated" grammar
     };
     proto.rule = function rule(name) {  // get named rule
         VO.ensure(name.hasType(VO.String));
-        var expr = this._rules.value(name);
+        var expr = this._rules[name._value];
         PEG.log('rule:', name._value, '->', expr);
         return expr;
     };
     var constructor = function Grammar(rules) {
         if (!(this instanceof Grammar)) { return new Grammar(rules); }  // if called without "new" keyword...
-        rules = rules || VO.emptyObject;
-        VO.ensure(rules.hasType(VO.Object));
-        this._rules = rules;
+        this._rules = rules || {};
     };
     proto.constructor = constructor;
     constructor.prototype = proto;
