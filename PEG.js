@@ -35,8 +35,8 @@ var VO = require("VO.js");
 var PEG = module.exports;
 PEG.version = "0.0.1";
 
-//PEG.log = console.log;
-PEG.log = function () {};
+PEG.log = console.log;
+//PEG.log = function () {};
 
 var s_kind = VO.String("kind");
 var s_value = VO.String("value");
@@ -120,10 +120,12 @@ PEG.Fail = (function (proto) {
         return VO.false;  // match failure
     };
     var constructor = function Fail() {
+        if (instance) { return instance; }  // return cached singleton
         if (!(this instanceof Fail)) { return new Fail(); }  // if called without "new" keyword...
     };
     proto.constructor = constructor;
     constructor.prototype = proto;
+    var instance = new constructor();  // cache singleton instance
     return constructor;
 })();
 
@@ -146,10 +148,12 @@ PEG.Nothing = (function (proto) {
             .concatenate(s_remainder.bind(input)));
     };
     var constructor = function Nothing() {
+        if (instance) { return instance; }  // return cached singleton
         if (!(this instanceof Nothing)) { return new Nothing(); }  // if called without "new" keyword...
     };
     proto.constructor = constructor;
     constructor.prototype = proto;
+    var instance = new constructor();  // cache singleton instance
     return constructor;
 })();
 
@@ -175,10 +179,12 @@ PEG.Anything = (function (proto) {
         return VO.false;  // match failure
     };
     var constructor = function Anything() {
+        if (instance) { return instance; }  // return cached singleton
         if (!(this instanceof Anything)) { return new Anything(); }  // if called without "new" keyword...
     };
     proto.constructor = constructor;
     constructor.prototype = proto;
+    var instance = new constructor();  // cache singleton instance
     return constructor;
 })();
 
