@@ -31,6 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 "use strict";
 
 var VO = require("VO.js");
+var PEG = require("PEG.js");
 
 var crlf = module.exports;
 crlf.version = "0.0.1";
@@ -53,6 +54,8 @@ crlf.factory = function compile_crlf(source) {  // { "lang": <string>, "ast": <v
 
 crlf.language = {};  // language compiler namespace
 
+crlf.language["PEG"] = PEG.factory;
+/*
 crlf.language["PEG"] = (function (constructor) {
     var kind = {};
     var compiler = function compile_PEG(ast) {  // { "kind": <string>, ... }
@@ -362,6 +365,7 @@ crlf.language["PEG"] = (function (constructor) {
     })();
     return compiler;
 })();
+*/
 
 crlf.language["VO"] = (function (compiler) {
     var kind = {};
@@ -898,7 +902,10 @@ crlf.selfTest = (function () {
     };
 
     return function selfTest() {
-        VO.selfTest();  // test imported package first
+        // test imported package first
+        VO.selfTest();
+        PEG.selfTest();
+        // then run suite of local tests
         test_PEG();
         test_VO();
         test_proof();
