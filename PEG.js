@@ -35,8 +35,8 @@ var VO = require("VO.js");
 var PEG = module.exports;
 PEG.version = "0.0.1";
 
-PEG.log = console.log;
-//PEG.log = function () {};
+//PEG.log = console.log;
+PEG.log = function () {};
 
 var s_kind = VO.String("kind");
 var s_value = VO.String("value");
@@ -484,58 +484,6 @@ PEG.Optional = (function (proto) {  // optional(expr) = alternative(expr, nothin
     constructor.prototype = proto;
     return constructor;
 })();
-
-/*
- * <FOR-REFERENCE-ONLY>
- */
-var REMOVE_THIS_JUNK = (function () {
-    var kind = {};
-
-    var match_repeat = function match_repeat(input, expr, min, max) {
-        var count = 0;
-        var match = (VO.emptyObject  // match success (default)
-            .concatenate(s_value.bind(VO.emptyArray))
-            .concatenate(s_remainder.bind(input)));
-        while ((max === undefined) || (count < max)) {
-            var _match = expr.match(input);
-            if (_match === VO.false) {
-                break;  // match failure
-            }
-            count += 1;  // update match count
-            input = _match.value(s_remainder);  // update input position
-            let s_value = s_value;
-            match = (VO.emptyObject  // update successful match
-                .concatenate(s_value.bind(
-                        match.value(s_value).append(_match.value(s_value))))
-                .concatenate(s_remainder.bind(input)));
-        }
-        if (count < min) {
-            match = VO.false;  // match failure
-        }
-        return match;
-    };
-    kind["optional"] = (function (constructor) {  // optional(expr) = alternative(expr, nothing)
-        constructor = constructor || function PEG_optional(ast, g) {  // { "kind": "optional", "expr": <object> }
-            VO.ensure(ast.hasType(VO.Object));
-            VO.ensure(ast.hasProperty(s_kind));
-            VO.ensure(ast.value(s_kind).equals(VO.String("optional")));
-            VO.ensure(ast.hasProperty(VO.String("expr")));
-            VO.ensure(ast.value(VO.String("expr")).hasType(VO.Object));
-            this._ast = ast;
-            this._expr = compile_expr(ast.value(VO.String("expr")), g);  // compile expression
-        };
-        var prototype = constructor.prototype;
-        prototype.constructor = constructor;
-        prototype.match = function match_optional(input) {
-            VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-            return match_repeat(input, this._expr, 0, 1);
-        };
-        return constructor;
-    })();
-});
-/*
- * </FOR-REFERENCE-ONLY>
- */
 
 PEG.selfTest = (function () {
 
