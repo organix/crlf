@@ -57,7 +57,7 @@ PEG.factory = function compile_PEG(source) {  // { "kind": "grammar", "rules": <
 };
 
 PEG.Grammar = (function (proto) {
-    proto = proto || VO.Value();
+    proto = proto || {}; //VO.Value();  [FIXME: <-- VO.Value should be mutable]
     proto.compile = function compile(ast) {  // { "kind": <string>, ... }
         VO.ensure(ast.hasType(VO.Object));
         VO.ensure(ast.hasProperty(s_kind));
@@ -69,12 +69,14 @@ PEG.Grammar = (function (proto) {
     };
     proto.compile_rule = function compile_rule(name, ast) {  // { "kind": <string>, ... }
         VO.ensure(name.hasType(VO.String));
-        PEG.log('Object.isFrozen(this)', Object.isFrozen(this));
+        PEG.log('PEG.Grammar: Object.isFrozen(this) =', Object.isFrozen(this));
         var expr = this.compile(ast);
 //        this._rules[name._value] = expr;
+        PEG.log('Object.isFrozen(this) =', Object.isFrozen(this));
         var new_rule = name.bind(expr);
         var rules = this._rules.concatenate(new_rule);
         this._rules = rules; //this._rules.concatenate(name.bind(expr));
+        PEG.log('Object.isFrozen(this) =', Object.isFrozen(this));
         VO.ensure(VO.Boolean(this._rules === rules));  // [FIXME: <-- THIS FAILS!]
         PEG.log('rule:', name._value, ':=', expr);
         return this;
@@ -82,7 +84,9 @@ PEG.Grammar = (function (proto) {
     proto.rule = function rule(name) {  // get named rule
         VO.ensure(name.hasType(VO.String));
 //        var expr = this._rules[name._value];
+        PEG.log('rule: Object.isFrozen(this) =', Object.isFrozen(this));
         var expr = this._rules.value(name);
+        PEG.log('Object.isFrozen(this) =', Object.isFrozen(this));
         PEG.log('rule:', name._value, '->', expr);
         return expr;
     };
@@ -271,7 +275,8 @@ PEG.kind["rule"] = (function (factory) {
         VO.ensure(ast.value(s_kind).equals(VO.String("rule")));
         VO.ensure(ast.hasProperty(VO.String("name")));
         VO.ensure(ast.value(VO.String("name")).hasType(VO.String));
-        return PEG.Rule(ast.value(VO.String("name")), grammar);
+        PEG.log('PEG.kind["rule"]: Object.isFrozen(grammar) =', Object.isFrozen(grammar));
+        return PEG.Rule(ast.value(VO.String("name")), grammar);  // [FIXME! <-- NEED grammar]
     };
     return factory;
 })();
@@ -280,15 +285,20 @@ PEG.Rule = (function (proto) {
     proto = proto || PEG.Pattern();
     proto.match = function match(input) {  // { value:, remainder: } | false
         VO.ensure(input.hasType(VO.String).or(input.hasType(VO.Array)));
-        var rule = this._grammar.rule(this._name);
+//        PEG.log('PEG.Rule.match: Object.isFrozen(_grammar) =', Object.isFrozen(this._grammar));
+//        var rule = this._grammar.rule(this._name);
+        var rule = this._resolve(this._name);
         return rule.match(input);
     };
     var constructor = function Rule(name, grammar) {
         if (!(this instanceof Rule)) { return new Rule(name, grammar); }  // if called without "new" keyword...
         VO.ensure(name.hasType(VO.String));
-        VO.ensure(grammar.hasType(PEG.Grammar));
+//        VO.ensure(grammar.hasType(PEG.Grammar));  // [FIXME: <-- re-enable type checking...]
         this._name = name;
-        this._grammar = grammar;
+        PEG.log('PEG.Rule: Object.isFrozen(grammar) =', Object.isFrozen(grammar));
+        this._resolve = function resolve(name) { return grammar.rule(name); };
+//        this._grammar = grammar;
+//        PEG.log('PEG.Rule: Object.isFrozen(_grammar) =', Object.isFrozen(this._grammar));
     };
     proto.constructor = constructor;
     constructor.prototype = proto;
