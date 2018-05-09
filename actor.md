@@ -33,9 +33,9 @@ The `ast` represents a _behavior_, which contains a list of _actions_:
 
 A primitive action may be any of the following:
 
-  * Create a new actor
-  * Send a message
-  * Become a new behavior
+  * **Create** a new actor
+  * **Send** a message
+  * **Become** a new behavior
 
 A new value for _effects_ is created as each primitive action is applied. The final value is a composite of all the accumulated effects.
 
