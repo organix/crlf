@@ -41,7 +41,7 @@ term.log = function () {};
 var s_kind = VO.String("kind");
 var s_name = VO.String("name");
 
-term.kind = {};  // matching-operator factory namespace
+term.kind = {};  // term compiler namespace
 
 term.factory = function compile_term(source) {  // { "kind": <string>, ... }
     VO.ensure(source.hasType(VO.Object));
@@ -54,8 +54,13 @@ term.factory = function compile_term(source) {  // { "kind": <string>, ... }
 term.Term = (function (proto) {  // abstract base-class
     proto = proto || VO.Value();
     proto.replace = function replace(name, value) {
+        // return a term created by substituting the value for the named variable in this term
         VO.ensure(name.hasType(VO.String));
         VO.ensure(value.hasType(term.Term));
+        VO.throw("Not Implemented");  // FIXME!
+    };
+    proto.FV = function FV() {  // free variables
+        // return an object describing the free variables in this term (name -> sort)
         VO.throw("Not Implemented");  // FIXME!
     };
     var constructor = function Term() {
@@ -68,7 +73,14 @@ term.Term = (function (proto) {  // abstract base-class
 
 term.Operator = (function (proto) {
     proto = proto || term.Term;
-    var constructor = function Operator(sort, name, args) {
+    proto.FV = function FV() {  // free variables
+        let fv = this._args.reduce(function (v, x) {
+            VO.ensure(v.hasType(term.Term));
+            return x.concatenate(v.FV());
+        }, VO.emptyObject);
+        return fv;
+    };
+    var constructor = function Operator(sort, name, args, index) {
         if (!(this instanceof Operator)) { return new Operator(sort, name, args); }  // if called without "new" keyword...
         VO.ensure(sort.hasType(VO.String));
         VO.ensure(name.hasType(VO.String));
@@ -76,6 +88,10 @@ term.Operator = (function (proto) {
         this._sort = sort;
         this._name = name;
         this._args = args;
+        if (index !== undefined) {
+            VO.ensure(args.hasType(VO.Value));
+            this._index = index;
+        }
     };
     proto.constructor = constructor;
     constructor.prototype = proto;
@@ -84,6 +100,10 @@ term.Operator = (function (proto) {
 
 term.Variable = (function (proto) {
     proto = proto || term.Term;
+    proto.FV = function FV() {  // free variables
+        let fv = this._name.bind(this._sort);
+        return fv;
+    };
     var constructor = function Variable(sort, name) {
         if (!(this instanceof Variable)) { return new Variable(sort, name); }  // if called without "new" keyword...
         VO.ensure(sort.hasType(VO.String));
@@ -98,6 +118,17 @@ term.Variable = (function (proto) {
 
 term.Binder = (function (proto) {
     proto = proto || term.Term;
+    proto.FV = function FV() {  // free variables
+        var fv = this._scope.FV();
+        let bv = this._bindings;
+        fv = fv.reduce(function (n, v, x) {
+            if (bv.hasProperty(n)) {
+                return x;  // skip bound variable
+            }
+            return x.concatenate(n.bind(v));  // copy free variable
+        }, VO.emptyObject);
+        return fv;
+    };
     var constructor = function Binder(bindings, scope) {
         if (!(this instanceof Binder)) { return new Binder(bindings, scope); }  // if called without "new" keyword...
         VO.ensure(bindings.hasType(VO.Object));  // (name -> sort)
