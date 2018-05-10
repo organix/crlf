@@ -39,22 +39,76 @@ term.version = "0.0.1";
 term.log = function () {};
 
 var s_kind = VO.String("kind");
-var s_value = VO.String("value");
-var s_remainder = VO.String("remainder");
+var s_name = VO.String("name");
 
 term.kind = {};  // matching-operator factory namespace
 
-term.factory = function compile_term(source) {  // { "kind": "grammar", "rules": <object> }
+term.factory = function compile_term(source) {  // { "kind": <string>, ... }
     VO.ensure(source.hasType(VO.Object));
     VO.ensure(source.hasProperty(s_kind));
-    VO.ensure(source.value(s_kind).equals(VO.String("grammar")));
-    VO.ensure(source.hasProperty(VO.String("rules")));
-    VO.ensure(source.value(VO.String("rules")).hasType(VO.Object));
-    var grammar = source.value(VO.String("rules")).reduce(function (n, v, x) {
-        return x.compile_rule(n, v);
-    }, term.Grammar());
-    return grammar;
+    var compiler = term.kind[source.value(s_kind)._value];
+    var value = compiler(source);
+    return value;
 };
+
+term.Term = (function (proto) {  // abstract base-class
+    proto = proto || VO.Value();
+    proto.replace = function replace(name, value) {
+        VO.ensure(name.hasType(VO.String));
+        VO.ensure(value.hasType(term.Term));
+        VO.throw("Not Implemented");  // FIXME!
+    };
+    var constructor = function Term() {
+        if (!(this instanceof Term)) { return new Term(); }  // if called without "new" keyword...
+    };
+    proto.constructor = constructor;
+    constructor.prototype = proto;
+    return constructor;
+})();
+
+term.Operator = (function (proto) {
+    proto = proto || term.Term;
+    var constructor = function Operator(sort, name, args) {
+        if (!(this instanceof Operator)) { return new Operator(sort, name, args); }  // if called without "new" keyword...
+        VO.ensure(sort.hasType(VO.String));
+        VO.ensure(name.hasType(VO.String));
+        VO.ensure(args.hasType(VO.Array));
+        this._sort = sort;
+        this._name = name;
+        this._args = args;
+    };
+    proto.constructor = constructor;
+    constructor.prototype = proto;
+    return constructor;
+})();
+
+term.Variable = (function (proto) {
+    proto = proto || term.Term;
+    var constructor = function Variable(sort, name) {
+        if (!(this instanceof Variable)) { return new Variable(sort, name); }  // if called without "new" keyword...
+        VO.ensure(sort.hasType(VO.String));
+        VO.ensure(name.hasType(VO.String));
+        this._sort = sort;
+        this._name = name;
+    };
+    proto.constructor = constructor;
+    constructor.prototype = proto;
+    return constructor;
+})();
+
+term.Binder = (function (proto) {
+    proto = proto || term.Term;
+    var constructor = function Binder(bindings, scope) {
+        if (!(this instanceof Binder)) { return new Binder(bindings, scope); }  // if called without "new" keyword...
+        VO.ensure(bindings.hasType(VO.Object));  // (name -> sort)
+        VO.ensure(scope.hasType(term.Term));
+        this._bindings = bindings;
+        this._scope = scope;
+    };
+    proto.constructor = constructor;
+    constructor.prototype = proto;
+    return constructor;
+})();
 
 term.Grammar = (function (proto) {
     proto = proto || VO.Value();
