@@ -56,7 +56,7 @@ term.factory = function compile_term(source) {  // { "kind": <string>, ... }
 };
 
 term.kind["operator"] = (function (factory) {
-    factory = factory || function term_terminal(ast) {
+    factory = factory || function term_operator(ast) {
         // { "kind":"operator", "sort":<string>, "name":<string> }
         // { "kind":"operator", "sort":<string>, "name":<string>, "index":<value> }
         // { "kind":"operator", "sort":<string>, "name":<string>, "arguments":<array> }
@@ -87,7 +87,7 @@ term.kind["operator"] = (function (factory) {
 })();
 
 term.kind["variable"] = (function (factory) {
-    factory = factory || function term_terminal(ast) {
+    factory = factory || function term_variable(ast) {
         // { "kind":"variable", "sort":<string>, "name":<string> }
         VO.ensure(ast.hasType(VO.Object));
         VO.ensure(ast.hasProperty(s_kind));
@@ -101,9 +101,25 @@ term.kind["variable"] = (function (factory) {
     return factory;
 })();
 
+term.kind["binder"] = (function (factory) {
+    factory = factory || function term_binder(ast) {
+        // { "kind":"binder", "bindings":<object>, "scope":<term> }
+        VO.ensure(ast.hasType(VO.Object));
+        VO.ensure(ast.hasProperty(s_kind));
+        VO.ensure(ast.value(s_kind).equals(VO.String("binder")));
+        VO.ensure(ast.hasProperty(VO.String("bindings")));
+        VO.ensure(ast.value(VO.String("bindings")).hasType(VO.Object));
+        VO.ensure(ast.hasProperty(VO.String("scope")));
+        VO.ensure(ast.value(VO.String("scope")).hasType(VO.Object));
+        var _scope = term.factory(ast.value(VO.String("scope")));
+        return term.Binder(ast.value(VO.String("bindings")), _scope);
+    };
+    return factory;
+})();
+
 term.Term = (function (proto) {  // abstract base-class
     proto = proto || VO.Value();
-    proto.replace = function replace(name, value) {
+    proto.substitute = function substitute(name, value) {
         // return a term created by substituting the value for the named variable in this term
         VO.ensure(name.hasType(VO.String));
         VO.ensure(value.hasType(term.Term));
@@ -195,6 +211,7 @@ term.selfTest = (function () {
 
     var test_term = function test_term() {
         var expr;
+        var arg;
         var expect;
         var actual;
 
@@ -212,6 +229,46 @@ term.selfTest = (function () {
         actual = expr.FV();
         expect = VO.fromNative({"x":"Exp"});
         VO.ensure(actual.equals(expect));
+
+        // ap(lam{τ}(x.x);y)
+        expr = term.factory(VO.fromNative(
+            { "kind":"operator", "sort":"Term", "name":"ap", "arguments":[
+                { "kind":"operator", "sort":"Term", "name":"lam", "arguments":[
+                    { "kind":"variable", "sort":"Type", "name":"τ" },
+                    { "kind":"binder", "bindings":{"x":"τ"}, "scope":
+                        { "kind":"variable", "sort":"Term", "name":"x" }
+                    }
+                ]},
+                { "kind":"variable", "sort":"Term", "name":"y" }
+            ]}
+        ));
+        term.log('expr:', expr);
+        actual = expr.FV();
+        expect = VO.fromNative({"τ":"Type", "y":"Term"});
+        VO.ensure(actual.equals(expect));
+/*
+        // plus(x;num[1])
+        expr = term.factory(VO.fromNative(
+            { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
+                { "kind":"variable", "sort":"Exp", "name":"x" },
+                { "kind":"operator", "sort":"Exp", "name":"num", "index":1, "arguments":[] }
+            ]}
+        ));
+        term.log('expr:', expr);
+        // num[0]
+        arg = term.factory(VO.fromNative(
+            { "kind":"operator", "sort":"Exp", "name":"num", "index":0, "arguments":[] }
+        ));
+        // plus(num[0];num[1])
+        expect = term.factory(VO.fromNative(
+            { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
+                { "kind":"operator", "sort":"Exp", "name":"num", "index":0, "arguments":[] },
+                { "kind":"operator", "sort":"Exp", "name":"num", "index":1, "arguments":[] }
+            ]}
+        ));
+        actual = expr.substitute(VO.String("x"), arg);
+        VO.ensure(actual.equals(expect));
+*/
     };
 
     return function selfTest() {
