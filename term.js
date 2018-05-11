@@ -139,6 +139,22 @@ term.Term = (function (proto) {  // abstract base-class
 
 term.Operator = (function (proto) {
     proto = proto || term.Term();
+    proto.equals = function equals(that) {
+        if (this === that) {
+            return VO.true;
+        }
+        if (this.hasType(term.Operator)
+        .and(that.hasType(term.Operator)
+        .and(this._sort.equals(that._sort)
+        .and(this._name.equals(that._name)
+        .and(this._args.equals(that._args))))) === VO.true) {
+            if (this._index === that._index) {
+                return VO.true;  // both undefined
+            }
+            return this._index.equals(that._index);
+        }
+        return VO.false;
+    };
     proto.FV = function FV() {  // free variables
         let fv = this._args.reduce(function (v, x) {
             VO.ensure(v.hasType(term.Term));
@@ -178,6 +194,15 @@ term.Operator = (function (proto) {
 
 term.Variable = (function (proto) {
     proto = proto || term.Term();
+    proto.equals = function equals(that) {
+        if (this === that) {
+            return VO.true;
+        }
+        return (this.hasType(term.Variable)
+        .and(that.hasType(term.Variable)
+        .and(this._sort.equals(that._sort)
+        .and(this._name.equals(that._name)))));
+    };
     proto.FV = function FV() {  // free variables
         let fv = this._name.bind(this._sort);
         return fv;
@@ -206,6 +231,16 @@ term.Variable = (function (proto) {
 
 term.Binder = (function (proto) {
     proto = proto || term.Term();
+    proto.equals = function equals(that) {
+        if (this === that) {
+            return VO.true;
+        }
+        return (this.hasType(term.Binder)
+        .and(that.hasType(term.Binder)
+        .and(this._bindings.equals(that._bindings)
+//        .and(this._sort.equals(that._sort)
+        .and(this._scope.equals(that._scope)))));
+    };
     proto.FV = function FV() {  // free variables
         var fv = this._scope.FV();
         let bv = this._bindings;
