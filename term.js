@@ -234,6 +234,7 @@ term.Binder = (function (proto) {
         VO.ensure(scope.hasType(term.Term));
         this._bindings = bindings;
         this._scope = scope;
+        this._sort = scope._sort;  // inherit sort from scope
     };
     proto.constructor = constructor;
     constructor.prototype = proto;
@@ -284,19 +285,19 @@ term.selfTest = (function () {
         expr = term.factory(VO.fromNative(
             { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
                 { "kind":"variable", "sort":"Exp", "name":"x" },
-                { "kind":"operator", "sort":"Exp", "name":"num", "index":1, "arguments":[] }
+                { "kind":"operator", "sort":"Exp", "name":"num", "index":1 }
             ]}
         ));
         term.log('expr:', expr);
         // num[0]
         arg = term.factory(VO.fromNative(
-            { "kind":"operator", "sort":"Exp", "name":"num", "index":0, "arguments":[] }
+            { "kind":"operator", "sort":"Exp", "name":"num", "index":0 }
         ));
         // plus(num[0];num[1])
         expect = term.factory(VO.fromNative(
             { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
-                { "kind":"operator", "sort":"Exp", "name":"num", "index":0, "arguments":[] },
-                { "kind":"operator", "sort":"Exp", "name":"num", "index":1, "arguments":[] }
+                { "kind":"operator", "sort":"Exp", "name":"num", "index":0 },
+                { "kind":"operator", "sort":"Exp", "name":"num", "index":1 }
             ]}
         ));
         actual = expr.substitute(VO.String("x"), arg);
