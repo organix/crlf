@@ -119,15 +119,15 @@ term.kind["binder"] = (function (factory) {
 
 term.Term = (function (proto) {  // abstract base-class
     proto = proto || VO.Value();
+    proto.FV = function FV() {  // free variables
+        // return an object describing the free variables in this term (name -> sort)
+        VO.throw("Not Implemented");  // FIXME!
+    };
     proto.substitute = function substitute(name, value) {
         // return a term created by substituting the value for the named variable in this term
         VO.ensure(name.hasType(VO.String));
         VO.ensure(value.hasType(term.Term));
-        VO.throw("Not Implemented");  // FIXME!
-    };
-    proto.FV = function FV() {  // free variables
-        // return an object describing the free variables in this term (name -> sort)
-        VO.throw("Not Implemented");  // FIXME!
+        return this;  // default: unchanged
     };
     var constructor = function Term() {
         if (!(this instanceof Term)) { return new Term(); }  // if called without "new" keyword...
@@ -145,6 +145,18 @@ term.Operator = (function (proto) {
             return x.concatenate(v.FV());
         }, VO.emptyObject);
         return fv;
+    };
+    proto.substitute = function substitute(name, value) {
+        // return a term created by substituting the value for the named variable in this term
+        VO.ensure(name.hasType(VO.String));
+        VO.ensure(value.hasType(term.Term));
+        var _sort = this._sort;
+        var _name = this._name;
+        var _args = this._args.reduce(function (v, x) {
+            return x.append(v.substitute(name, value));  // substitue in each argument term
+        }, VO.emptyArray);
+        var _index = this._index;
+        return term.Operator(_sort, _name, _args, _index);
     };
     var constructor = function Operator(sort, name, args, index) {
         if (!(this instanceof Operator)) { return new Operator(sort, name, args, index); }  // if called without "new" keyword...
@@ -170,6 +182,16 @@ term.Variable = (function (proto) {
         let fv = this._name.bind(this._sort);
         return fv;
     };
+    proto.substitute = function substitute(name, value) {
+        // return a term created by substituting the value for the named variable in this term
+        VO.ensure(name.hasType(VO.String));
+        VO.ensure(value.hasType(term.Term));
+        if (this._name.equals(name)) {  // match variable name
+            VO.ensure(this._sort.equals(value._sort));  // check type (sort) of substitution
+            return value;  // replace variable with value
+        }
+        return this;  // default: unchanged
+    };
     var constructor = function Variable(sort, name) {
         if (!(this instanceof Variable)) { return new Variable(sort, name); }  // if called without "new" keyword...
         VO.ensure(sort.hasType(VO.String));
@@ -194,6 +216,17 @@ term.Binder = (function (proto) {
             return x.concatenate(n.bind(v));  // copy free variable
         }, VO.emptyObject);
         return fv;
+    };
+    proto.substitute = function substitute(name, value) {
+        // return a term created by substituting the value for the named variable in this term
+        VO.ensure(name.hasType(VO.String));
+        VO.ensure(value.hasType(term.Term));
+        var _bindings = this._bindings;
+        if (_bindings.hasProperty(name)) {
+            return this;  // default: unchanged
+        }
+        var _scope = this._scope.substitute(name, value);  // substitue in scope
+        return term.Binder(_bindings, _scope);
     };
     var constructor = function Binder(bindings, scope) {
         if (!(this instanceof Binder)) { return new Binder(bindings, scope); }  // if called without "new" keyword...
@@ -246,7 +279,7 @@ term.selfTest = (function () {
         actual = expr.FV();
         expect = VO.fromNative({"τ":"Type", "y":"Term"});
         VO.ensure(actual.equals(expect));
-/*
+
         // plus(x;num[1])
         expr = term.factory(VO.fromNative(
             { "kind":"operator", "sort":"Exp", "name":"plus", "arguments":[
@@ -268,7 +301,6 @@ term.selfTest = (function () {
         ));
         actual = expr.substitute(VO.String("x"), arg);
         VO.ensure(actual.equals(expect));
-*/
     };
 
     return function selfTest() {
