@@ -35,8 +35,8 @@ var VO = require("VO.js");
 var term = module.exports;
 term.version = "0.0.1";
 
-term.log = console.log;
-//term.log = function () {};
+//term.log = console.log;
+term.log = function () {};
 
 var s_kind = VO.String("kind");
 var s_sort = VO.String("sort");
@@ -263,13 +263,18 @@ term.Binder = (function (proto) {
         var _scope = this._scope.substitute(name, value);  // substitue in scope
         return term.Binder(_bindings, _scope);
     };
+    Object.defineProperty(proto, '_sort', {  // derive sort from scope
+        enumerable: true,
+        get: function () {
+            return this._scope._sort;
+        }
+    });
     var constructor = function Binder(bindings, scope) {
         if (!(this instanceof Binder)) { return new Binder(bindings, scope); }  // if called without "new" keyword...
         VO.ensure(bindings.hasType(VO.Object));  // (name -> sort)
         VO.ensure(scope.hasType(term.Term));
         this._bindings = bindings;
         this._scope = scope;
-        this._sort = scope._sort;  // inherit sort from scope
     };
     proto.constructor = constructor;
     constructor.prototype = proto;
