@@ -279,6 +279,42 @@ In Humus, _patterns_ are _matched_ (usually against _values_) to produce _bindin
 }
 ```
 
+## Compact Representation
+
+```javascript
+{ "kind":"create_stmt", "ident":<string>, "expr":<expression> }
+{ "kind":"send_stmt", "msg":<expression>, "to":<expression> }
+{ "kind":"become_stmt", "expr":<expression> }
+{ "kind":"let_stmt", "left":<pattern>, "right":<pattern> }
+{ "kind":"stmt_pair", "head":<statement>, "tail":<statement> }
+{ "kind":"empty_stmt" }
+{ "kind":"expr_stmt", "expr":<expression> }
+{ "kind":"throw_stmt", "expr":<expression> }
+```
+```javascript
+{ "kind":"const_expr", "value":<value> }
+{ "kind":"ident_expr", "ident":<string> }
+{ "kind":"pair_expr", "head":<expression>, "tail":<expression> }
+{ "kind":"abs_expr", "ptrn":<pattern>, "body":<expression> }
+{ "kind":"app_expr", "abs":<expression>, "arg":<expression> }
+{ "kind":"case_expr", "expr":<expression>, "next":<choice/end> }
+{ "kind":"case_choice", "ptrn":<pattern>, "expr":<expression>, "next":<choice/end> }
+{ "kind":"case_end" }
+{ "kind":"if_expr", "left":<pattern>, "right":<pattern>, "expr":<expression>, "next":<expression> }
+{ "kind":"let_expr", "eqtn":<equation>, "expr":<expression> }
+{ "kind":"block_expr", "vars":[...<string>], "stmt":<statement> }
+{ "kind":"now_expr" }
+{ "kind":"self_expr" }
+{ "kind":"new_expr", "expr":<expression> }
+```
+```javascript
+{ "kind":"const_ptrn", "value":<value> }
+{ "kind":"ident_ptrn", "ident":<string> }
+{ "kind":"any_ptrn" }
+{ "kind":"pair_ptrn", "head":<pattern>, "tail":<pattern> }
+{ "kind":"value_ptrn", "expr":<expression> }
+```
+
 ## Humus Stack-Machine
 
 Input                     | Operation  | Output        | Description
