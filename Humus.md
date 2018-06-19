@@ -5,25 +5,15 @@
 ```javascript
 {
     "lang": "Humus",
-    "ast": <block>
+    "ast": <statement>
 }
 ```
 
-The `ast` is a top-level statement block containing Humus-language statements.
+The `ast` is a top-level Humus-language statement.
 
 ## Statement
 
 In Humus, _statements_ are _executed_ to produce _effects_.
-
-### SEND
-
-```javascript
-{
-    "kind": "send_stmt",
-    "msg": <expression>,
-    "to": <expression>
-}
-```
 
 ### CREATE
 
@@ -32,6 +22,16 @@ In Humus, _statements_ are _executed_ to produce _effects_.
     "kind": "create_stmt",
     "ident": <string>,
     "expr": <expression>
+}
+```
+
+### SEND
+
+```javascript
+{
+    "kind": "send_stmt",
+    "msg": <expression>,
+    "to": <expression>
 }
 ```
 
@@ -49,7 +49,47 @@ In Humus, _statements_ are _executed_ to produce _effects_.
 ```javascript
 {
     "kind": "let_stmt",
-    "eqtn": <equation>
+    "eqtn": {
+        "kind": "eqtn",
+        "left": <pattern>,
+        "right": <pattern>
+    }
+}
+```
+
+### Pair
+
+```javascript
+{
+    "kind": "stmt_pair",
+    "head": <statement>,
+    "tail": <statement>
+}
+```
+
+### Empty
+
+```javascript
+{
+    "kind": "empty_stmt"
+}
+```
+
+### Expression
+
+```javascript
+{
+    "kind": "expr_stmt",
+    "expr": <expression>
+}
+```
+
+### THROW
+
+```javascript
+{
+    "kind": "throw_stmt",
+    "expr": <expression>
 }
 ```
 
@@ -59,11 +99,136 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
 
 ### Constant
 
+```javascript
+{
+    "kind": "const_expr",
+    "value": <value>
+}
+```
+
 ### Variable
+
+```javascript
+{
+    "kind": "ident_expr",
+    "ident": <string>
+}
+```
 
 ### Pair
 
+```javascript
+{
+    "kind": "pair_expr",
+    "head": <expression>,
+    "tail": <expression>
+}
+```
+
+### (Lambda) Abstraction
+
+```javascript
+{
+    "kind": "abs_expr",
+    "ptrn": <pattern>,
+    "body": <expression>
+}
+```
+
 ### (Function) Application
+
+```javascript
+{
+    "kind": "app_expr",
+    "abs": <expression>,
+    "arg": <expression>
+}
+```
+
+### CASE / OF / END
+
+```javascript
+{
+    "kind": "case_expr",
+    "expr": <expression>,
+    "next": <choice/end>
+}
+```
+
+```javascript
+{
+    "kind": "case_choice",
+    "ptrn": <pattern>,
+    "expr": <expression>,
+    "next": <choice/end>
+}
+```
+
+```javascript
+{
+    "kind": "case_end"
+}
+```
+
+### IF / ELIF / ELSE
+
+```javascript
+{
+    "kind": "if_expr",
+    "eqtn": {
+        "kind": "eqtn",
+        "left": <pattern>,
+        "right": <pattern>
+    },
+    "expr": <expression>,
+    "next": <expression>
+}
+```
+
+### LET / IN
+
+```javascript
+{
+    "kind": "let_expr",
+    "eqtn": <equation>,
+    "expr": <expression>
+}
+```
+
+### Block
+
+```javascript
+{
+    "kind": "block_expr",
+    "vars": [...<string>],
+    "stmt": <statement>
+}
+```
+
+### Now
+
+```javascript
+{
+    "kind": "now_expr"
+}
+```
+
+### SELF
+
+```javascript
+{
+    "kind": "self_expr"
+}
+```
+
+### NEW
+
+```javascript
+{
+    "kind": "new_expr",
+    "expr": <expression>
+}
+```
 
 ## Pattern
 
@@ -71,9 +236,45 @@ In Humus, _patterns_ are _matched_ (usually against _values_) to produce _bindin
 
 ### Constant
 
+```javascript
+{
+    "kind": "const_ptrn",
+    "value": <value>
+}
+```
+
 ### Variable
+
+```javascript
+{
+    "kind": "ident_ptrn",
+    "ident": <string>
+}
+```
+
+### Any
+
+```javascript
+{
+    "kind": "any_ptrn"
+}
+```
 
 ### Pair
 
+```javascript
+{
+    "kind": "pair_ptrn",
+    "head": <pattern>,
+    "tail": <pattern>
+}
+```
+
 ### Value
 
+```javascript
+{
+    "kind": "value_ptrn",
+    "expr": <expression>
+}
+```
