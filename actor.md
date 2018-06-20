@@ -136,7 +136,7 @@ _n_                  | EQ?             | _bool_                  | TRUE if _n_ =
 _n_                  | GT?             | _bool_                  | TRUE if _n_ > 0
 _n_                  | NOT             | ~_n_                    | Bitwise negation
 _n_ _m_              | AND             | _n_ & _m_               | Bitwise and
-_n_ _m_              | OR              | _n_ | _m_               | Bitwise or
+_n_ _m_              | OR              | _n_ \| _m_              | Bitwise or
 _n_ _m_              | XOR             | _n_ ^ _m_               | Bitwise xor
 _address_            | ?               | _value_                 | Load _value_ from _address_
 _value_ _address_    | !               | &mdash;                 | Store _value_ into _address_
