@@ -109,22 +109,28 @@ There are many possible models for describing an actor behavior. One simple mode
 
 Program source is provided as a stream of _words_ (whitespace separated in text format). Each word is looked up in the current _dictionary_ and the corresponding _block_ is executed. Literal values are pushed on the data _stack_, which is used to provide parameters and return values for executing blocks. Some blocks also consume words from the source stream.
 
-Input               | Operation       | Output                  | Description
---------------------|-----------------|-------------------------|------------
-_block_             | CREATE          | _actor_                 | Create a new actor with _block_ behavior
-_message_ _actor_   | SEND            | &mdash;                 | Send _message_ to _actor_
-_block_             | BECOME          | &mdash;                 | Replace current actor's behavior with _block_
-&mdash;             | SELF            | _actor_                 | Push the current actor's address on the data stack
-_value_             | = _word_        | &mdash;                 | Bind _value_ to _word_ in the current dictionary
-&mdash;             | @ _word_        | _value_                 | Lookup _value_ bound to _word_ in the current dictionary
-&mdash;             | ' _word_        | _word_                  | Push (literal) _word_ on the data stack
-&mdash;             | [ ..._word_ ]   | _block_                 | Create block (quoted) value
-[ ...               | ( ..._word_ )   | [ ...                   | Immediate (unquoted) value
-_value_             | IF [] ELSE []   | &mdash;                 | Conditional execution of blocks
-_v_                 | DROP            | &mdash;                 | Drop the top element
-_v_                 | DUP             | _v_ _v_                 | Duplicate the top element
-_v_2_ _v_1_         | SWAP            | _v_1_ _v_2_             | Swap the top two elements
-_v_n_ ... _v_1_ _n_ | ROT             | _v_n-1_ ... _v_1_ _v_n_ | Rotate stack elements (negative = reverse)
-_v_n_ ... _v_1_ _n_ | PICK            | _v_n_ ... _v_1_ _v_n_   | Duplicate element _n_
-_address_           | ?               | _value_                 | Load _value_ from _address_
-_value_ _address_   | !               | &mdash;                 | Store _value_ into _address_
+Input                | Operation       | Output                  | Description
+---------------------|-----------------|-------------------------|------------
+_block_              | CREATE          | _actor_                 | Create a new actor with _block_ behavior
+..._message_ _actor_ | SEND            | &mdash;                 | Send _message_ to _actor_
+_block_              | BECOME          | &mdash;                 | Replace current actor's behavior with _block_
+&mdash;              | SELF            | _actor_                 | Push the current actor's address on the data stack
+_value_              | = _word_        | &mdash;                 | Bind _value_ to _word_ in the current dictionary
+&mdash;              | ' _word_        | _word_                  | Push (literal) _word_ on the data stack
+&mdash;              | @ _word_        | _value_                 | Lookup _value_ bound to _word_ in the current dictionary
+&mdash;              | [ ..._word_ ]   | _block_                 | Create block (quoted) value
+[ ...                | ( ..._word_ )   | [ ...                   | Immediate (unquoted) value
+_bool_               | IF [] ELSE []   | &mdash;                 | Conditional execution of blocks
+_v_                  | DROP            | &mdash;                 | Drop the top element
+_v_                  | DUP             | _v_ _v_                 | Duplicate the top element
+_v_2_ _v_1_          | SWAP            | _v_1_ _v_2_             | Swap the top two elements
+_v_n_ ... _v_1_ _n_  | ROT             | _v_n-1_ ... _v_1_ _v_n_ | Rotate stack elements (negative = reverse)
+_v_n_ ... _v_1_ _n_  | PICK            | _v_n_ ... _v_1_ _v_n_   | Duplicate element _n_
+_n_ _m_              | ADD             | _n+m_                   | Numeric addition
+_n_ _m_              | MUL             | _n*m_                   | Numeric multiplication
+_n_ _m_              | COMPARE         | _n-m_                   | Compare numeric values
+_n_                  | LT?             | _bool_                  | TRUE if _n_ < 0
+_n_                  | EQ?             | _bool_                  | TRUE if _n_ = 0
+_n_                  | GT?             | _bool_                  | TRUE if _n_ > 0
+_address_            | ?               | _value_                 | Load _value_ from _address_
+_value_ _address_    | !               | &mdash;                 | Store _value_ into _address_
