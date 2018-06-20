@@ -109,6 +109,8 @@ There are many possible models for describing an actor behavior. One simple mode
 
 Program source is provided as a stream of _words_ (whitespace separated in text format). Each word is looked up in the current _dictionary_ and the corresponding _block_ is executed. Literal values are pushed on the data _stack_, which is used to provide parameters and return values for executing blocks. Some blocks also consume words from the source stream.
 
+An actor's behavior is described with a _block_. The message received by the actor is provided a elements of the stack. The `SEND` primitive sends the current stack contents, clearing the stack. Values may be saved in the dictionary by binding them to a word. All dictionary changes are local to the executing behavior.
+
 Input                | Operation       | Output                  | Description
 ---------------------|-----------------|-------------------------|------------
 _block_              | CREATE          | _actor_                 | Create a new actor with _block_ behavior
@@ -123,9 +125,9 @@ _value_              | = _word_        | &mdash;                 | Bind _value_ 
 _bool_               | IF [] ELSE []   | &mdash;                 | Conditional execution of blocks
 _v_                  | DROP            | &mdash;                 | Drop the top element
 _v_                  | DUP             | _v_ _v_                 | Duplicate the top element
-_v_2_ _v_1_          | SWAP            | _v_1_ _v_2_             | Swap the top two elements
-_v_n_ ... _v_1_ _n_  | ROT             | _v_n-1_ ... _v_1_ _v_n_ | Rotate stack elements (negative = reverse)
-_v_n_ ... _v_1_ _n_  | PICK            | _v_n_ ... _v_1_ _v_n_   | Duplicate element _n_
+_v_<sub>2</sub> _v_<sub>1</sub> | SWAP | _v_<sub>1</sub> _v_<sub>2</sub> | Swap the top two elements
+_v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | ROT | _v_<sub>n-1</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Rotate stack elements (negative for reverse)
+_v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | PICK | _v_<sub>n</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Duplicate element _n_
 _n_ _m_              | ADD             | _n+m_                   | Numeric addition
 _n_ _m_              | MUL             | _n*m_                   | Numeric multiplication
 _n_ _m_              | COMPARE         | _n-m_                   | Compare numeric values
