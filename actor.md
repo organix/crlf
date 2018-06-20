@@ -131,9 +131,11 @@ _v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | PICK | _v_<sub>n</sub> ... _v_<sub>1</
 _n_ _m_              | ADD             | _n+m_                   | Numeric addition
 _n_ _m_              | MUL             | _n*m_                   | Numeric multiplication
 _n_ _m_              | COMPARE         | _n-m_                   | Compare numeric values
-_n_                  | LT?             | _bool_                  | TRUE if _n_ < 0
-_n_                  | EQ?             | _bool_                  | TRUE if _n_ = 0
-_n_                  | GT?             | _bool_                  | TRUE if _n_ > 0
+&mdash;              | TRUE            | TRUE                    | All bits set (1)
+&mdash;              | FALSE           | FALSE                   | All bits clear (0)
+_n_                  | LT?             | _bool_                  | TRUE if _n_ < 0; otherwise FALSE
+_n_                  | EQ?             | _bool_                  | TRUE if _n_ = 0; otherwise FALSE
+_n_                  | GT?             | _bool_                  | TRUE if _n_ > 0; otherwise FALSE
 _n_                  | NOT             | ~_n_                    | Bitwise negation
 _n_ _m_              | AND             | _n_ & _m_               | Bitwise and
 _n_ _m_              | OR              | _n_ \| _m_              | Bitwise or
