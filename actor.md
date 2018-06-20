@@ -126,7 +126,7 @@ _bool_               | IF [] ELSE []   | &mdash;                 | Conditional e
 _v_                  | DROP            | &mdash;                 | Drop the top element
 _v_                  | DUP             | _v_ _v_                 | Duplicate the top element
 _v_<sub>2</sub> _v_<sub>1</sub> | SWAP | _v_<sub>1</sub> _v_<sub>2</sub> | Swap the top two elements
-_v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | ROT | _v_<sub>n-1</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Rotate stack elements (negative for reverse)
+_v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | ROLL | _v_<sub>n-1</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Rotate stack elements (negative for reverse)
 _v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | PICK | _v_<sub>n</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Duplicate element _n_
 _n_ _m_              | ADD             | _n+m_                   | Numeric addition
 _n_ _m_              | MUL             | _n*m_                   | Numeric multiplication
@@ -134,5 +134,9 @@ _n_ _m_              | COMPARE         | _n-m_                   | Compare numer
 _n_                  | LT?             | _bool_                  | TRUE if _n_ < 0
 _n_                  | EQ?             | _bool_                  | TRUE if _n_ = 0
 _n_                  | GT?             | _bool_                  | TRUE if _n_ > 0
+_n_                  | NOT             | ~_n_                    | Bitwise negation
+_n_ _m_              | AND             | _n_ & _m_               | Bitwise and
+_n_ _m_              | OR              | _n_ | _m_               | Bitwise or
+_n_ _m_              | XOR             | _n_ ^ _m_               | Bitwise xor
 _address_            | ?               | _value_                 | Load _value_ from _address_
 _value_ _address_    | !               | &mdash;                 | Store _value_ into _address_
