@@ -24,6 +24,7 @@ In Humus, _statements_ are _executed_ to produce _effects_.
     "expr": <expression>
 }
 ```
+Evalute `expr` to produce a _block_ describing the initial behavior for the new actor. Bind `ident` in the current environment to the new actor's address.
 
 ### SEND
 
@@ -34,6 +35,7 @@ In Humus, _statements_ are _executed_ to produce _effects_.
     "to": <expression>
 }
 ```
+Evalute `msg` and `to` expressions. Send the result of `msg` to the actor address resulting from `to`.
 
 ### BECOME
 
@@ -43,6 +45,7 @@ In Humus, _statements_ are _executed_ to produce _effects_.
     "expr": <expression>
 }
 ```
+Evaluate `expr` to produce a _block_ describing the replacement behavior for the current actor.
 
 ### LET
 
@@ -56,6 +59,7 @@ In Humus, _statements_ are _executed_ to produce _effects_.
     }
 }
 ```
+Match/unify the `left` and `right` patterns, possibly binding identifiers in the current environment.
 
 ### Pair
 
@@ -66,6 +70,7 @@ In Humus, _statements_ are _executed_ to produce _effects_.
     "tail": <statement>
 }
 ```
+Execute `head` and `tail` statements concurrently.
 
 ### Empty
 
@@ -74,6 +79,7 @@ In Humus, _statements_ are _executed_ to produce _effects_.
     "kind": "empty_stmt"
 }
 ```
+The `Pair` and `Empty` statements allow a concurrent collection of statements to be executed anywhere a single statement is allowed. The `Empty` statement has no effect.
 
 ### Expression
 
@@ -83,6 +89,7 @@ In Humus, _statements_ are _executed_ to produce _effects_.
     "expr": <expression>
 }
 ```
+Evalute `expr` and if the result is a _block_, execute it.
 
 ### THROW
 
@@ -92,6 +99,7 @@ In Humus, _statements_ are _executed_ to produce _effects_.
     "expr": <expression>
 }
 ```
+Evalute `expr` and raise an exception with the resulting value. All other accumulated effects are replaced by the exception.
 
 ## Expression
 
