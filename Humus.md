@@ -258,7 +258,7 @@ Evalute `expr` to produce a _block_ describing the initial behavior for the new 
 
 ## Pattern
 
-In Humus, _patterns_ are _matched_ (usually against _values_) to produce _bindings_.
+In Humus, _patterns_ are _matched_ (usually against _values_), possibly extending the environment with new _bindings_.
 
 ### Constant
 
@@ -268,6 +268,7 @@ In Humus, _patterns_ are _matched_ (usually against _values_) to produce _bindin
     "value": <value>
 }
 ```
+Matches if the corresponding _value_ is equal to `value`. The environment is unchanged.
 
 ### Variable
 
@@ -277,6 +278,7 @@ In Humus, _patterns_ are _matched_ (usually against _values_) to produce _bindin
     "ident": <string>
 }
 ```
+Matches any _value_. Extends the environment with a binding from `ident` to _value_.
 
 ### Any
 
@@ -285,6 +287,7 @@ In Humus, _patterns_ are _matched_ (usually against _values_) to produce _bindin
     "kind": "any_ptrn"
 }
 ```
+Matches any _value_. The environment is unchanged.
 
 ### Pair
 
@@ -295,6 +298,7 @@ In Humus, _patterns_ are _matched_ (usually against _values_) to produce _bindin
     "tail": <pattern>
 }
 ```
+Attempts to match a _pair_ value by matching the _head_ against `head` and the _tail_ against `tail`.
 
 ### Value
 
@@ -304,6 +308,7 @@ In Humus, _patterns_ are _matched_ (usually against _values_) to produce _bindin
     "expr": <expression>
 }
 ```
+Evaluates `expr` (in the enclosing environment) to produce a _value_, which is matched as a `Constant`.
 
 ## Compact Representation
 
