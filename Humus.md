@@ -113,6 +113,7 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "value": <value>
 }
 ```
+Return a constant `value`.
 
 ### Variable
 
@@ -122,6 +123,7 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "ident": <string>
 }
 ```
+Lookup `ident` in the current environment and return the value bound to it.
 
 ### Pair
 
@@ -132,6 +134,7 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "tail": <expression>
 }
 ```
+Evaluate `head` and `tail` concurrently and return a ordered-pair of their resulting values.
 
 ### (Lambda) Abstraction
 
@@ -142,6 +145,7 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "body": <expression>
 }
 ```
+Return an _abstraction_ closed in the current environment.
 
 ### (Function) Application
 
@@ -152,6 +156,7 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "arg": <expression>
 }
 ```
+Evaluate `abs` and `arg` concurrently. The result from `abs` must be an _abstraction_. The result from `arg` is matched against the `ptrn` in the abstraction. If successful, return the result of evaluating the abstraction `body` in the extended environment. Otherwise, return the undefined value `?`.
 
 ### CASE / OF / END
 
@@ -162,6 +167,7 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "next": <choice/end>
 }
 ```
+Evaluate `expr` to produce a value to be matched. Pass the resulting value to `next`.
 
 ```javascript
 {
@@ -171,12 +177,14 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "next": <choice/end>
 }
 ```
+Match the case value against `ptrn`. If successful, return the result of evaluating `expr` in the extended environment. Otherwise, pass the case value (and original environment) on to `next`.
 
 ```javascript
 {
     "kind": "case_end"
 }
 ```
+Return the undefined value `?`.
 
 ### IF / ELIF / ELSE
 
@@ -192,16 +200,22 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "next": <expression>
 }
 ```
+Match/unify the `left` and `right` patterns, possibly extending the environment with new bindings. If successful, return the result of evaluating `expr` in the extended environment. Otherwise, evaluate `next` in the original environment. Note that `next` can be another `IF` expression (making it an `ELIF`), a final expression (making it an `ELSE`), or a constant expression returning undefined value `?`.
 
 ### LET / IN
 
 ```javascript
 {
     "kind": "let_expr",
-    "eqtn": <equation>,
+    "eqtn": {
+        "kind": "eqtn",
+        "left": <pattern>,
+        "right": <pattern>
+    },
     "expr": <expression>
 }
 ```
+Match/unify the `left` and `right` patterns, possibly extending the environment with new bindings. If successful, return the result of evaluating `expr` in the extended environment. Otherwise, return undefined value `?`.
 
 ### Block
 
@@ -212,6 +226,7 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "stmt": <statement>
 }
 ```
+Return a _block_ value closed in the current environment. `vars` is a list of identifiers which will be locally bound during execution of `stmt`. These variables are essentially created on entry to the block, to be bound by concurrent pattern matching actions. Data dependencies are resolved by deferring readers until a value has been written.
 
 ### Now
 
@@ -220,6 +235,7 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "kind": "now_expr"
 }
 ```
+Return the current value of the real-time clock.
 
 ### SELF
 
@@ -228,6 +244,7 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "kind": "self_expr"
 }
 ```
+Return the address of the currently-executing actor.
 
 ### NEW
 
@@ -237,6 +254,7 @@ In Humus, _expressions_ are _evaluated_ to produce (immutable) _values_.
     "expr": <expression>
 }
 ```
+Evalute `expr` to produce a _block_ describing the initial behavior for the new actor. Return the new actor's address.
 
 ## Pattern
 
