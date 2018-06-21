@@ -109,7 +109,7 @@ There are many possible models for describing an actor behavior. One simple mode
 
 Program source is provided as a stream of _words_ (whitespace separated in text format). Each word is looked up in the current _dictionary_ and the corresponding _block_ is executed. Literal values are pushed on the data _stack_, which is used to provide parameters and return values for executing blocks. Some blocks also consume words from the source stream.
 
-An actor's behavior is described with a _block_. The message received by the actor is provided a elements of the stack. The `SEND` primitive sends the current stack contents, clearing the stack. Values may be saved in the dictionary by binding them to a word. All dictionary changes are local to the executing behavior.
+An actor's behavior is described with a _block_. The message received by the actor is provided as elements of the stack. The `SEND` primitive sends the current stack contents, clearing the stack. Values may be saved in the dictionary by binding them to a word. All dictionary changes are local to the executing behavior.
 
 Input                | Operation       | Output                  | Description
 ---------------------|-----------------|-------------------------|------------
@@ -126,8 +126,9 @@ _bool_               | IF [] ELSE []   | &mdash;                 | Conditional e
 _v_                  | DROP            | &mdash;                 | Drop the top element
 _v_                  | DUP             | _v_ _v_                 | Duplicate the top element
 _v_<sub>2</sub> _v_<sub>1</sub> | SWAP | _v_<sub>1</sub> _v_<sub>2</sub> | Swap the top two elements
-_v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | ROLL | _v_<sub>n-1</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Rotate stack elements (negative for reverse)
 _v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | PICK | _v_<sub>n</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Duplicate element _n_
+_v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | ROLL | _v_<sub>n-1</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Rotate stack elements (negative for reverse)
+&mdash;              | DEPTH           | _n_                     | Number of items on the data stack
 _n_ _m_              | ADD             | _n+m_                   | Numeric addition
 _n_ _m_              | MUL             | _n*m_                   | Numeric multiplication
 _n_ _m_              | COMPARE         | _n-m_                   | Compare numeric values
@@ -137,8 +138,86 @@ _n_                  | LT?             | _bool_                  | TRUE if _n_ <
 _n_                  | EQ?             | _bool_                  | TRUE if _n_ = 0; otherwise FALSE
 _n_                  | GT?             | _bool_                  | TRUE if _n_ > 0; otherwise FALSE
 _n_                  | NOT             | ~_n_                    | Bitwise negation
-_n_ _m_              | AND             | _n_ & _m_               | Bitwise and
-_n_ _m_              | OR              | _n_ \| _m_              | Bitwise or
-_n_ _m_              | XOR             | _n_ ^ _m_               | Bitwise xor
+_n_ _m_              | AND             | _n_&_m_                 | Bitwise and
+_n_ _m_              | OR              | _n_\|_m_                | Bitwise or
+_n_ _m_              | XOR             | _n_^_m_                 | Bitwise xor
 _address_            | ?               | _value_                 | Load _value_ from _address_
 _value_ _address_    | !               | &mdash;                 | Store _value_ into _address_
+
+### Example
+
+```
+[ ] = sink_beh 
+sink_beh CREATE = sink
+
+[ # cust
+  UART0_RXDATA ?  # read UART receive fifo status/data
+  DUP LT? IF [
+    DROP
+    SELF SEND  # retry
+  ] ELSE [
+    16#FF AND SWAP SEND
+  ]
+] DUP = serial_read_beh CREATE = serial_read
+
+[ # cust octet
+  UART0_TXDATA ?  # read UART transmit fifo status
+  LT? IF [
+    SELF SEND  # retry
+  ] ELSE [
+    UART0_TXDATA !  # write UART fifo data
+    SELF SWAP SEND
+  ]
+] DUP = serial_write_beh CREATE = serial_write
+
+[ # octet
+  DUP = octet '\r' COMPARE
+  EQ? IF [
+    ' Stop dispatcher SEND
+  ]
+  SELF octet serial_write SEND
+  @ serial_busy_beh BECOME
+] = serial_echo_beh
+[ # $serial_write
+  serial_write COMPARE
+  EQ? IF [
+    SELF serial_read SEND
+    @ serial_echo_beh BECOME
+  ]
+] = serial_echo_beh
+serial_echo_beh CREATE serial_echo
+
+[ # output
+  = output
+  [ # cust octet
+    SWAP = cust
+    SELF SWAP output SEND
+    SELF cust SEND
+    output empty-Q serial_empty_beh BECOME
+  ]
+] = serial_empty_beh
+[ # output queue
+  = queue
+  = output
+  [ # $output | cust octet
+    DUP output COMPARE
+    EQ? IF [ # $output
+      DROP
+      queue Q-empty IF [
+        output serial_empty_beh BECOME
+      ] ELSE [
+        queue Q-TAKE
+        output SWAP serial_buffer_beh BECOME
+        SELF SWAP SEND
+      ]
+    ] ELSE [ # cust octet
+      queue Q-PUT
+      output SWAP serial_buffer_beh BECOME
+      SELF SWAP SEND
+    ]
+  ]
+] = serial_buffer_beh
+serial_write serial_empty_beh CREATE = serial_buffer
+
+serial_echo serial_read SEND  # start echo listen-loop
+```
