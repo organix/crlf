@@ -314,27 +314,3 @@ In Humus, _patterns_ are _matched_ (usually against _values_) to produce _bindin
 { "kind":"pair_ptrn", "head":<pattern>, "tail":<pattern> }
 { "kind":"value_ptrn", "expr":<expression> }
 ```
-
-## Humus Stack-Machine
-
-Input                     | Operation  | Output        | Description
---------------------------|------------|---------------|---------------------------
-_none_                    | TRUE       | TRUE          | TRUE constant
-_none_                    | FALSE      | FALSE         | FALSE constant
-_none_                    | NIL        | NIL           | NIL constant
-_none_                    | ?          | ?             | "undefined" constant
-_none_                    | _number_   | _number_      | numeric constant
-_none_                    | _string_   | _string_      | string constant
-_none_                    | VAR _name_ | _value_       | named variable
-_none_                    | [          | _none_        | begin block (quote)
-_none_                    | ]          | _block_       | end block (quote)
-_none_                    | (          | _none_        | begin expression (unquote)
-_none_                    | )          | _value_       | end expression (unquote)
-_pattern_ _block_         | \          | _function_    | (lambda) abstraction
-_value(s)_... _function_  | $          | _value(s)_... | (function) application
-_value(s)_...             | CASE       | _value(s)_... | begin case matching
-_pattern_ _block_         | OF         | _none_        | conditional case
-_none_                    | END        | _none_        | end case matching
-_block_                   | CREATE     | _actor_       | create actor
-_value_ _actor_           | SEND       | _none_        | send asynchonrous message
-_block_                   | BECOME     | _none_        | update actor behavior
