@@ -105,11 +105,11 @@ effects := effects.concatenate {
 
 ## Actor Stack-Machine
 
-There are many possible models for describing an actor behavior. One simple model is a [imperative](https://en.wikipedia.org/wiki/Imperative_programming) stack-oriented machine (similar to [FORTH](https://en.wikipedia.org/wiki/Forth_(programming_language))).
+There are many possible models for describing an actor's behavior. One simple model is an [imperative](https://en.wikipedia.org/wiki/Imperative_programming) stack-oriented machine (similar to [FORTH](https://en.wikipedia.org/wiki/Forth_(programming_language))).
 
 Program source is provided as a stream of _words_ (whitespace separated in text format). Each word is looked up in the current _dictionary_ and the corresponding _block_ is executed. Literal values are pushed on the data _stack_, which is used to provide parameters and return values for executing blocks. Some blocks also consume words from the source stream.
 
-An actor's behavior is described with a _block_. The message received by the actor is provided as elements of the stack. The `SEND` primitive sends the current stack contents, clearing the stack. Values may be saved in the dictionary by binding them to a word. All dictionary changes are local to the executing behavior.
+An actor's behavior is described with a _block_. The message received by the actor is contents of the data stack. The `SEND` primitive sends the current stack contents, clearing the stack. Values may be saved in the dictionary by binding them to a word. All dictionary changes are local to the executing behavior.
 
 Input                | Operation       | Output                  | Description
 ---------------------|-----------------|-------------------------|------------
@@ -120,9 +120,9 @@ _block_              | BECOME          | &mdash;                 | Replace curre
 _value_              | = _word_        | &mdash;                 | Bind _value_ to _word_ in the current dictionary
 &mdash;              | ' _word_        | _word_                  | Push (literal) _word_ on the data stack
 &mdash;              | @ _word_        | _value_                 | Lookup _value_ bound to _word_ in the current dictionary
-&mdash;              | [ ..._word_ ]   | _block_                 | Create block (quoted) value
-[ ...                | ( ..._word_ )   | [ ...                   | Immediate (unquoted) value
-_bool_               | IF [] ELSE []   | &mdash;                 | Conditional execution of blocks
+&mdash;              | [ ... ]         | _block_                 | Create block (quoted) value
+[ ...                | ( ... )         | [ ...                   | Immediate (unquoted) value
+_bool_               | IF [ ] ELSE [ ] | &mdash;                 | Conditional execution of blocks
 _v_                  | DROP            | &mdash;                 | Drop the top element
 _v_                  | DUP             | _v_ _v_                 | Duplicate the top element
 _v_<sub>2</sub> _v_<sub>1</sub> | SWAP | _v_<sub>1</sub> _v_<sub>2</sub> | Swap the top two elements
@@ -143,6 +143,8 @@ _n_ _m_              | OR              | _n_\|_m_                | Bitwise or
 _n_ _m_              | XOR             | _n_^_m_                 | Bitwise xor
 _address_            | ?               | _value_                 | Load _value_ from _address_
 _value_ _address_    | !               | &mdash;                 | Store _value_ into _address_
+_address_            | ??              | _value_                 | Atomic load _value_ from volatile _address_
+_value_ _address_    | !!              | &mdash;                 | Atomic store _value_ into volatile _address_
 
 ### Example
 
@@ -151,7 +153,7 @@ _value_ _address_    | !               | &mdash;                 | Store _value_
 sink_beh CREATE = sink
 
 [ # cust
-  UART0_RXDATA ?  # read UART receive fifo status/data
+  UART0_RXDATA ??  # read UART receive fifo status/data
   DUP LT? IF [
     DROP
     SELF SEND  # retry
@@ -161,11 +163,11 @@ sink_beh CREATE = sink
 ] DUP = serial_read_beh CREATE = serial_read
 
 [ # cust octet
-  UART0_TXDATA ?  # read UART transmit fifo status
+  UART0_TXDATA ??  # read UART transmit fifo status
   LT? IF [
     SELF SEND  # retry
   ] ELSE [
-    UART0_TXDATA !  # write UART fifo data
+    UART0_TXDATA !!  # write UART fifo data
     SELF SWAP SEND
   ]
 ] DUP = serial_write_beh CREATE = serial_write
