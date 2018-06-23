@@ -105,7 +105,7 @@ effects := effects.concatenate {
 
 ## Actor Stack-Machine
 
-There are many possible models for describing an actor's behavior. One simple model is an [imperative](https://en.wikipedia.org/wiki/Imperative_programming) stack-oriented machine (similar to [FORTH](https://en.wikipedia.org/wiki/Forth_(programming_language))).
+There are many possible models for describing an actor's behavior. One simple model is an [imperative](https://en.wikipedia.org/wiki/Imperative_programming) stack-oriented machine with a dictionary (similar to [FORTH](https://en.wikipedia.org/wiki/Forth_(programming_language))).
 
 Program source is provided as a stream of _words_ (whitespace separated in text format). Each word is looked up in the current _dictionary_ and the corresponding _block_ is executed. Literal values are pushed on the data _stack_, which is used to provide parameters and return values for executing blocks. Some blocks also consume words from the source stream.
 
