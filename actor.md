@@ -186,7 +186,7 @@ sink_beh CREATE = sink
     SELF serial_read SEND
     @ serial_echo_beh BECOME
   ]
-] = serial_echo_beh
+] = serial_busy_beh
 serial_echo_beh CREATE serial_echo
 
 [ # output
