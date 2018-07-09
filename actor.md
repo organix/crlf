@@ -109,7 +109,7 @@ There are many possible models for describing an actor's behavior. One simple mo
 
 Program source is provided as a stream of _words_ (whitespace separated in text format). Each word is looked up in the current _dictionary_ and the corresponding _block_ is executed. Literal values are pushed on the data _stack_, which is used to provide parameters and return values for executing blocks. Some blocks also consume words from the source stream.
 
-An actor's behavior is described with a _block_. The message received by the actor is contents of the data stack. The `SEND` primitive sends the current stack contents, clearing the stack. Values may be saved in the dictionary by binding them to a word. All dictionary changes are local to the executing behavior.
+An actor's behavior is described with a _block_. The message received by the actor is the contents of the data stack. The `SEND` primitive sends the current stack contents, clearing the stack. Values may be saved in the dictionary by binding them to a word. All dictionary changes are local to the executing behavior.
 
 Input                | Operation       | Output                  | Description
 ---------------------|-----------------|-------------------------|------------
