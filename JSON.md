@@ -260,3 +260,32 @@ encoding   | meaning
 2#00n11111 | Object
 
 Next is the _count_ of octets, as defined above, in the entire object. If the _n_-bit is `1`, a Number of properties in the object follows. Encoded proerties follow, encoded as a String (property name) followed by an encoded Value. Note that the property name strings may be memoized, reducing the octet-count. The end of the object is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching number of properties (if specified). A decoder may reject a mismatch.
+
+### Encoding Matrix
+
+The first (possible only) octet encodes self-describing information about a Value.
+
+Hi \ Lo  |`2#000`|`2#001`|`2#010`|`2#011`|`2#100`|`2#101`|`2#110`|`2#111`
+---------|-------|-------|-------|-------|-------|-------|-------|-------
+`2#00000`|`null` |`true` |`false`| `0`   | `""`  | `[]`  | `{}`  | extended
+`2#00010`| -     | -     | -     | -     | -     | -     | -     | `[` ... `]`
+`2#00110`| -     | -     | -     | -     | -     | -     | -     | `[` _n_ `]`
+`2#01010`| -     | -     | -     | -     | -     | -     | -     | -
+`2#01110`| -     | -     | -     | -     | -     | -     | -     | -
+`2#10010`| -     | -     | -     | -     | -     | -     | -     | -
+`2#10110`| -     | -     | -     | -     | -     | -     | -     | -
+`2#11010`| -     | -     | -     | -     | -     | -     | -     | -
+`2#11110`| -     | -     | -     | -     | -     | -     | -     | -
+`2#00011`| -     | -     | -     | -     | -     | -     | -     | `{` ... `}`
+`2#00111`| -     | -     | -     | -     | -     | -     | -     | `{` _n_ `}`
+`2#01011`| -     | -     | -     | -     | -     | -     | -     | -
+`2#01111`| -     | -     | -     | -     | -     | -     | -     | -
+`2#10011`| -     | -     | -     | -     | -     | -     | -     | -
+`2#10111`| -     | -     | -     | -     | -     | -     | -     | -
+`2#11011`| -     | -     | -     | -     | -     | -     | -     | -
+`2#11111`| -     | -     | -     | -     | -     | -     | -     | -
+
+
+### Canonical Encoding
+
+It is desirable to define a canonical encoding such that digital signatures will match for equivalent values.
