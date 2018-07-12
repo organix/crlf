@@ -216,23 +216,29 @@ An extended Number begins with `2#srd00111` where _s_ is the sign, _r_ indicates
 encoding   | meaning
 -----------|---------
 2#srd00111 | Number
-2#0xx00111 | Positive number
-2#1xx00111 | Negative number, 2's-complement format (all-bits-set = `-1`)
-2#x0x00111 | No padding, all octets filled
-2#x1x00111 | Padding bits above the MSB (equal to the sign-bit)
-2#xx000111 | Integer value, no decimal-place or exponent
-2#xx100111 | Floating-point value (decimal-place and exponent)
+2#0rd00111 | Positive number
+2#1rd00111 | Negative number, 2's-complement format (all-bits-set = `-1`)
+2#s0d00111 | No padding, all octets filled
+2#s1d00111 | Padding bits above the MSB (equal to the sign-bit)
+2#sr000111 | Integer value, no decimal-place or exponent
+2#sr100111 | Floating-point value (decimal-place and exponent)
 
-Next is the _count_ of octets in the value, as defined above. The _value_ octets follow, LSB-first. If the _r_-bit is `1`, the _value_ is followed by a single octet containing the number of padding bits added to the MSB. Padding bits are equal to the _s_-bit (sign). If the _d_-bit is `1`, there are two Numbers encoded next. The first Number represents the bits following the decimal place. The second Number represents the power-of-10 exponent, which defines the decimal position.
+Next is the _count_ of octets in the value, as defined above. The _value_ octets follow, LSB-first. If the _r_-bit is `1`, the _value_ is followed by a single octet containing the number of padding bits added to the MSB (useful values are `2#00000001` through `2#00000111`). Padding bits are equal to the _s_-bit (sign). If the _d_-bit is `1`, there are two Numbers encoded next. The first Number represents the bits following the decimal place. The second Number represents the power-of-10 exponent, which defines the decimal position.
 
 ### String
 
-An extended String begins with `2#xxx01111` ...
+An extended String begins with `2#exx01111` where _ee_ indicates encoding, and _m_ indicates memoization.
 
 encoding   | meaning
 -----------|---------
-2#xxx01111 | String
+2#eem01111 | String
+2#00001111 | Raw binary octet-sequence
+2#00101111 | Memoized string reference
+2#01m01111 | UTF-8 character sequence
+2#10m01111 | UTF-16 character sequence
+2#11m01111 | Character sequence with named encoding
 
+Next is the _count_ of octets in the value, as defined above. Unless this is a memoized string reference (`2#00101111`), in which case the octet is an index into the memoization table. The memoization table is treated as a ring-buffer, starting at `0`. When the _m_-bit is `1`, an entry is stored and the current index and the index is incremented, wrapping around from `2#11111111` back to `2#00000000`. If the _ee_ value is `2#11`, the _count_ is followed by a String that names the encoding. A decoder will reject an encoding it does not recognize. If the _ee_ value is `2#10` the string value consists of octet-pairs, encoding 16-bit values MSB-first (per RFC 2781). The _value_ octets, in the specified encoding, follow. The string value may begin with a byte-order-mark to signal MSB-first or LSB-first ordering of octets (included in the count, of course, but not in the string value).
 
 ### Array
 
