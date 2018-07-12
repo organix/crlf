@@ -171,3 +171,85 @@ An abstract _object_ value is an unordered collection of zero or more name/value
     }
 }
 ```
+
+
+## Binary Octet-Stream Encoding
+
+For more-efficient network transmission, we propose an octet-stream encoding which is isomorphic to JSON.
+
+There are six types of abstract data values representable in JSON:
+ * Null
+ * Boolean
+ * Number
+ * String
+ * Array
+ * Object
+
+A small group of special values are encoded directly in a single octet. These include:
+
+encoding   | value
+-----------|-------
+2#00000000 | `null`
+2#00000001 | `true`
+2#00000010 | `false`
+2#00000011 | `0` (number zero)
+2#00000100 | `""` (empty string)
+2#00000101 | `[]` (empty array)
+2#00000110 | `{}` (empty object)
+2#xxxxx111 | extended value
+
+Extended values occupy more than one octet. There are four types of extended value:
+
+encoding   | type
+-----------|------
+2#xxx00111 | Number
+2#xxx01111 | String
+2#xxx10111 | Array
+2#xxx11111 | Object
+
+Extended values contain a _count_ indicating how many octets the value occupies (how many to skip if the value is ignored). If the first octet of a count is `2#00000001` through `2#11111111`, it directly represents the number of octets that follow. If the first octet of a count is `2#00000000`, then the count is contained in the next *two* octets, encoded MSB-first. However, if the MSB-octet is `2#00000000`, it is immediately followed (no LSB-octet) by an encoded Number containing the octet-count.
+
+### Number
+
+An extended Number begins with `2#srd00111` where _s_ is the sign, _r_ indicates a remainder, and _d_ indicates a decimal.
+
+encoding   | meaning
+-----------|---------
+2#srd00111 | Number
+2#0xx00111 | Positive number
+2#1xx00111 | Negative number, 2's-complement format (all-bits-set = `-1`)
+2#x0x00111 | No padding, all octets filled
+2#x1x00111 | Padding bits above the MSB (equal to the sign-bit)
+2#xx000111 | Integer value, no decimal-place or exponent
+2#xx100111 | Floating-point value (decimal-place and exponent)
+
+Next is the _count_ of octets in the value, as defined above. The _value_ octets follow, LSB-first. If the _r_-bit is `1`, the _value_ is followed by a single octet containing the number of padding bits added to the MSB. Padding bits are equal to the _s_-bit (sign). If the _d_-bit is `1`, there are two Numbers encoded next. The first Number represents the bits following the decimal place. The second Number represents the power-of-10 exponent, which defines the decimal position.
+
+### String
+
+An extended String begins with `2#xxx01111` ...
+
+encoding   | meaning
+-----------|---------
+2#xxx01111 | String
+
+
+### Array
+
+An extended Array begins with `2#xxx10111` ...
+
+encoding   | meaning
+-----------|---------
+2#xxx10111 | Array
+
+
+### Object
+
+An extended Object begins with `2#xxx11111` ...
+
+encoding   | meaning
+-----------|---------
+2#xxx11111 | Object
+
+
+----
