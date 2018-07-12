@@ -188,25 +188,25 @@ There are six types of abstract data values representable in JSON:
 
 A small group of special values are encoded directly in a single octet. These include:
 
-encoding   | value
------------|-------
-2#00000000 | `null`
-2#00000001 | `true`
-2#00000010 | `false`
-2#00000011 | `0` (number zero)
-2#00000100 | `""` (empty string)
-2#00000101 | `[]` (empty array)
-2#00000110 | `{}` (empty object)
-2#xxxxx111 | extended value
+encoding     | value
+-------------|-------
+`2#00000000` | `null`
+`2#00000001` | `true`
+`2#00000010` | `false`
+`2#00000011` | `0` (number zero)
+`2#00000100` | `""` (empty string)
+`2#00000101` | `[]` (empty array)
+`2#00000110` | `{}` (empty object)
+`2#xxxxx111` | extended value
 
 Extended values occupy more than one octet. There are four types of extended value:
 
-encoding   | type
------------|------
-2#xxx00111 | Number
-2#xxx01111 | String
-2#xxx10111 | Array
-2#xxx11111 | Object
+encoding     | type
+-------------|------
+`2#xxx00111` | Number
+`2#xxx01111` | String
+`2#xxx10111` | Array
+`2#xxx11111` | Object
 
 Extended values contain a _count_ indicating how many octets the value occupies (how many to skip if the value is ignored). If the first octet of a count is `2#00000001` through `2#11111111`, it directly represents the number of octets that follow. If the first octet of a count is `2#00000000`, then the count is contained in the next *two* octets, encoded MSB-first. However, if the MSB-octet is `2#00000000`, it is immediately followed (no LSB-octet) by an encoded Number containing the octet-count.
 
@@ -214,15 +214,15 @@ Extended values contain a _count_ indicating how many octets the value occupies 
 
 An extended Number begins with `2#srd00111` where _s_ is the sign, _r_ indicates a remainder, and _d_ indicates a decimal.
 
-encoding   | meaning
------------|---------
-2#srd00111 | Number
-2#0rd00111 | Positive number
-2#1rd00111 | Negative number, 2's-complement format (all-bits-set = `-1`)
-2#s0d00111 | No padding, all octets filled
-2#s1d00111 | Padding bits above the MSB (equal to the sign-bit)
-2#sr000111 | Integer value, no decimal-place or exponent
-2#sr100111 | Floating-point value (decimal-place and exponent)
+encoding     | meaning
+-------------|---------
+`2#srd00111` | Number
+`2#0rd00111` | Positive number
+`2#1rd00111` | Negative number, 2's-complement format (all-bits-set = `-1`)
+`2#s0d00111` | No padding, all octets filled
+`2#s1d00111` | Padding bits above the MSB (equal to the sign-bit)
+`2#sr000111` | Integer value, no decimal-place or exponent
+`2#sr100111` | Floating-point value (decimal-place and exponent)
 
 Next is the _count_ of octets in the value, as defined above. The _value_ octets follow, LSB-first. If the _r_-bit is `1`, the _value_ is followed by a single octet containing the number of padding bits added to the MSB (useful values are `2#00000000` through `2#00000111`). Padding bits are equal to the _s_-bit (sign). If the _d_-bit is `1`, there are two Numbers encoded next. The first Number represents the bits following the decimal place. The second Number represents the power-of-10 exponent, which defines the decimal position.
 
@@ -230,14 +230,14 @@ Next is the _count_ of octets in the value, as defined above. The _value_ octets
 
 An extended String begins with `2#eem01111` where _ee_ indicates encoding, and _m_ indicates memoization.
 
-encoding   | meaning
------------|---------
-2#eem01111 | String
-2#00001111 | Raw binary octet-sequence
-2#00101111 | Memoized string reference
-2#01m01111 | UTF-8 character sequence
-2#10m01111 | UTF-16 character sequence
-2#11m01111 | Character sequence with named encoding
+encoding     | meaning
+-------------|---------
+`2#eem01111` | String
+`2#00001111` | Raw binary octet-sequence
+`2#00101111` | Memoized string reference
+`2#01m01111` | UTF-8 character sequence
+`2#10m01111` | UTF-16 character sequence
+`2#11m01111` | Character sequence with named encoding
 
 Next is the _count_ of octets in the value, as defined above. Unless this is a memoized string reference (`2#00101111`), in which case the octet is an index into the memoization table. The memoization table is treated as a ring-buffer, starting at `0` for each top-level Value in a stream. When the _m_-bit is `1`, an entry is stored and the current index and the index is incremented, wrapping around from `2#11111111` back to `2#00000000`. If the _ee_ value is `2#11`, the _count_ is followed by a String that names the encoding. A decoder will reject an encoding it does not recognize. If the _ee_ value is `2#10` the string value consists of octet-pairs, encoding 16-bit values MSB-first (per RFC 2781). The _value_ octets, in the specified encoding, follow. A UTF-16 encoded string value may begin with a byte-order-mark to signal MSB-first (`16#FEFF`) or LSB-first (`16#FFFE`) ordering of octets (included in the count, of course, but not in the string value).
 
@@ -245,9 +245,10 @@ Next is the _count_ of octets in the value, as defined above. Unless this is a m
 
 An extended Array begins with `2#xxn10111` where _xx_ is reserved (default `2#00`), and _n_ indicates an element count.
 
-encoding   | meaning
------------|---------
-2#00n10111 | Array
+encoding     | meaning
+-------------|---------
+`2#00010111` | Array
+`2#00110111` | _n_-element Array
 
 Next is the _count_ of octets, as defined above, in the entire array. If the _n_-bit is `1`, a Number of elements in the array follows. Encoded array element Values follow. The end of the array is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching number of elements (if specified). A decoder may reject a mismatch.
 
@@ -255,9 +256,10 @@ Next is the _count_ of octets, as defined above, in the entire array. If the _n_
 
 An extended Object begins with `2#xxn11111` where _xx_ is reserved (default `2#00`), and _n_ indicates an property count.
 
-encoding   | meaning
------------|---------
-2#00n11111 | Object
+encoding     | meaning
+-------------|---------
+`2#00011111` | Object
+`2#00111111` | _n_-property Object
 
 Next is the _count_ of octets, as defined above, in the entire object. If the _n_-bit is `1`, a Number of properties in the object follows. Encoded proerties follow, encoded as a String (property name) followed by an encoded Value. Note that the property name strings may be memoized, reducing the octet-count. The end of the object is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching number of properties (if specified). A decoder may reject a mismatch.
 
