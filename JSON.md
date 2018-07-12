@@ -172,6 +172,7 @@ An abstract _object_ value is an unordered collection of zero or more name/value
 }
 ```
 
+----
 
 ## Binary Octet-Stream Encoding
 
@@ -223,11 +224,11 @@ encoding   | meaning
 2#sr000111 | Integer value, no decimal-place or exponent
 2#sr100111 | Floating-point value (decimal-place and exponent)
 
-Next is the _count_ of octets in the value, as defined above. The _value_ octets follow, LSB-first. If the _r_-bit is `1`, the _value_ is followed by a single octet containing the number of padding bits added to the MSB (useful values are `2#00000001` through `2#00000111`). Padding bits are equal to the _s_-bit (sign). If the _d_-bit is `1`, there are two Numbers encoded next. The first Number represents the bits following the decimal place. The second Number represents the power-of-10 exponent, which defines the decimal position.
+Next is the _count_ of octets in the value, as defined above. The _value_ octets follow, LSB-first. If the _r_-bit is `1`, the _value_ is followed by a single octet containing the number of padding bits added to the MSB (useful values are `2#00000000` through `2#00000111`). Padding bits are equal to the _s_-bit (sign). If the _d_-bit is `1`, there are two Numbers encoded next. The first Number represents the bits following the decimal place. The second Number represents the power-of-10 exponent, which defines the decimal position.
 
 ### String
 
-An extended String begins with `2#exx01111` where _ee_ indicates encoding, and _m_ indicates memoization.
+An extended String begins with `2#eem01111` where _ee_ indicates encoding, and _m_ indicates memoization.
 
 encoding   | meaning
 -----------|---------
@@ -238,24 +239,24 @@ encoding   | meaning
 2#10m01111 | UTF-16 character sequence
 2#11m01111 | Character sequence with named encoding
 
-Next is the _count_ of octets in the value, as defined above. Unless this is a memoized string reference (`2#00101111`), in which case the octet is an index into the memoization table. The memoization table is treated as a ring-buffer, starting at `0`. When the _m_-bit is `1`, an entry is stored and the current index and the index is incremented, wrapping around from `2#11111111` back to `2#00000000`. If the _ee_ value is `2#11`, the _count_ is followed by a String that names the encoding. A decoder will reject an encoding it does not recognize. If the _ee_ value is `2#10` the string value consists of octet-pairs, encoding 16-bit values MSB-first (per RFC 2781). The _value_ octets, in the specified encoding, follow. The string value may begin with a byte-order-mark to signal MSB-first or LSB-first ordering of octets (included in the count, of course, but not in the string value).
+Next is the _count_ of octets in the value, as defined above. Unless this is a memoized string reference (`2#00101111`), in which case the octet is an index into the memoization table. The memoization table is treated as a ring-buffer, starting at `0`. When the _m_-bit is `1`, an entry is stored and the current index and the index is incremented, wrapping around from `2#11111111` back to `2#00000000`. If the _ee_ value is `2#11`, the _count_ is followed by a String that names the encoding. A decoder will reject an encoding it does not recognize. If the _ee_ value is `2#10` the string value consists of octet-pairs, encoding 16-bit values MSB-first (per RFC 2781). The _value_ octets, in the specified encoding, follow. A UTF-16 encoded string value may begin with a byte-order-mark to signal MSB-first (`16#FEFF`) or LSB-first (`16#FFFE`) ordering of octets (included in the count, of course, but not in the string value).
 
 ### Array
 
-An extended Array begins with `2#xxx10111` ...
+An extended Array begins with `2#xxn10111` where _xx_ is reserved (default `2#00`), and _n_ indicates an element count.
 
 encoding   | meaning
 -----------|---------
-2#xxx10111 | Array
+2#00n10111 | Array
 
+Next is the _count_ of octets, as defined above, in the entire array. If the _n_-bit is `1`, a Number of elements in the array follows. Encoded array element Values follow. The end of the array is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching number of elements (if specified). A decoder may reject a mismatch.
 
 ### Object
 
-An extended Object begins with `2#xxx11111` ...
+An extended Object begins with `2#xxn11111` where _xx_ is reserved (default `2#00`), and _n_ indicates an property count.
 
 encoding   | meaning
 -----------|---------
-2#xxx11111 | Object
+2#00n11111 | Object
 
-
-----
+Next is the _count_ of octets, as defined above, in the entire object. If the _n_-bit is `1`, a Number of properties in the object follows. Encoded proerties follow, encoded as a String (property name) followed by an encoded Value. Note that the property name strings may be memoized, reducing the octet-count. The end of the object is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching number of properties (if specified). A decoder may reject a mismatch.
