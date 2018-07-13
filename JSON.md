@@ -308,24 +308,30 @@ Hi \ Lo  |`2#000`|`2#001`|`2#010`|`2#011`|`2#100`|`2#101`|`2#110`|`2#111`
 
 Try again, with better packing this time...
 
-encoding     | value
--------------|-------
-`2#00000000` | `false`
-`2#00000001` | `true`
-`2#00000010` | `[]`
-`2#00000011` | `{}`
-`2#00000100` | `[`...`]`
-`2#00000101` | `{`...`}`
-`2#00000110` | `[` n `]`
-`2#00000111` | `{` n `}`
-`2#00001eem` | String
-`2#00001111` | `""`
-`2#0001sppp` | Integer+pad
-`2#001esppp` | Decimal+exp+pad
-`2#01nnnnnn` | -Integer [-1..-64]
-`2#10000000` | `0`
-`2#1nnnnnnn` | +Integer [0..126]
-`2#11111111` | `null`
+encoding     | value          | extension
+-------------|----------------|------------
+`2#00000000` | `false`        | -
+`2#00000001` | `true`         | -
+`2#00000010` | `[]`           | -
+`2#00000011` | `{}`           | -
+`2#00000100` | `[`...`]`      | octets::Number ::Value\*
+`2#00000101` | `{`...`}`      | octets::Number (name::String ::Value)\*
+`2#00000110` | `[` n `]`      | octets::Number n::Number ::Value\*n
+`2#00000111` | `{` n `}`      | octets::Number n::Number (name::String ::Value)\*n
+`2#00001eem` | String         | octets::Number data::Octet\*
+`2#00001000` | Octet\*        | octets::Number data::Octet\*
+`2#00001001` | * Memo#        | index::Octet
+`2#0000101m` | UTF-8          | octets::Number data::Octet\*
+`2#0000110m` | UTF-16         | octets::Number (hi::Octet lo::Octet)\*
+`2#00001110` | encoded        | octets::Number name::String data::Octet\*
+`2#00001111` | `""`           | -
+`2#0001sppp` | Int+pad        | octets::Number num::Octet\*
+`2#0010sppp` | Dec+pad        | octets::Number num::Octet\* frac::+Int
+`2#0011sppp` | Flt+exp+pad    | octets::Number num::Octet\* frac::+Int exp::Int
+`2#01nnnnnn` | -Int [-1..-64] | -
+`2#10000000` | `0`            | -
+`2#1nnnnnnn` | +Int [0..126]  | -
+`2#11111111` | `null`         | -
 
 The first (possibly only) octet encodes self-describing information about a Value.
 
