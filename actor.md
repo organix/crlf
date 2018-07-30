@@ -161,6 +161,10 @@ A _variable_ expression yields the _value_ currently associated with a variable 
 }
 ```
 
+When an actor receives a _message_ it is bound to the _name_ `"message"` in the initial execution _context_.
+The _name_ `"self"` is bound to the _address_ of the currently-executing (target) actor.
+*[**FIXME**: should the current `"effects"` also be bound in the _context_?]*
+
 #### Literal
 
 A _literal_ expression yields a specific embedded _value_ without further evaluation.
