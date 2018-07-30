@@ -48,7 +48,7 @@ The _create_ primitive constructs a new actor with an initial _behavior_.
     "kind": "create",
     "behavior": <behavior>
 }
-````
+```
 
 The _effects_ object is augmented with the (opaque) _address_ of the newly-created actor and its initial _behavior_.
 
@@ -59,7 +59,7 @@ effects := effects.concatenate {
         behavior: <behavior>
     }
 }
-````
+```
 
 ### Send
 
@@ -69,9 +69,9 @@ The _send_ primitive constructs a new send-event to deliver a specific _message_
 {
     "kind": "send",
     "target": <address>,
-    "message": <any>
+    "message": <value>
 }
-````
+```
 
 The _effects_ object is augmented with the new send-event.
 
@@ -79,10 +79,10 @@ The _effects_ object is augmented with the new send-event.
 effects := effects.concatenate {
     send: effects.send.append {
         target: <address>,
-        message: <any>
+        message: <value>
     }
 }
-````
+```
 
 ### Become
 
@@ -93,7 +93,7 @@ The _become_ primitive specifies a replacement _behavior_ for handling subsequen
     "kind": "become",
     "behavior": <behavior>
 }
-````
+```
 
 The _effects_ object is updated with the new _behavior_.
 
@@ -101,7 +101,90 @@ The _effects_ object is updated with the new _behavior_.
 effects := effects.concatenate {
     become: <behavior>
 }
-````
+```
+
+## Actor Expressions
+
+The primitive actor actions imply the existance of several types:
+
+  * Behavior
+  * Address
+  * Value
+
+Anywhere these types are called for, there may be an _expression_ which yields an object of that type.
+
+### Behavior
+
+A _behavior_ describes the _actions_ of an actor in response to a _message_.
+
+```javascript
+{
+    "kind": "behavior",
+    "actions": [
+        <action>,
+        ...
+    ]
+}
+```
+
+In addition to the primitive _actions_ described above,
+some actions have effects on the _context_ in which a _behavior_ is executing.
+
+#### Bind
+
+A _bind_ action associates a new _value_ with a variable _name_ in the execution _context_.
+
+```javascript
+{
+    "kind": "bind",
+    "name": <string>,
+    "value": <value>
+}
+```
+
+### Address
+
+An _address_ designates a _target_ actor to which messages may be sent. The actor _create_ primitive produces an _address_ for the newly created actor.
+
+### Value
+
+Message contents are immutable _values_ which include actor _addresses_, but **not** _behaviors_. *[**FIXME**: should we allow transmission of behaviors?]*
+
+#### Variable
+
+A _variable_ expression yields the _value_ currently associated with a variable _name_ in the execution _context_.
+
+```javascript
+{
+    "kind": "variable",
+    "name": <string>
+}
+```
+
+#### Literal
+
+A _literal_ expression yields a specific embedded _value_ without further evaluation.
+
+```javascript
+{
+    "kind": "literal",
+    "value": <value>
+}
+```
+
+#### Pipeline
+
+A _pipeline_ expression evaluates a sequence of _value_ expressions, passing each successor to the accumulated _value_, yielding the final accumulated _value_.
+
+```javascript
+{
+    "kind": "pipeline",
+    "expressions": [
+        <value>,
+        ...
+    ]
+}
+```
 
 ## Actor Stack-Machine
 
