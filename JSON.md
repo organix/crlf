@@ -188,41 +188,41 @@ There are six types of abstract data values representable in JSON:
 
 A small set of special values are encoded directly in a single octet:
 
-encoding     | value
--------------|----------------
-`2#00000000` | `false`
-`2#00000001` | `true`
-`2#00000010` | `[]`
-`2#00000011` | `{}`
-`2#00001111` | `""`
-`2#10000000` | `0`
-`2#11111111` | `null`
+encoding     | hex | value
+-------------|-----|----------------
+`2#00000000` |`00` | `false`
+`2#00000001` |`01` | `true`
+`2#00000010` |`02` | `[]`
+`2#00000011` |`03` | `{}`
+`2#00001111` |`0F` | `""`
+`2#10000000` |`80` | `0`
+`2#11111111` |`FF` | `null`
 
 Small integer values (from `-64` through `126`) are also encoded in a single octet:
 
-encoding     | value
--------------|----------------
-`2#01nnnnnn` | -Int [-1..-64]
-`2#1nnnnnnn` | +Int [0..126]
+encoding     | hex | value
+-------------|-----|----------------
+`2#01nnnnnn` |`40`..`7F`| -Int [-1..-64]
+`2#1nnnnnnn` |`80`..`FE`| +Int [0..126]
 
 The encoding of `0` falls naturally within this range. Negative integers are represented in 2's-complement format (all-bits-set = `-1`).
 
 Extended values (Number, String, Array, and Object) occupy more than one octet:
 
-encoding     | value          | extension
--------------|----------------|------------
-`2#00000100` | `[`...`]`      | count::Number ::Value\*
-`2#00000101` | `{`...`}`      | count::Number (name::String ::Value)\*
-`2#00000110` | `[` n `]`      | count::Number n::Number ::Value\*n
-`2#00000111` | `{` n `}`      | count::Number n::Number (name::String ::Value)\*n
-`2#00001000` | Octet\*        | count::Number bytes::Octet\*
-`2#00001001` | * Memo#        | index::Octet
-`2#0000101m` | UTF-8          | count::Number chars::Octet\*
-`2#0000110m` | UTF-16         | count::Number (hi::Octet lo::Octet)\*
-`2#00001110` | encoded        | count::Number name::String data::Octet\*
-`2#0001sppp` | Int+pad        | count::Number int::Octet\*
-`2#0010sppp` | Dec+pad        | count::Number int::Octet\* frac::+Int
-`2#0011sppp` | Flt+exp+pad    | count::Number int::Octet\* frac::+Int exp::Int
+encoding     | hex | value          | extension
+-------------|-----|----------------|------------
+`2#00000100` |`04` | `[`...`]`      | count::Number ::Value\*
+`2#00000101` |`05` | `{`...`}`      | count::Number (name::String ::Value)\*
+`2#00000110` |`06` | `[` n `]`      | count::Number n::Number ::Value\*n
+`2#00000111` |`07` | `{` n `}`      | count::Number n::Number (name::String ::Value)\*n
+`2#00001000` |`08` | Octet\*        | count::Number bytes::Octet\*
+`2#00001001` |`09` | * Memo#        | index::Octet
+`2#0000101m` |`0A`..`0B`| UTF-8          | count::Number chars::Octet\*
+`2#0000110m` |`0C`..`0D`| UTF-16         | count::Number (hi::Octet lo::Octet)\*
+`2#00001110` |`0E` | encoded        | count::Number name::String data::Octet\*
+`2#0001sppp` |`10`..`1F`| Int+pad        | count::Number int::Octet\*
+`2#0010sppp` |`20`..`2F`| Dec+pad        | count::Number int::Octet\* frac::+Int
+`2#0011sppp` |`30`..`3F`| Flt+exp+pad    | count::Number int::Octet\* frac::+Int exp::Int
 
 Extended values (except memo refs) contain a _count_ indicating how many octets the value occupies (how many to skip if the value is ignored) after the count.
 
@@ -230,28 +230,34 @@ Extended values (except memo refs) contain a _count_ indicating how many octets 
 
 An extended Number may be an Integer (`2#0001sppp`), Decimal (`2#0010sppp`), or Float (`2#0011sppp`). The _s_ field is the sign (`0` for positive, `1` for negative). The _ppp_ field is the number of padding bits added to the MSB (`0` through `7`). Padding bits match the sign.
 
-encoding     | value          | extension
--------------|----------------|------------
-`2#0001sppp` | Int+pad        | count::Number int::Octet\*
-`2#0010sppp` | Dec+pad        | count::Number int::Octet\* frac::+Int
-`2#0011sppp` | Flt+exp+pad    | count::Number int::Octet\* frac::+Int exp::Int
-`2#01nnnnnn` | -Int [-1..-64] | -
-`2#1nnnnnnn` | +Int [0..126]  | -
+encoding     | hex | value          | extension
+-------------|-----|----------------|------------
+`2#00010ppp` |`10`..`17`| +Int &pad      | count::Number int::Octet\*
+`2#00011ppp` |`18`..`1F`| -Int &pad      | count::Number int::Octet\*
+`2#00100ppp` |`20`..`27`| +Dec &pad      | count::Number int::Octet\* frac::+Int
+`2#00101ppp` |`28`..`2F`| -Dec &pad      | count::Number int::Octet\* frac::+Int
+`2#00110ppp` |`30`..`37`| +Flt+exp &pad  | count::Number int::Octet\* frac::+Int exp::Int
+`2#00111ppp` |`38`..`3F`| -Flt+exp &pad  | count::Number int::Octet\* frac::+Int exp::Int
+`2#01nnnnnn` |`40`..`7F`| -Int [-1..-64] | -
+`2#1nnnnnnn` |`80`..`FE`| +Int [0..126]  | -
 
-The octets of the _int_ portion are stored LSB first, with the MSB padded as described above. Negative _int_ values are represented in 2's-complement format (all-bits-set = `-1`). If the Number is a Decimal or Float, the _frac_ portion is encoded as a separate (positive Integer) Number. If the single-octet encoding is used for _frac_, the values `0`..`99` represent two decimal places. If the Number is a Float, the _exp_ portion is encoded as an additional Integer, representing the power-of-10 by which the Number is scaled. *[FIXME: how many decimal places does an extended fraction occupy?]*
+The octets of the _int_ portion are stored LSB first, with the MSB padded as described above. Negative _int_ values are represented in 2's-complement format (all-bits-set = `-1`). 
+
+*[WARNING: encodings for Decimal and Float are reserved, but the specification is not yet stable]* 
+If the Number is a Decimal or Float, the _frac_ portion is encoded as a separate (positive Integer) Number. If the single-octet encoding is used for _frac_, the values `0`..`99` represent two decimal places. If the Number is a Float, the _exp_ portion is encoded as an additional Integer, representing the power-of-10 by which the Number is scaled. *[FIXME: how many decimal places does an extended fraction occupy?]*
 
 ### String
 
 An extended String begins with `2#00001eem` where _ee_ indicates encoding, and _m_ indicates memoization.
 
-encoding     | value          | extension
--------------|----------------|------------
-`2#00001000` | Octet\*        | count::Number bytes::Octet\*
-`2#00001001` | * Memo#        | index::Octet
-`2#0000101m` | UTF-8          | count::Number chars::Octet\*
-`2#0000110m` | UTF-16         | count::Number (hi::Octet lo::Octet)\*
-`2#00001110` | encoded        | count::Number name::String data::Octet\*
-`2#00001111` | `""`           | -
+encoding     | hex | value          | extension
+-------------|-----|----------------|------------
+`2#00001000` |`08` | Octet\*        | count::Number bytes::Octet\*
+`2#00001001` |`09` | * Memo#        | index::Octet
+`2#0000101m` |`0A`..`0B`| UTF-8          | count::Number chars::Octet\*
+`2#0000110m` |`0C`..`0D`| UTF-16         | count::Number (hi::Octet lo::Octet)\*
+`2#00001110` |`0E` | encoded        | count::Number name::String data::Octet\*
+`2#00001111` |`0F` | `""`           | -
 
 Next is the _count_ of octets in the value, as defined above. Unless this is a memoized string reference (`2#00001001`), in which case the octet is an index into the memoization table. The memoization table is treated as a ring-buffer, starting at `0` for each top-level Value in a stream. For UTF-8 and UTF-16 values, when the _m_-bit is `1` an entry is stored at the current memo index and the index is incremented, wrapping around from `2#11111111` back to `2#00000000`. If _eem_ is `2#110`, the _count_ is followed by a String that names the encoding. A decoder will reject an encoding it does not recognize. If _ee_ is `2#10` the string value consists of octet-pairs, encoding 16-bit values MSB-first (per RFC 2781). A UTF-16 encoded string value may begin with a byte-order-mark to signal MSB-first (`16#FEFF`) or LSB-first (`16#FFFE`) ordering of octets (included in the count, of course, but not in the string value).
 
@@ -259,11 +265,11 @@ Next is the _count_ of octets in the value, as defined above. Unless this is a m
 
 An extended Array may (`2#00000110`), or may not (`2#00000100`), specify an element count. However, a _count_ of octets is always provided for non-empty Arrays.
 
-encoding     | value          | extension
--------------|----------------|------------
-`2#00000010` | `[]`           | -
-`2#00000100` | `[`...`]`      | count::Number ::Value\*
-`2#00000110` | `[` n `]`      | count::Number n::Number ::Value\*n
+encoding     | hex | value          | extension
+-------------|-----|----------------|------------
+`2#00000010` |`02` | `[]`           | -
+`2#00000100` |`04` | `[`...`]`      | count::Number ::Value\*
+`2#00000110` |`06` | `[` n `]`      | count::Number n::Number ::Value\*n
 
 The end of the array is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching number of elements (if specified). A decoder may reject a mismatch.
 
@@ -271,11 +277,11 @@ The end of the array is reached when then specified number of octets have been c
 
 An extended Object may (`2#00000111`), or may not (`2#00000101`), specify a property count. However, a _count_ of octets is always provided for non-empty Objects.
 
-encoding     | value          | extension
--------------|----------------|------------
-`2#00000011` | `{}`           | -
-`2#00000101` | `{`...`}`      | count::Number (name::String ::Value)\*
-`2#00000111` | `{` n `}`      | count::Number n::Number (name::String ::Value)\*n
+encoding     | hex | value          | extension
+-------------|-----|----------------|------------
+`2#00000011` |`03` | `{}`           | -
+`2#00000101` |`05` | `{`...`}`      | count::Number (name::String ::Value)\*
+`2#00000111` |`07` | `{` n `}`      | count::Number n::Number (name::String ::Value)\*n
 
 Properties are encoded as a String (property name) followed by an encoded Value. Note that the property name strings may be memoized, reducing the octet-count. The end of the object is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching number of properties (if specified). A decoder may reject a mismatch.
 
