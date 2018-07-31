@@ -130,13 +130,13 @@ A _behavior_ describes the _actions_ of an actor in response to a _message_.
 In addition to the primitive _actions_ described above,
 some actions have effects on the _context_ in which a _behavior_ is executing.
 
-#### Bind
+#### Assign
 
-A _bind_ action associates a new _value_ with a variable _name_ in the execution _context_.
+An _assign_ action associates a new _value_ with a variable _name_ in the execution _context_.
 
 ```javascript
 {
-    "kind": "bind",
+    "kind": "assign",
     "name": <string>,
     "value": <value>
 }
@@ -200,38 +200,38 @@ An actor's behavior is described with a _block_. The message received by the act
 
 Input                | Operation       | Output                  | Description
 ---------------------|-----------------|-------------------------|------------
-_block_              | CREATE          | _actor_                 | Create a new actor with _block_ behavior
-..._message_ _actor_ | SEND            | &mdash;                 | Send _message_ to _actor_
-_block_              | BECOME          | &mdash;                 | Replace current actor's behavior with _block_
-&mdash;              | SELF            | _actor_                 | Push the current actor's address on the data stack
-_value_              | = _word_        | &mdash;                 | Bind _value_ to _word_ in the current dictionary
-&mdash;              | ' _word_        | _word_                  | Push (literal) _word_ on the data stack
-&mdash;              | @ _word_        | _value_                 | Lookup _value_ bound to _word_ in the current dictionary
-&mdash;              | [ ... ]         | _block_                 | Create block (quoted) value
-[ ...                | ( ... )         | [ ...                   | Immediate (unquoted) value
-_bool_               | IF [ ] ELSE [ ] | &mdash;                 | Conditional execution of blocks
-_v_                  | DROP            | &mdash;                 | Drop the top element
-_v_                  | DUP             | _v_ _v_                 | Duplicate the top element
-_v_<sub>2</sub> _v_<sub>1</sub> | SWAP | _v_<sub>1</sub> _v_<sub>2</sub> | Swap the top two elements
-_v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | PICK | _v_<sub>n</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Duplicate element _n_
-_v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | ROLL | _v_<sub>n-1</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Rotate stack elements (negative for reverse)
-&mdash;              | DEPTH           | _n_                     | Number of items on the data stack
-_n_ _m_              | ADD             | _n+m_                   | Numeric addition
-_n_ _m_              | MUL             | _n*m_                   | Numeric multiplication
-_n_ _m_              | COMPARE         | _n-m_                   | Compare numeric values
-&mdash;              | TRUE            | TRUE                    | All bits set (1)
-&mdash;              | FALSE           | FALSE                   | All bits clear (0)
-_n_                  | LT?             | _bool_                  | TRUE if _n_ < 0; otherwise FALSE
-_n_                  | EQ?             | _bool_                  | TRUE if _n_ = 0; otherwise FALSE
-_n_                  | GT?             | _bool_                  | TRUE if _n_ > 0; otherwise FALSE
-_n_                  | NOT             | ~_n_                    | Bitwise negation
-_n_ _m_              | AND             | _n_&_m_                 | Bitwise and
-_n_ _m_              | OR              | _n_\|_m_                | Bitwise or
-_n_ _m_              | XOR             | _n_^_m_                 | Bitwise xor
-_address_            | ?               | _value_                 | Load _value_ from _address_
-_value_ _address_    | !               | &mdash;                 | Store _value_ into _address_
-_address_            | ??              | _value_                 | Atomic load _value_ from volatile _address_
-_value_ _address_    | !!              | &mdash;                 | Atomic store _value_ into volatile _address_
+_block_              | `CREATE`        | _actor_                 | Create a new actor with _block_ behavior
+..._message_ _actor_ | `SEND`          | &mdash;                 | Send _message_ to _actor_
+_block_              | `BECOME`        | &mdash;                 | Replace current actor's behavior with _block_
+&mdash;              | `SELF`          | _actor_                 | Push the current actor's address on the data stack
+_value_              | `=` _word_      | &mdash;                 | Bind _value_ to _word_ in the current dictionary
+&mdash;              | `'` _word_      | _word_                  | Push (literal) _word_ on the data stack
+&mdash;              | `@` _word_      | _value_                 | Lookup _value_ bound to _word_ in the current dictionary
+&mdash;              | `[` ... `]`     | _block_                 | Create block (quoted) value
+[ ...                | `(` ... `)`     | [ ...                   | Immediate (unquoted) value
+_bool_               | `IF` [ ] `ELSE` [ ] | &mdash;             | Conditional execution of blocks
+_v_                  | `DROP`          | &mdash;                 | Drop the top element
+_v_                  | `DUP`           | _v_ _v_                 | Duplicate the top element (same as `1 PICK`)
+_v_<sub>2</sub> _v_<sub>1</sub> | `SWAP` | _v_<sub>1</sub> _v_<sub>2</sub> | Swap the top two elements (same as `2 ROLL`)
+_v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | `PICK` | _v_<sub>n</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Duplicate element _n_
+_v_<sub>n</sub> ... _v_<sub>1</sub> _n_ | `ROLL` | _v_<sub>n-1</sub> ... _v_<sub>1</sub> _v_<sub>n</sub> | Rotate stack elements (negative for reverse)
+&mdash;              | `DEPTH`         | _n_                     | Number of items on the data stack
+_n_ _m_              | `ADD`           | _n+m_                   | Numeric addition
+_n_ _m_              | `MUL`           | _n*m_                   | Numeric multiplication
+_n_ _m_              | `COMPARE`       | _n-m_                   | Compare numeric values
+&mdash;              | `TRUE`          | TRUE                    | All bits set (1)
+&mdash;              | `FALSE`         | FALSE                   | All bits clear (0)
+_n_                  | `LT?`           | _bool_                  | `TRUE` if _n_ < 0; otherwise `FALSE`
+_n_                  | `EQ?`           | _bool_                  | `TRUE` if _n_ = 0; otherwise `FALSE`
+_n_                  | `GT?`           | _bool_                  | `TRUE` if _n_ > 0; otherwise `FALSE`
+_n_                  | `NOT`           | ~_n_                    | Bitwise negation
+_n_ _m_              | `AND`           | _n_&_m_                 | Bitwise and
+_n_ _m_              | `OR`            | _n_\|_m_                | Bitwise or
+_n_ _m_              | `XOR`           | _n_^_m_                 | Bitwise xor
+_address_            | `?`             | _value_                 | Load _value_ from _address_
+_value_ _address_    | `!`             | &mdash;                 | Store _value_ into _address_
+_address_            | `??`            | _value_                 | Atomic load _value_ from volatile _address_
+_value_ _address_    | `!!`            | &mdash;                 | Atomic store _value_ into volatile _address_
 
 ### Example
 
