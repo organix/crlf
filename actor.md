@@ -190,6 +190,29 @@ A _pipeline_ expression evaluates a sequence of _value_ expressions, passing eac
 }
 ```
 
+#### Method
+
+A _method_ evaluates a _pipeline_ by inserting a parameter _value_ as the initial accumulator. A _method_ is constructed by sending `"method"` to an Array. Consider the following example:
+
+```javascript
+{
+    "kind": "assign",
+    "name": "succ",
+    "value": {
+        "kind": "pipeline",
+        "expressions": [
+            [
+                "plus",
+                1
+            ],
+            "method"
+        ]
+    }
+}
+```
+
+This _statement_ defines a numeric successor method and binds it to the identifier "succ" in the current environment.
+
 ## Actor Stack-Machine
 
 There are many possible models for describing an actor's behavior. One simple model is an [imperative](https://en.wikipedia.org/wiki/Imperative_programming) stack-oriented machine with a dictionary (similar to [FORTH](https://en.wikipedia.org/wiki/Forth_(programming_language))).
