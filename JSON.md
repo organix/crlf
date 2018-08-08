@@ -261,6 +261,10 @@ encoding     | hex | value          | extension
 
 Next is the _count_ of octets in the value, as defined above. Unless this is a memoized string reference (`2#00001001`), in which case the octet is an index into the memoization table. The memoization table is treated as a ring-buffer, starting at `0` for each top-level Value in a stream. For UTF-8 and UTF-16 values, when the _m_-bit is `1` an entry is stored at the current memo index and the index is incremented, wrapping around from `2#11111111` back to `2#00000000`. If _eem_ is `2#110`, the _count_ is followed by a String that names the encoding. A decoder will reject an encoding it does not recognize. If _ee_ is `2#10` the string value consists of octet-pairs, encoding 16-bit values MSB-first (per [RFC 2781](https://tools.ietf.org/html/rfc2781)). A UTF-16 encoded string value may begin with a byte-order-mark to signal MSB-first (`16#FEFF`) or LSB-first (`16#FFFE`) ordering of octets (included in the count, of course, but not in the string value).
 
+#### Capability (recommendation)
+
+In applications that require the transmission of [_capabilities_](https://en.wikipedia.org/wiki/Capability-based_security), a String may be used to represent capabilities in transit. This requires some way to distinguish these capabilities from normal Strings. One recommendation is to mark each String with a distinguishing prefix. For normal Strings, a [byte-order-mark](https://en.wikipedia.org/wiki/Byte_order_mark) is a safe choice. For capability Strings, a [data-link-escape](https://en.wikipedia.org/wiki/C0_and_C1_control_codes) (which is `2#00010000` or `^P` in ASCII) can provide the desired semantics, interpreting the rest of the String a binary-octet data.
+
 ### Array
 
 An extended Array may (`2#00000110`), or may not (`2#00000100`), specify an element count. However, a _count_ of octets is always provided for non-empty Arrays.
