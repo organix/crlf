@@ -213,6 +213,50 @@ A _method_ evaluates a _pipeline_ by inserting a parameter _value_ as the initia
 
 This _statement_ defines a numeric successor method and binds it to the identifier "succ" in the current environment.
 
+### Examples
+
+An example of a `send` effect, as previously described:
+
+```
+effects := effects.concatenate {
+    send: effects.send.append {
+        target: cust,
+        message: self
+    }
+}
+```
+
+An equivalent VO statement would be:
+
+```javascript
+{
+    "kind": "assign",
+    "name": "effects",
+    "value": {
+        "kind": "pipeline",
+        "expressions": [
+            { "kind": "variable", "name": "effects" },
+            "concatenate",
+            {
+                "send": {
+                    "kind": "pipeline",
+                    "expressions": [
+                        { "kind": "variable", "name": "effects" },
+                        "value",
+                        "send",
+                        "append",
+                        {
+                            "target": { "kind": "variable", "name": "cust" },
+                            "message": { "kind": "variable", "name": "self" }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}
+```
+
 ## Actor Stack-Machine
 
 There are many possible models for describing an actor's behavior. One simple model is an [imperative](https://en.wikipedia.org/wiki/Imperative_programming) stack-oriented machine with a dictionary (similar to [FORTH](https://en.wikipedia.org/wiki/Forth_(programming_language))).
