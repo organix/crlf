@@ -331,3 +331,8 @@ Hi \ Lo  | `2#000` | `2#001` | `2#010` | `2#011` | `2#100` | `2#101` | `2#110` |
 ### Canonical Encoding
 
 It is desirable to define a canonical encoding such that digital signatures will match for equivalent values.
+
+### Comparison to CBOR
+
+The [Concise Binary Object Representation](https://tools.ietf.org/html/rfc7049) (CBOR) is a data format whose design goals include the possibility of extremely small code size, fairly small message size, and extensibility without the need for version negotiation. It has similar design goals, but makes different implementation decisions.
+
