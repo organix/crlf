@@ -221,30 +221,30 @@ encoding     | hex | value          | extension
 `2#0000110m` |`0C`..`0D`| UTF-16         | size::Number (hi::Octet lo::Octet)\*
 `2#00001110` |`0E` | encoded        | size::Number name::String data::Octet\*
 `2#0001sppp` |`10`..`1F`| Int+pad        | size::Number int::Octet\*
-`2#0010sppp` |`20`..`2F`| Dec+pad        | size::Number int::Octet\* frac::+Int
-`2#0011sppp` |`30`..`3F`| Flt+exp+pad    | size::Number int::Octet\* frac::+Int exp::Int
+`2#001usppp` |`20`..`3F`| Unum+pad       | size::Number exp::Number int::Octet\*
 
 Extended values (except memo refs) contain a _size_ indicating how many octets the value occupies (how many to skip if the value is ignored) after the size.
 
 ### Number
 
-An extended Number may be an Integer (`2#0001sppp`), Decimal (`2#0010sppp`), or Float (`2#0011sppp`). The _s_ field is the sign (`0` for positive, `1` for negative). The _ppp_ field is the number of padding bits added to the MSB (`0` through `7`). Padding bits match the sign.
+An extended Number may be an Integer (`2#0001sppp`) or [Unum](https://en.wikipedia.org/wiki/Unum_(number_format)) (`2#001usppp`). The _s_ field is the sign (`0` for positive, `1` for negative). The _u_ field, if present, is uncertainty (`0` for exact, `1` for range). The _ppp_ field is the number of padding bits added to the MSB (`0` through `7`). Padding bits match the sign.
 
 encoding     | hex | value          | extension
 -------------|-----|----------------|------------
 `2#00010ppp` |`10`..`17`| +Int &pad      | size::Number int::Octet\*
 `2#00011ppp` |`18`..`1F`| -Int &pad      | size::Number int::Octet\*
-`2#00100ppp` |`20`..`27`| +Dec &pad      | size::Number int::Octet\* frac::+Int
-`2#00101ppp` |`28`..`2F`| -Dec &pad      | size::Number int::Octet\* frac::+Int
-`2#00110ppp` |`30`..`37`| +Flt+exp &pad  | size::Number int::Octet\* frac::+Int exp::Int
-`2#00111ppp` |`38`..`3F`| -Flt+exp &pad  | size::Number int::Octet\* frac::+Int exp::Int
+`2#00100ppp` |`20`..`27`| exact +Unum &pad  | size::Number exp::Number bits::Octet\*
+`2#00101ppp` |`28`..`2F`| exact -Unum &pad  | size::Number exp::Number bits::Octet\*
+`2#00110ppp` |`30`..`37`| range +Unum &pad  | size::Number exp::Number bits::Octet\*
+`2#00111ppp` |`38`..`3F`| range -Unum &pad  | size::Number exp::Number bits::Octet\*
 `2#01nnnnnn` |`40`..`7F`| -Int [-1..-64] | -
 `2#1nnnnnnn` |`80`..`FE`| +Int [0..126]  | -
 
-The octets of the _int_ portion are stored LSB first, with the MSB padded as described above. Negative _int_ values are represented in 2's-complement format (all-bits-set = `-1`). 
+The octets of the _int_ or _bits_ portion are stored LSB first, with the MSB padded as described above. Negative _int_ values are represented in 2's-complement format (all-bits-set = `-1`). Unums are stored in sign-magnitude format with padding bits matching the sign. The _exp_ field defines the number of bits designated for the exponent (from the MSB). The remaining bits are designated for the significand.
 
-*[WARNING: encodings for Decimal and Float are reserved, but the specification is not yet stable]* 
-If the Number is a Decimal or Float, the _frac_ portion is encoded as a separate (positive Integer) Number. If the single-octet encoding is used for _frac_, the values `0`..`99` represent two decimal places. If the Number is a Float, the _exp_ portion is encoded as an additional Integer, representing the power-of-10 by which the Number is scaled. *[FIXME: how many decimal places does an extended fraction occupy?]*
+#### IEEE 754 Floating Point (recommendation)
+
+A 64-bit "double-precision" [IEEE 754 floating point](https://en.wikipedia.org/wiki/IEEE_754-1985) value can be encoded without changing any of the bits in the 8-byte standard representation. The first octet is `2#0010s001` where _s_ is a copy of the sign bit. The second octet is `2#10001001` indicating there are 9 bytes following. The third octet is `2#10001011` indicating 11 bits of exponent. The fourth through eleventh octets are the 8-byte standard representation, LSB first: `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffeeee` `2#seeeeeee` (52-bit fraction _f_, 11-bit exponent _e_, 1-bit sign _s_).
 
 ### String
 
@@ -297,12 +297,12 @@ Hi \ Lo  | `2#000` | `2#001` | `2#010` | `2#011` | `2#100` | `2#101` | `2#110` |
 ---------|---------|---------|---------|---------|---------|---------|---------|---------
 `2#00000`| `false` | `true`  | `[]`    | `{}`    |`[`...`]`|`{`...`}`|`[` n `]`|`{` n `}`
 `2#00001`| octets  | * memo# | UTF-8   | UTF-8*  | UTF-16  | UTF-16* | encoded | `""`
-`2#00010`| +Int &0 | +Int &1 | +Int &2 | +Int &3 | +Int &4 | +Int &5 | +Int &6 | +Int &7
-`2#00011`| -Int &0 | -Int &1 | -Int &2 | -Int &3 | -Int &4 | -Int &5 | -Int &6 | -Int &7
-`2#00100`| +Dec &0 | +Dec &1 | +Dec &2 | +Dec &3 | +Dec &4 | +Dec &5 | +Dec &6 | +Dec &7
-`2#00101`| -Dec &0 | -Dec &1 | -Dec &2 | -Dec &3 | -Dec &4 | -Dec &5 | -Dec &6 | -Dec &7
-`2#00110`| +Flt &0 | +Flt &1 | +Flt &2 | +Flt &3 | +Flt &4 | +Flt &5 | +Flt &6 | +Flt &7
-`2#00111`| -Flt &0 | -Flt &1 | -Flt &2 | -Flt &3 | -Flt &4 | -Flt &5 | -Flt &6 | -Flt &7
+`2#00010`| +Int&0  | +Int&1  | +Int&2  | +Int&3  | +Int&4  | +Int&5  | +Int&6  | +Int&7
+`2#00011`| -Int&0  | -Int&1  | -Int&2  | -Int&3  | -Int&4  | -Int&5  | -Int&6  | -Int&7
+`2#00100`| +Flt&0  | +Flt&1  | +Flt&2  | +Flt&3  | +Flt&4  | +Flt&5  | +Flt&6  | +Flt&7
+`2#00101`| -Flt&0  | -Flt&1  | -Flt&2  | -Flt&3  | -Flt&4  | -Flt&5  | -Flt&6  | -Flt&7
+`2#00110`| +Rng&0  | +Rng&1  | +Rng&2  | +Rng&3  | +Rng&4  | +Rng&5  | +Rng&6  | +Rng&7
+`2#00111`| -Rng&0  | -Rng&1  | -Rng&2  | -Rng&3  | -Rng&4  | -Rng&5  | -Rng&6  | -Rng&7
 `2#01000`| `-64`   | `-63`   | `-62`   | `-61`   | `-60`   | `-59`   | `-58`   | `-57`
 `2#01001`| `-56`   | `-55`   | `-54`   | `-53`   | `-52`   | `-51`   | `-50`   | `-49`
 `2#01010`| `-48`   | `-47`   | `-46`   | `-45`   | `-44`   | `-43`   | `-42`   | `-41`
