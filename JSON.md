@@ -202,7 +202,7 @@ Small integer values (from `-64` through `126`) are also encoded in a single oct
 
 encoding     | hex | value
 -------------|-----|----------------
-`2#01nnnnnn` |`40`..`7F`| -Int [-1..-64]
+`2#01nnnnnn` |`40`..`7F`| -Int [-64..-1]
 `2#1nnnnnnn` |`80`..`FE`| +Int [0..126]
 
 The encoding of `0` falls naturally within this range. Negative integers are represented in 2's-complement format (all-bits-set = `-1`).
@@ -237,7 +237,7 @@ encoding     | hex | value          | extension
 `2#00101ppp` |`28`..`2F`| exact -Unum &pad  | size::Number exp::Number bits::Octet\*
 `2#00110ppp` |`30`..`37`| range +Unum &pad  | size::Number exp::Number bits::Octet\*
 `2#00111ppp` |`38`..`3F`| range -Unum &pad  | size::Number exp::Number bits::Octet\*
-`2#01nnnnnn` |`40`..`7F`| -Int [-1..-64] | -
+`2#01nnnnnn` |`40`..`7F`| -Int [-64..-1] | -
 `2#1nnnnnnn` |`80`..`FE`| +Int [0..126]  | -
 
 The octets of the _int_ or _bits_ portion are stored LSB first, with the MSB padded as described above. Negative _int_ values are represented in 2's-complement format (all-bits-set = `-1`). Unums are stored in sign-magnitude format with padding bits matching the sign. The _exp_ field defines the number of bits designated for the exponent (from the MSB). The remaining bits are designated for the significand.
