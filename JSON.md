@@ -244,7 +244,7 @@ The octets of the _int_ or _bits_ portion are stored LSB first, with the MSB pad
 
 #### IEEE 754 Floating Point (recommendation)
 
-A 64-bit "double-precision" [IEEE 754 floating point](https://en.wikipedia.org/wiki/IEEE_754-1985) value can be encoded without changing any of the bits in the 8-byte standard representation. The first octet is `2#0010s001` where _s_ is a copy of the sign bit. The second octet is `2#10001001` indicating there are 9 bytes following. The third octet is `2#10001011` indicating 11 bits of exponent. The fourth through eleventh octets are the 8-byte standard representation, LSB first: `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffeeee` `2#seeeeeee` (52-bit fraction _f_, 11-bit exponent _e_, 1-bit sign _s_).
+A 64-bit "double-precision" [IEEE 754 floating point](https://en.wikipedia.org/wiki/IEEE_754-1985) value can be encoded without changing any of the bits in the 8-byte standard LSB-first representation. The first octet is `2#0010s001` where _s_ is a copy of the sign bit. The second octet is `2#10001001` indicating there are 9 bytes following. The third octet is `2#10001011` indicating 11 bits of exponent. The fourth through eleventh octets are the 8-byte standard representation, LSB first: `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffeeee` `2#seeeeeee` (52-bit fraction _f_, 11-bit exponent _e_, 1-bit sign _s_).
 
 ### String
 
@@ -259,11 +259,11 @@ encoding     | hex | value          | extension
 `2#00001110` |`0E` | encoded        | size::Number name::String data::Octet\*
 `2#00001111` |`0F` | `""`           | -
 
-Next is the _size_ of the value in octets, as defined above. Unless this is a memoized string reference (`2#00001001`), in which case the next octet is an _index_ into the memoization table. The memoization table is treated as a ring-buffer, starting at `0` for each top-level Value in a stream. For UTF-8 and UTF-16 values, when the _m_-bit is `1` an entry is stored at the current memo index and the index is incremented, wrapping around from `2#11111111` back to `2#00000000`. If _eem_ is `2#110`, the _size_ is followed by a String that names the encoding. A decoder will reject an encoding it does not recognize. If _ee_ is `2#10` the string value consists of octet-pairs, encoding 16-bit values MSB-first (per [RFC 2781](https://tools.ietf.org/html/rfc2781)). A UTF-16 encoded string value may begin with a byte-order-mark (included in the _size_, of course, but not in the string value) to signal MSB-first (`16#FEFF`) or LSB-first (`16#FFFE`) ordering of octets.
+Next is the _size_ of the value in octets, as defined above. Unless this is a memoized string reference (`2#00001001`), in which case the next octet is an _index_ into the memoization table. The memoization table is treated as a ring-buffer, starting at `0` for each top-level Value in a stream. Memoized strings are often used for Object property names. For UTF-8 and UTF-16 values, when the _m_-bit is `1` an entry is stored at the current memo index and the index is incremented, wrapping around from `2#11111111` back to `2#00000000`. If _eem_ is `2#110`, the _size_ is followed by a String that names the encoding. A decoder will reject an encoding it does not recognize. If _ee_ is `2#10` the string value consists of octet-pairs, encoding 16-bit values MSB-first (per [RFC 2781](https://tools.ietf.org/html/rfc2781)). A UTF-16 encoded string value may begin with a byte-order-mark (included in the _size_, of course, but not in the string value) to signal MSB-first (`16#FEFF`) or LSB-first (`16#FFFE`) ordering of octets.
 
 #### Capability (recommendation)
 
-In applications that require the transmission of [_capabilities_](https://en.wikipedia.org/wiki/Capability-based_security), a String may be used to represent capabilities in transit. This requires some way to distinguish these capabilities from normal Strings. Our recommendation is to mark each String with a distinguishing prefix. For normal Strings, a [byte-order-mark](https://en.wikipedia.org/wiki/Byte_order_mark) is a safe choice. For capability Strings, a [data-link-escape](https://en.wikipedia.org/wiki/C0_and_C1_control_codes) (which is `2#00010000`, or `^P` in ASCII) can provide the desired semantics, interpreting the rest of the String a binary-octet data.
+In applications that require the transmission of [_capabilities_](https://en.wikipedia.org/wiki/Capability-based_security), a String may be used to represent capabilities in transit. This requires some way to distinguish these capabilities from normal Strings. Our recommendation is to mark each String with a distinguishing prefix. For normal Strings, a [byte-order-mark](https://en.wikipedia.org/wiki/Byte_order_mark) is a safe choice. For capability Strings, a [data-link-escape](https://en.wikipedia.org/wiki/C0_and_C1_control_codes) (which is `2#00010000`, or `^P` in ASCII) can provide the desired semantics, interpreting the rest of the String as binary-octet data.
 
 ### Array
 
@@ -287,7 +287,7 @@ encoding     | hex | value          | extension
 `2#00000101` |`05` | `{`...`}`      | size::Number (name::String ::Value)\*
 `2#00000111` |`07` | `{` count `}`      | size::Number count::Number (name::String ::Value)\*n
 
-Properties are encoded as a String (property name) followed by an encoded Value. Note that the property name strings may be memoized, reducing the octet-size. The end of the object is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching count of properties (if specified). A decoder may reject a mismatch.
+Properties are encoded as a String (property name) followed by an encoded Value. Note that the property name strings may be memoized, reducing the octet-size of the object. The end of the object is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching count of properties (if specified). A decoder may reject a mismatch.
 
 ### Encoding Matrix
 
