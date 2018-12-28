@@ -142,13 +142,15 @@ An _assign_ action associates a new _value_ with a variable _name_ in the execut
 }
 ```
 
+Each actor maintains a persistent set of bindings from _names_ to _values_.
+
 ### Address
 
-An _address_ designates a _target_ actor to which messages may be sent. The actor _create_ primitive produces an _address_ for the newly created actor.
+An _address_ designates a _target_ actor to which messages may be sent. The actor _create_ primitive produces an _address_ for the newly created actor. The _SELF_ expression designates the _address_ of the currently-executing (target) actor.
 
 ### Value
 
-Message contents are immutable _values_ which include actor _addresses_, but **not** _behaviors_. *[**FIXME**: should we allow transmission of behaviors?]*
+Message contents are bindings of _names_ to immutable _values_ (which include actor _addresses_).
 
 #### Variable
 
@@ -161,9 +163,19 @@ A _variable_ expression yields the _value_ currently associated with a variable 
 }
 ```
 
-When an actor receives a _message_ it is bound to the _name_ `"message"` in the initial execution _context_.
-The _name_ `"self"` is bound to the _address_ of the currently-executing (target) actor.
-*[**FIXME**: should the current `"effects"` also be bound in the _context_?]*
+When an actor receives a _message_, the bindings are concatented to the actor state, forming the execution _context_.
+
+#### SELF
+
+A _SELF_ expression yields the the _address_ of the currently-executing (target) actor.
+
+```javascript
+{
+    "kind": "self"
+}
+```
+
+_SELF_ is not a variable, but an expression that designates the _address_ of the currently-executing actor.
 
 #### Literal
 
@@ -191,6 +203,8 @@ A _pipeline_ expression evaluates a sequence of _value_ expressions, passing eac
 ```
 
 #### Method
+
+**[FIXME]** : _Pipeline and Method should be replaced by a single abstraction-constructor that creates a Function which can be applied to a dictionary!_
 
 A _method_ evaluates a _pipeline_ by inserting a parameter _value_ as the initial accumulator. A _method_ is constructed by sending `"method"` to an Array. Consider the following example:
 
