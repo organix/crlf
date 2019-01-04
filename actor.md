@@ -391,3 +391,21 @@ serial_write serial_empty_beh CREATE = serial_buffer
 
 serial_echo serial_read SEND  # start echo listen-loop
 ```
+
+## Actor Assignment-Machine
+
+An actor's behavior can also be decribed using a sequential model of variable assignments. This is essentially the model of contemporary processor cores. However, in order to avoid the pitfalls of shared mutable state, we only allow assignment to actor-local (private) variables. All visible effects are captured in the asynchronous messages between actors.
+
+A _sponsor_ plays the role of a processor core, mediating access to computational resources and executing the instructions in an actor's behavior script (the _program_). Each message delivery event is handled as if it was an atomic transaction. No effects are visible outside the actor until message handling is completed. Message handling may be aborted by an exception, in which case the message is effectively ignored.
+
+A _dictionary_ mapping names to values is the primary conceptual data structure. Each actor maintains a persistent dictionary of local variables, representing it's private state. The behavior of an actor is organized into message-handlers based on message patterns. Each pattern is associated with a script for handling matching messages. Each message is a _dictionary_ whose mappings are appended to the actor's private state, forming the environment in which script variables are resolved.
+
+```
+behavior-definition     <-  message-handler ('|' message-handler)*
+message-handler         <-  message-pattern '->' handler-script
+message-pattern         <-  '{' variable-pattern (',' variable-pattern)* '}'
+variable-pattern        <-  name ':' type
+handler-script          <-  '[' script-action* ']'
+script-action           <-  assigment / ...
+assignment              <-  name ':=' expression
+```
