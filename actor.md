@@ -405,7 +405,31 @@ behavior-definition     <-  message-handler ('|' message-handler)*
 message-handler         <-  message-pattern '->' handler-script
 message-pattern         <-  '{' variable-pattern (',' variable-pattern)* '}'
 variable-pattern        <-  name ':' type
+type                    <-  literal-type
+                        /   ...
 handler-script          <-  '[' script-action* ']'
-script-action           <-  assigment / ...
+script-action           <-  assigment
+                        /   ...
 assignment              <-  name ':=' expression
+expression              <-  object-constructor
+                        /   array-constructor
+                        /   literal-string
+                        /   literal-number
+                        /   literal-boolean
+                        /   literal-unit
+                        /   ...
+object-constructor      <-  '[' property-constructor (',' property-constructor)* ']'
+property-constructor    <-  (name / literal-string) ':' expression
+array-constructor       <-  '[' expression (',' expression)* ']'
+literal-type            <-  'Unit' / 'Boolean' / 'Number' / 'String' / 'Array' / 'Object'
+literal-string          <-  open-quote literal-character* close-quote
+literal-number          <-  integer ('.' fraction)? (('e' / 'E') exponent)?
+literal-boolean         <-  'true' / 'false'
+literal-unit            <-  'null'
+integer                 <-  ('+' / '-')? natural
+natural                 <-  base10-natural / base2-natural / base8-natural / base16-natural / ...
+base2-natural           <-  '2#' ('0' / '1')+
+base8-natural           <-  '8#' [0-7]+
+base10-natural          <-  '10#'? [0-9]+
+base16-natural          <-  '16#' [0-9A-Fa-f]+
 ```
