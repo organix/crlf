@@ -404,19 +404,21 @@ A _dictionary_ mapping names to values is the primary conceptual data structure.
 behavior-definition     <-  message-handler ('|' message-handler)*
 message-handler         <-  message-pattern '->' handler-script
 message-pattern         <-  '{' variable-pattern (',' variable-pattern)* '}'
-variable-pattern        <-  name ':' type
+variable-pattern        <-  variable ':' type
 type                    <-  literal-type
                         /   ...
 handler-script          <-  '[' script-action* ']'
 script-action           <-  assigment
                         /   ...
-assignment              <-  name ':=' expression
+assignment              <-  variable ':=' expression
+variable                <-  name
 expression              <-  object-constructor
                         /   array-constructor
                         /   literal-string
                         /   literal-number
                         /   literal-boolean
                         /   literal-unit
+                        /   variable
                         /   ...
 object-constructor      <-  '[' property-constructor (',' property-constructor)* ']'
 property-constructor    <-  (name / literal-string) ':' expression
@@ -426,6 +428,7 @@ literal-string          <-  open-quote literal-character* close-quote
 literal-number          <-  integer ('.' fraction)? (('e' / 'E') exponent)?
 literal-boolean         <-  'true' / 'false'
 literal-unit            <-  'null'
+name                    <-  [-_A-Za-z0-9]+
 integer                 <-  ('+' / '-')? natural
 natural                 <-  base10-natural / base2-natural / base8-natural / base16-natural / ...
 base2-natural           <-  '2#' ('0' / '1')+
