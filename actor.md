@@ -419,11 +419,15 @@ expression              <-  object-constructor
                         /   literal-boolean
                         /   literal-unit
                         /   variable
+                        /   expression '.' expression           # FIXME: remove left recursion
+                        /   expression '[' expression ']'       # FIXME: remove left recursion
+                        /   expression '(' expression ')'       # FIXME: remove left recursion
                         /   ...
-object-constructor      <-  '[' property-constructor (',' property-constructor)* ']'
+                        /   '(' expression ')'
+object-constructor      <-  '{' property-constructor (',' property-constructor)* '}'
 property-constructor    <-  (name / literal-string) ':' expression
 array-constructor       <-  '[' expression (',' expression)* ']'
-literal-type            <-  'Unit' / 'Boolean' / 'Number' / 'String' / 'Array' / 'Object'
+literal-type            <-  'Unit' / 'Boolean' / 'Number' / 'String' / 'Array' / 'Object' / 'Any'
 literal-string          <-  open-quote literal-character* close-quote
 literal-number          <-  integer ('.' fraction)? (('e' / 'E') exponent)?
 literal-boolean         <-  'true' / 'false'
