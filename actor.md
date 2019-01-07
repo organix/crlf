@@ -405,33 +405,39 @@ behavior-definition     <-  message-handler ('|' message-handler)*
 message-handler         <-  message-pattern '->' handler-script
 message-pattern         <-  '{' variable-pattern (',' variable-pattern)* '}'
 variable-pattern        <-  variable ':' type
-type                    <-  literal-type
+type                    <-  type-literal
                         /   ...
 handler-script          <-  '[' script-action* ']'
 script-action           <-  assigment
                         /   ...
 assignment              <-  variable ':=' expression
 variable                <-  name
-expression              <-  object-constructor
-                        /   array-constructor
-                        /   literal-string
-                        /   literal-number
-                        /   literal-boolean
-                        /   literal-unit
+expression              <-  object-expression
+                        /   array-expression
+                        /   string-expression
+                        /   number-expression
+                        /   boolean-expression
+                        /   unit-expression
                         /   variable
                         /   expression '.' expression           # FIXME: remove left recursion
                         /   expression '[' expression ']'       # FIXME: remove left recursion
                         /   expression '(' expression ')'       # FIXME: remove left recursion
                         /   ...
                         /   '(' expression ')'
+object-expression       <-  object-constructor
+array-expression        <-  array-constructor
+string-expression       <-  string-literal
+number-expression       <-  number-literal
+boolean-expression      <-  boolean-literal
+unit-expression         <-  unit-literal
 object-constructor      <-  '{' property-constructor (',' property-constructor)* '}'
-property-constructor    <-  (name / literal-string) ':' expression
+property-constructor    <-  (name / string-literal) ':' expression
 array-constructor       <-  '[' expression (',' expression)* ']'
-literal-type            <-  'Unit' / 'Boolean' / 'Number' / 'String' / 'Array' / 'Object' / 'Any'
-literal-string          <-  open-quote literal-character* close-quote
-literal-number          <-  integer ('.' fraction)? (('e' / 'E') exponent)?
-literal-boolean         <-  'true' / 'false'
-literal-unit            <-  'null'
+type-literal            <-  'Unit' / 'Boolean' / 'Number' / 'String' / 'Array' / 'Object' / 'Any'
+string-literal          <-  open-quote character-literal* close-quote
+number-literal          <-  integer ('.' fraction)? (('e' / 'E') exponent)?
+boolean-literal         <-  'true' / 'false'
+unit-literal            <-  'null'
 name                    <-  [-_A-Za-z0-9]+
 integer                 <-  ('+' / '-')? natural
 natural                 <-  base10-natural / base2-natural / base8-natural / base16-natural / ...
