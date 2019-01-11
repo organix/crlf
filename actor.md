@@ -289,7 +289,7 @@ _value_              | `=` _word_      | &mdash;                 | Bind _value_ 
 &mdash;              | `'` _word_      | _word_                  | Push (literal) _word_ on the data stack
 &mdash;              | `@` _word_      | _value_                 | Lookup _value_ bound to _word_ in the current dictionary
 &mdash;              | `[` ... `]`     | _block_                 | Create block (quoted) value
-[ ...                | `(` ... `)`     | [ ...                   | Immediate (unquoted) value
+[ ...                | `(` ... `)`     | [ ... _value_           | Immediate (unquoted) value
 _bool_               | `IF` [ ] `ELSE` [ ] | &mdash;             | Conditional execution of blocks
 _v_                  | `DROP`          | &mdash;                 | Drop the top element
 _v_                  | `DUP`           | _v_ _v_                 | Duplicate the top element (same as `1 PICK`)
