@@ -398,8 +398,41 @@ An actor's behavior can also be decribed using a sequential model of variable as
 
 A _sponsor_ plays the role of a processor core, mediating access to computational resources and executing the instructions in an actor's behavior script (the _program_). Each message delivery event is handled as if it was an atomic transaction. No effects are visible outside the actor until message handling is completed. Message handling may be aborted by an exception, in which case the message is effectively ignored.
 
-A _dictionary_ mapping names to values is the primary conceptual data structure. Each actor maintains a persistent dictionary of local variables, representing it's private state. The behavior of an actor is organized into message-handlers based on message patterns. Each pattern is associated with a script for handling matching messages. Each message is a _dictionary_ whose mappings are appended to the actor's private state, forming the environment in which script variables are resolved.
+A _dictionary_ mapping names to values is the primary conceptual data structure. Each actor maintains a persistent dictionary of local variables, representing it's private state. Each message is a read-only _dictionary_ from which values may be retrieved by the actor's behavior script. Information derived from the message may be assigned to the actor's local persistent state.
 
+### AAM Statements
+
+```javascript
+{ "kind":"actor_sponsor", "actors":<number>, "events":<number>, "script":[<action>, ...] }
+{ "kind":"actor_send", "message":<dictionary>, "actor":<address> }
+{ "kind":"actor_send_after", "delay":<number>, "message":<dictionary>, "actor":<address> }
+{ "kind":"actor_become", "behavior":<behavior> }
+{ "kind":"actor_ignore" }
+{ "kind":"actor_assign", "name":<string>, "value":<expression> }
+{ "kind":"actor_fail", "error":<expression> }
+```
+
+### AAM Expressions
+
+```javascript
+{ "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
+{ "kind":"actor_behavior", "name":<string>, "script":[<action>, ...] }
+{ "kind":"actor_self" }
+{ "kind":"actor_state", "name":<string> }
+{ "kind":"actor_has_state", "name":<string> }
+{ "kind":"actor_message" }
+{ "kind":"dict_empty" }
+{ "kind":"dict_get", "name":<string>, "in":<dictionary> }
+{ "kind":"dict_has", "name":<string>, "in":<dictionary> }
+{ "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
+{ "kind":"device_now" }
+```
+
+### BART (Blockly Actor Run-Time)
+
+[BART](https://github.com/dalnefre/blockly/tree/explicit-message-dictionary) is an implementation of an Actor Assignment Machine using the [Blockly](https://developers.google.com/blockly/) web-based visual programming editor.
+
+### AAM Grammar -- DEPRECATED!
 ```
 behavior-definition     <-  message-handler ('|' message-handler)*
 message-handler         <-  message-pattern '->' handler-script
@@ -446,7 +479,3 @@ base8-natural           <-  '8#' [0-7]+
 base10-natural          <-  '10#'? [0-9]+
 base16-natural          <-  '16#' [0-9A-Fa-f]+
 ```
-
-### BART (Blockly Actor Run-Time)
-
-[BART](https://github.com/dalnefre/blockly/tree/explicit-message-dictionary) is an implementation of an Actor Assignment Machine using the [Blockly](https://developers.google.com/blockly/) web-based visual programming editor.
