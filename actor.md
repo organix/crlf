@@ -446,3 +446,7 @@ base8-natural           <-  '8#' [0-7]+
 base10-natural          <-  '10#'? [0-9]+
 base16-natural          <-  '16#' [0-9A-Fa-f]+
 ```
+
+### BART (Blockly Actor Run-Time)
+
+[BART](https://github.com/dalnefre/blockly/tree/explicit-message-dictionary) is an implementation of an Actor Assignment Machine using the [Blockly](https://developers.google.com/blockly/) web-based visual programming editor.
