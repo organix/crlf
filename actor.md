@@ -400,7 +400,21 @@ A _sponsor_ plays the role of a processor core, mediating access to computationa
 
 A _dictionary_ mapping names to values is the primary conceptual data structure. Each actor maintains a persistent dictionary of local variables, representing it's private state. Each message is a read-only _dictionary_ from which values may be retrieved by the actor's behavior script. Information derived from the message may be assigned to the actor's local persistent state.
 
-### AAM Statements
+### BART (Blockly Actor Run-Time)
+
+[BART](https://github.com/dalnefre/blockly/tree/explicit-message-dictionary) is an implementation of an Actor Assignment Machine using the [Blockly](https://developers.google.com/blockly/) web-based visual programming editor. BART programs can be represented in JSON/CRLF as follows:
+
+```javascript
+{
+    "lang": "BART",
+    "ast": [
+        <sponsor>,
+        ...
+    ]
+}
+```
+
+The `ast` represents a list of _sponsors_, which encapsulate actor configurations. The following is a compact summary of BART program elements:
 
 ```javascript
 { "kind":"actor_sponsor", "actors":<number>, "events":<number>, "script":[<action>, ...] }
@@ -411,8 +425,6 @@ A _dictionary_ mapping names to values is the primary conceptual data structure.
 { "kind":"actor_assign", "name":<string>, "value":<expression> }
 { "kind":"actor_fail", "error":<expression> }
 ```
-
-### AAM Expressions
 
 ```javascript
 { "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
@@ -428,9 +440,48 @@ A _dictionary_ mapping names to values is the primary conceptual data structure.
 { "kind":"device_now" }
 ```
 
-### BART (Blockly Actor Run-Time)
+Now we describe each BART program element in detail.
 
-[BART](https://github.com/dalnefre/blockly/tree/explicit-message-dictionary) is an implementation of an Actor Assignment Machine using the [Blockly](https://developers.google.com/blockly/) web-based visual programming editor.
+#### Sponsor
+
+Construct an actor configuration executing a _script_, with limits on _actors_ and _events_.
+
+```javascript
+{
+    "kind": "actor_sponsor",
+    "actors": <number>,
+    "events": <number>,
+    "script": [
+        <action>,
+        ...
+    ]
+}
+```
+
+#### Create
+
+Construct a new actor with an initial _state_ and _behavior_.
+
+```javascript
+{
+    "kind": "actor_create",
+    "state": <dictionary>,
+    "behavior": <behavior>
+}
+```
+
+#### Send
+
+Construct a new send-event to deliver a specific _message_ to a target _actor_.
+
+```javascript
+{
+    "kind": "actor_send",
+    "message": <dictionary>,
+    "actor": <address>
+}
+```
+
 
 ### AAM Grammar -- DEPRECATED!
 ```
