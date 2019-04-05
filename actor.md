@@ -417,34 +417,39 @@ A _dictionary_ mapping names to values is the primary conceptual data structure.
 The `ast` represents a list of _sponsors_, which encapsulate actor configurations. The following is a compact summary of BART program elements:
 
 ```javascript
-{ "kind":"actor_sponsor", "actors":<number>, "events":<number>, "script":[<action>, ...] }
-{ "kind":"actor_send", "message":<dictionary>, "actor":<address> }
-{ "kind":"actor_send_after", "delay":<number>, "message":<dictionary>, "actor":<address> }
-{ "kind":"actor_become", "behavior":<behavior> }
-{ "kind":"actor_ignore" }
-{ "kind":"actor_assign", "name":<string>, "value":<expression> }
-{ "kind":"actor_fail", "error":<expression> }
-```
-
-```javascript
-{ "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
-{ "kind":"actor_behavior", "name":<string>, "script":[<action>, ...] }
-{ "kind":"actor_self" }
-{ "kind":"actor_state", "name":<string> }
-{ "kind":"actor_has_state", "name":<string> }
-{ "kind":"actor_message" }
-{ "kind":"dict_empty" }
-{ "kind":"dict_get", "name":<string>, "in":<dictionary> }
-{ "kind":"dict_has", "name":<string>, "in":<dictionary> }
-{ "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
-{ "kind":"device_now" }
+// Containers
+    { "kind":"actor_sponsor", "actors":<number>, "events":<number>, "script":[<action>, ...] }
+// Actions
+    { "kind":"actor_send", "message":<dictionary>, "actor":<address> }
+    { "kind":"actor_send_after", "delay":<number>, "message":<dictionary>, "actor":<address> }
+    { "kind":"actor_become", "behavior":<behavior> }
+    { "kind":"actor_ignore" }
+    { "kind":"actor_assign", "name":<string>, "value":<expression> }
+    { "kind":"actor_fail", "error":<expression> }
+// Address Expressions
+    { "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
+    { "kind":"actor_self" }
+// Behavior Expressions
+    { "kind":"actor_behavior", "name":<string>, "script":[<action>, ...] }
+// Value Expressions
+    { "kind":"actor_state", "name":<string> }
+    { "kind":"dict_get", "name":<string>, "in":<dictionary> }
+// Boolean Expressions
+    { "kind":"actor_has_state", "name":<string> }
+    { "kind":"dict_has", "name":<string>, "in":<dictionary> }
+// Dictionary Expressions
+    { "kind":"actor_message" }
+    { "kind":"dict_empty" }
+    { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
+// Number Expressions
+    { "kind":"device_now" }
 ```
 
 Now we describe each BART program element in detail.
 
 #### Sponsor
 
-Construct an actor configuration executing a _script_, with limits on _actors_ and _events_.
+An actor configuration executing a _script_, with limits on _actors_ and _events_.
 
 ```javascript
 {
@@ -458,21 +463,11 @@ Construct an actor configuration executing a _script_, with limits on _actors_ a
 }
 ```
 
-#### Create
-
-Construct a new actor with an initial _state_ and _behavior_.
-
-```javascript
-{
-    "kind": "actor_create",
-    "state": <dictionary>,
-    "behavior": <behavior>
-}
-```
+The actions in the sponsor's script initialize the actor configuration, creating initial actors and sending initial messages.
 
 #### Send
 
-Construct a new send-event to deliver a specific _message_ to a target _actor_.
+This _action_ constructs a new send-event to deliver a specific _message_ to a target _actor_.
 
 ```javascript
 {
@@ -482,6 +477,125 @@ Construct a new send-event to deliver a specific _message_ to a target _actor_.
 }
 ```
 
+#### Create
+
+This _expression_ constructs a new actor with an initial _state_ and _behavior_, and returns it's _address_.
+
+```javascript
+{
+    "kind": "actor_create",
+    "state": <dictionary>,
+    "behavior": <behavior>
+}
+```
+
+The actor's _behavior_ script may **retrieve** and **update** bindings in the private _state_ of this actor.
+
+#### Behavior
+
+This _expression_ constructs an actor behavior with an optional _name_.
+
+```javascript
+{
+    "kind": "actor_behavior",
+    "name": <string>,
+    "script": [
+        <action>,
+        ...
+    ]
+}
+```
+
+Actor behavior scripts can be shared between actors, and each actor may use different scripts over time.
+
+#### Become
+
+This _action_ specifies the behavior this actor will use to process **subsequent** messages.
+
+```javascript
+{
+    "kind": "actor_become",
+    "behavior": <behavior> 
+}
+```
+
+**NOTE:** Changing an actor's behavior script has **no effect** on how it handles the current message.
+
+#### Assign
+
+This _action_ updates the private state of an actor (or sponsor), binding a new _value_ to _name_.
+
+```javascript
+{
+    "kind": "actor_assign",
+    "name": <string>,
+    "value": <expression>
+}
+```
+
+#### State
+
+This _expression_ retrieves the current _value_ bound to _name_ in the current actor (or sponsor).
+
+```javascript
+{
+    "kind": "actor_state",
+    "name": <string>
+}
+```
+
+#### Has State
+
+This _expression_ evaluates to `true` if _name_ is bound to a _value_ in the current actor (or sponsor), or `false` otherwise.
+
+```javascript
+{
+    "kind": "actor_has_state",
+    "name": <string>
+}
+```
+
+#### Message
+
+This _expression_ retrieves the (immutable) _dictionary_ representing the current message being processed.
+
+```javascript
+{
+    "kind":"actor_message"
+}
+```
+
+#### Self
+
+```javascript
+{ "kind":"actor_self" }
+```
+
+#### Ignore
+
+```javascript
+{ "kind":"actor_ignore" }
+```
+
+#### Fail
+
+```javascript
+{ "kind":"actor_fail", "error":<expression> }
+```
+
+#### Send After
+
+```javascript
+{ "kind":"actor_send_after", "delay":<number>, "message":<dictionary>, "actor":<address> }
+```
+
+#### Now
+
+```javascript
+{ "kind":"device_now" }
+```
+
+----
 
 ### AAM Grammar -- DEPRECATED!
 ```
