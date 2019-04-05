@@ -561,38 +561,109 @@ This _expression_ retrieves the (immutable) _dictionary_ representing the curren
 
 ```javascript
 {
-    "kind":"actor_message"
+    "kind": "actor_message"
 }
 ```
 
 #### Self
 
+This _expression_ evaluates to the _address_ of the current actor.
+
 ```javascript
-{ "kind":"actor_self" }
+{
+    "kind": "actor_self"
+}
 ```
 
 #### Ignore
 
+This _action_ has no effect.
+
 ```javascript
-{ "kind":"actor_ignore" }
+{
+    "kind": "actor_ignore"
+}
 ```
 
 #### Fail
 
+This _action_ aborts processing the current message and reverts all accumulated effects.
+
 ```javascript
-{ "kind":"actor_fail", "error":<expression> }
+{
+    "kind": "actor_fail",
+    "error": <expression>
+}
 ```
 
 #### Send After
 
+This _action_ constructs a new send-event to deliver a specific _message_ to a target _actor_ after a _delay_.
+
 ```javascript
-{ "kind":"actor_send_after", "delay":<number>, "message":<dictionary>, "actor":<address> }
+{
+    "kind": "actor_send_after",
+    "delay": <number>,
+    "message": <dictionary>,
+    "actor": <address>
+}
 ```
 
 #### Now
 
+This _expression_ evaluates to the current time.
+
 ```javascript
-{ "kind":"device_now" }
+{
+    "kind": "device_now"
+}
+```
+
+#### Empty
+
+This _expression_ evaluates to an (immutable) empty dictionary.
+
+```javascript
+{
+    "kind": "dict_empty"
+}
+```
+
+#### Bind
+
+This _expression_ evaluates to an immutable _dictionary_ where, _value_ is bound to _name_, extending or overriding bindings in _with_.
+
+```javascript
+{
+    "kind": "dict_bind",
+    "name": <string>,
+    "value": <expression>,
+    "with": <dictionary>
+}
+```
+
+#### Get
+
+This _expression_ retrieves the current _value_ bound to _name_ in this _dictionary_.
+
+```javascript
+{
+    "kind": "dict_get",
+    "name": <string>,
+    "in": <dictionary>
+}
+```
+
+#### Has
+
+This _expression_ evaluates to `true` if _name_ is bound to a _value_ in this _dictionary_, or `false` otherwise.
+
+```javascript
+{
+    "kind": "dict_has",
+    "name": <string>,
+    "in": <dictionary>
+}
 ```
 
 ----
