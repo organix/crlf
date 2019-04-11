@@ -434,6 +434,7 @@ The `ast` represents a list of _sponsors_, which encapsulate actor configuration
 // Value Expressions
     { "kind":"actor_state", "name":<string> }
     { "kind":"dict_get", "name":<string>, "in":<dictionary> }
+    { "kind":"expr_literal", "const":<value> }
 // Boolean Expressions
     { "kind":"actor_has_state", "name":<string> }
     { "kind":"dict_has", "name":<string>, "in":<dictionary> }
@@ -663,6 +664,17 @@ This _expression_ evaluates to `true` if _name_ is bound to a _value_ in this _d
     "kind": "dict_has",
     "name": <string>,
     "in": <dictionary>
+}
+```
+
+#### Literal
+
+This _expression_ evaluates to a constant _value_.
+
+```javascript
+{
+    "kind": "expr_literal",
+    "const": <value>
 }
 ```
 
