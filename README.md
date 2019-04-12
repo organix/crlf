@@ -22,6 +22,7 @@ The value of the `lang` property specifies the interpretation of the value of th
 [lambda](lambda.md) | Untyped Lambda-calculus
 [PEG](PEG.md) | Parsing Expression Grammars
 [actor](actor.md) | Primitive actions for the Actor-model of computation
+[BART](BART.md) | Blockly Actor Run-Time
 [Humus](Humus.md) | Humus Actor-Programming Language
 
 ## Abstract Compilation
