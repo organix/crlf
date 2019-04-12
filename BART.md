@@ -16,7 +16,7 @@ The `ast` represents a list of _sponsors_, which encapsulate actor configuration
 
 ## Actor Assignment-Machine
 
-An actor's behavior can also be described using a sequential model of variable assignments. This is essentially the model of contemporary processor cores. However, in order to avoid the pitfalls of shared mutable state, we only allow assignment to actor-local (private) variables. All visible effects are captured in the asynchronous messages between actors.
+An actor's behavior can be described using a sequential model of variable assignments. This is essentially the model of contemporary processor cores. However, in order to avoid the pitfalls of shared mutable state, we only allow assignment to actor-local (private) variables. All visible effects are captured in the asynchronous messages between actors.
 
 A _sponsor_ plays the role of a processor core, mediating access to computational resources and executing the instructions in an actor's behavior script (the _program_). Each message delivery event is handled as if it was an atomic transaction. No effects are visible outside the actor until message handling is completed. Message handling may be aborted by an exception, in which case the message is effectively ignored.
 
@@ -45,6 +45,7 @@ A _dictionary_ mapping names to values is the primary conceptual data structure.
     { "kind":"actor_state", "name":<string> }
     { "kind":"dict_get", "name":<string>, "in":<dictionary> }
     { "kind":"expr_literal", "const":<value> }
+    { "kind":"expr_operation", "name":<string>, "args":[<expression>, ...] }
 // Boolean Expressions
     { "kind":"actor_has_state", "name":<string> }
     { "kind":"dict_has", "name":<string>, "in":<dictionary> }
@@ -279,11 +280,28 @@ This _expression_ evaluates to `true` if _name_ is bound to a _value_ in this _d
 
 #### Literal
 
-This _expression_ evaluates to a constant _value_.
+This _expression_ evaluates to a constant _value_ (with an optional _type_).
 
 ```javascript
 {
     "kind": "expr_literal",
+    "type": <type>,
     "const": <value>
+}
+```
+
+#### Operation
+
+This _expression_ evaluates to the result (with an optional _type_) of calling operation _name_ with _args_.
+
+```javascript
+{
+    "kind": "expr_operation",
+    "type": <type>,
+    "name": <string>,
+    "args": [
+        <expression>,
+        ...
+    ]
 }
 ```
