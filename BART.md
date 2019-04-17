@@ -131,7 +131,7 @@ This _action_ specifies the behavior this actor will use to process **subsequent
 }
 ```
 
-**NOTE:** Changing an actor's behavior script has **no effect** on how it handles the current message.
+**NOTE:** Changing an actor's behavior script has **no effect** on how it handles the **current** message.
 
 #### Assign
 
@@ -145,6 +145,8 @@ This _action_ updates the private state of an actor (or sponsor), binding a new 
 }
 ```
 
+The updated local-state dictionary is used for subsequent actions in the current actor's script.
+
 #### State
 
 This _expression_ retrieves the current _value_ bound to _name_ in the current actor (or sponsor).
@@ -155,6 +157,8 @@ This _expression_ retrieves the current _value_ bound to _name_ in the current a
     "name": <string>
 }
 ```
+
+Since the actor's local state is mutable, the value retrieved may be affected by previous assignment actions in the same script.
 
 #### Has State
 
@@ -253,6 +257,8 @@ This _expression_ evaluates to an immutable _dictionary_ where, _value_ is bound
     "with": <dictionary>
 }
 ```
+
+**NOTE:** The _with_ dictionary is not mutated. A **new** dictionary is created with the added/modified binding.
 
 #### Get
 
