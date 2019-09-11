@@ -213,8 +213,8 @@ encoding     | hex | value          | extension
 -------------|-----|----------------|------------
 `2#00000100` |`04` | `[`...`]`      | size::Number ::Value\*
 `2#00000101` |`05` | `{`...`}`      | size::Number (name::String ::Value)\*
-`2#00000110` |`06` | `[` count `]`      | size::Number count::Number ::Value\*n
-`2#00000111` |`07` | `{` count `}`      | size::Number count::Number (name::String ::Value)\*n
+`2#00000110` |`06` | `[` _count_ `]`      | size::Number count::Number ::Value\*n
+`2#00000111` |`07` | `{` _count_ `}`      | size::Number count::Number (name::String ::Value)\*n
 `2#00001000` |`08` | Octet\*        | size::Number bytes::Octet\*
 `2#00001001` |`09` | * Memo#        | index::Octet
 `2#0000101m` |`0A`..`0B`| UTF-8          | size::Number chars::Octet\*
@@ -267,13 +267,13 @@ In applications that require the transmission of [_capabilities_](https://en.wik
 
 ### Array
 
-An extended Array may (`2#00000110`), or may not (`2#00000100`), specify an element count. However, a _size_ in octets is always provided for non-empty Arrays.
+An extended Array may (`2#00000110`), or may not (`2#00000100`), specify an element _count_. However, a _size_ in octets is always provided for non-empty Arrays.
 
 encoding     | hex | value          | extension
 -------------|-----|----------------|------------
 `2#00000010` |`02` | `[]`           | -
 `2#00000100` |`04` | `[`...`]`      | size::Number ::Value\*
-`2#00000110` |`06` | `[` count `]`      | size::Number count::Number ::Value\*n
+`2#00000110` |`06` | `[` _count_ `]`      | size::Number count::Number ::Value\*n
 
 The end of the array is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching count of elements (if specified). A decoder may reject a mismatch.
 
@@ -291,13 +291,13 @@ The encoding marker for a Symbol Array (memoized Strings) is `2#00001001`. Each 
 
 ### Object
 
-An extended Object may (`2#00000111`), or may not (`2#00000101`), specify a property count. However, a _size_ in octets is always provided for non-empty Objects.
+An extended Object may (`2#00000111`), or may not (`2#00000101`), specify a property _count_. However, a _size_ in octets is always provided for non-empty Objects.
 
 encoding     | hex | value          | extension
 -------------|-----|----------------|------------
 `2#00000011` |`03` | `{}`           | -
 `2#00000101` |`05` | `{`...`}`      | size::Number (name::String ::Value)\*
-`2#00000111` |`07` | `{` count `}`      | size::Number count::Number (name::String ::Value)\*n
+`2#00000111` |`07` | `{` _count_ `}`      | size::Number count::Number (name::String ::Value)\*n
 
 Properties are encoded as a String (property name) followed by an encoded Value. Note that the property name strings may be memoized, reducing the octet-size of the object. The end of the object is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching count of properties (if specified). A decoder may reject a mismatch.
 
