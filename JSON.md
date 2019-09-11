@@ -277,6 +277,16 @@ encoding     | hex | value          | extension
 
 The end of the array is reached when then specified number of octets have been consumed, which should corresponding to decoding the matching count of elements (if specified). A decoder may reject a mismatch.
 
+#### Homogeneous Arrays (proposal)
+
+If all the values in an Array are encoded the same way, some efficiency and compactness may be gained by eliding the encoding prefix from each value. This could be done by specifying the encoding before the octet _size_ field, along with a _value_ of `0` (since a zero-length Array would be encoded as simply `2#00000010`). Unfortunately, this complicates decoding slightly for readers that just want to skip the Array, but is required to avoid ambiguity.
+
+The encoding marker for Integer Arrays is `2#0001sppp`, followed by a Number indicating the _size_ of each value in octets, and an encoded `0` value. Usually the padding (`ppp`) will be `2#000`, since common machine-words sizes are multiples of 8 bits. However, if there is padding, it will match the sign bit (`s`).
+
+The encoding marker for Floating-Point Arrays is `2#00100000`, followed by a Number indicating the _size_ of each value in octets, a Number indicating how many bits are _exponent_, and an encoded `+0.0` value. Note that the padding, sign, and uncertainty are all `0`, meaning each value is a multiple of 8 bits, representing an "exact" number. The sign is ignored because it is encoded as the most-significant-bit of the last byte (MSB) of each value. Note that this does not leave room for the Unum uncertainty bit in each value (maybe use the encoding marker `u`-bit to mean full-Unum?).
+
+The encoding marker for a String Array is `2#00001ee0`, followed by `2#10000000` (indicating a _size_ of `0`), and if the encoding (`ee`) is `2#11`, a String naming the encoding. Each String value will still need to start with its own _size_ in octets, but will not have to re-state the String type and encoding.
+
 ### Object
 
 An extended Object may (`2#00000111`), or may not (`2#00000101`), specify a property count. However, a _size_ in octets is always provided for non-empty Objects.
