@@ -287,6 +287,8 @@ The encoding marker for Floating-Point Arrays is `2#00100000`, followed by a Num
 
 The encoding marker for a String Array is `2#00001ee0`, followed by `2#10000000` (indicating a _size_ of `0`), and if the encoding (`ee`) is `2#11`, a String naming the encoding. Each String value will still need to start with its own _size_ in octets, but will not have to re-state the String type and encoding.
 
+The encoding marker for a Symbol Array (memoized Strings) is `2#00001001`. Each octet of the _value_ is an _index_ into the memoization table.
+
 ### Object
 
 An extended Object may (`2#00000111`), or may not (`2#00000101`), specify a property count. However, a _size_ in octets is always provided for non-empty Objects.
