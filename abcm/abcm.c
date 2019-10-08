@@ -6,8 +6,7 @@
 //#include <unistd.h>
 #include <assert.h>
 
-#define LOG_DEBUG
-#define LOG_TRACE
+#define LOG_ALL
 #include "log.c"
 
 static char * _semver = "0.0.1";
@@ -235,6 +234,17 @@ BYTE parse_from_data(parse_t * parse, DATA_PTR data) {
     return false;  // bad size
 }
 
+/**
+Input:
+    parse->data = <pointer to prefix data byte>
+    parse->size = <size of source buffer in bytes>
+    parse->start = 0
+Output:
+    parse->end = <offset past end of number data>
+    parse->prefix = <value of prefix byte>
+    parse->type = <value type info>
+    parse->value = <integer value>
+**/
 BYTE parse_integer(parse_t * parse) {
     // parse Integer value up to WORD size in bits
     LOG_TRACE("parse_integer @", (WORD)parse);
@@ -356,6 +366,17 @@ static int test_parse_integer() {
     return 0;
 }
 
+/**
+Input:
+    parse->data = <pointer to prefix data byte>
+    parse->size = <size of source buffer in bytes>
+    parse->start = 0
+Output:
+    parse->end = <offset to first byte of codepoint data>
+    parse->prefix = <value of prefix byte>
+    parse->type = <value type info>
+    parse->value = <size of codepoint data in bytes>
+**/
 BYTE parse_string(parse_t * parse) {
     // parse String header, up to the start of codepoint data
     LOG_TRACE("parse_string @", (WORD)parse);
@@ -613,6 +634,7 @@ BYTE parse_codepoint(parse_t * parse) {
         }
         case utf16_mem:
         case utf16: {
+            LOG_LEVEL(LOG_LEVEL_TRACE + 1, "parse_codepoint: utf16", parse->prefix);
             if (parse->end >= parse->size) return false;  // require at least 1 more byte
             b = parse->base[parse->end++];
             LOG_TRACE("parse_codepoint: b16 =", b);
@@ -668,6 +690,7 @@ BYTE parse_codepoint(parse_t * parse) {
 
 static int test_parse_codepoint() {
     int i;
+    WORD w;
 
     WORD code[] = { 0x0061, 0x0063, 0x0074, 0x006F, 0x0072 };
     BYTE data[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r' };
@@ -686,7 +709,8 @@ static int test_parse_codepoint() {
     while (parse.start < parse.size) {
         if (!parse_codepoint(&parse)) return 1;  // bad codepoint
         LOG_DEBUG("codepoint =", parse.value);
-        assert(parse.value == code[i++]);
+        w = code[i++];
+        assert(parse.value == w);
         parse.start = parse.end;
     }
     assert(i == (sizeof(code) / sizeof(WORD)));
@@ -704,7 +728,8 @@ static int test_parse_codepoint() {
     while (parse.start < parse.size) {
         if (!parse_codepoint(&parse)) return 1;  // bad codepoint
         LOG_DEBUG("codepoint16 =", parse.value);
-        assert(parse.value == code16[i++]);
+        w = code16[i++];
+        assert(parse.value == w);
         parse.start = parse.end;
     }
     assert(i == (sizeof(code16) / sizeof(WORD)));

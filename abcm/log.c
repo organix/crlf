@@ -26,6 +26,14 @@ void log_event(			// log event synchronously
 
 #define LOG_NONE(label, value) /* LOG_NONE */
 
+#ifdef LOG_ALL
+#define LOG_INFO
+#define LOG_WARN
+#define LOG_DEBUG
+#define LOG_TRACE
+#define LOG_LEVEL
+#endif
+
 #ifdef LOG_INFO
 #undef LOG_INFO
 #define LOG_INFO(label, value) log_event( \
@@ -66,10 +74,15 @@ void log_event(			// log event synchronously
 #define LOG_TRACE(label, value) /* LOG_TRACE */
 #endif
 
+#ifdef LOG_LEVEL
+#undef LOG_LEVEL
 #define LOG_LEVEL(level, label, value) log_event( \
 	__FILE__, __LINE__, \
 	(level),            \
 	(label), (value) )
+#else
+#define LOG_LEVEL(level, label, value) /* LOG_LEVEL */
+#endif
 
 
 /*
