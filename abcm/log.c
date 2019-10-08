@@ -30,7 +30,7 @@ void log_event(			// log event synchronously
 #undef LOG_INFO
 #define LOG_INFO(label, value) log_event( \
 	__FILE__, __LINE__,  \
-	LOG_LEVEL_INFO,                \
+	LOG_LEVEL_INFO,      \
 	(label), (value) )
 #else
 #define LOG_INFO(label, value) /* LOG_INFO */
@@ -40,7 +40,7 @@ void log_event(			// log event synchronously
 #undef LOG_WARN
 #define LOG_WARN(label, value) log_event( \
 	__FILE__, __LINE__,  \
-	LOG_LEVEL_WARN,                \
+	LOG_LEVEL_WARN,      \
 	(label), (value) )
 #else
 #define LOG_WARN(label, value) /* LOG_WARN */
@@ -50,7 +50,7 @@ void log_event(			// log event synchronously
 #undef LOG_DEBUG
 #define LOG_DEBUG(label, value) log_event( \
 	__FILE__, __LINE__,	\
-	LOG_LEVEL_DEBUG,              \
+	LOG_LEVEL_DEBUG,    \
 	(label), (value) )
 #else
 #define LOG_DEBUG(label, value) /* LOG_DEBUG */
@@ -60,11 +60,17 @@ void log_event(			// log event synchronously
 #undef LOG_TRACE
 #define LOG_TRACE(label, value) log_event( \
 	__FILE__, __LINE__, \
-	LOG_LEVEL_TRACE,              \
+	LOG_LEVEL_TRACE,    \
 	(label), (value) )
 #else
 #define LOG_TRACE(label, value) /* LOG_TRACE */
 #endif
+
+#define LOG_LEVEL(level, label, value) log_event( \
+	__FILE__, __LINE__, \
+	(level),            \
+	(label), (value) )
+
 
 /*
  *	All logging comes through a single synchronous enter-point.
@@ -87,8 +93,8 @@ void log_event(			// log event synchronously
 
 	if (level > log_config.level) return;  // ignore logging above configured threshold
 	if (level > LOG_LEVEL_TRACE) {
-		int plus = (level - LOG_LEVEL_TRACE) + 1;
-		fprintf(stderr, "%s:%d %s%d %s (%p)\n", 
+		int plus = level - LOG_LEVEL_TRACE;
+		fprintf(stderr, "%s:%d %s%+d %s (%p)\n", 
 			_file_, _line_, level_name[LOG_LEVEL_TRACE], plus, label, (void *)value);
 	} else {
 		fprintf(stderr, "%s:%d %s %s (%p)\n", 

@@ -24,14 +24,6 @@ typedef void * VOID_PTR;        // untyped pointer
 typedef BYTE * DATA_PTR;        // pointer to data bytes
 typedef WORD (*CODE_PTR)(WORD); // pointer to native code
 
-#define b_false     ((BYTE)0x00)
-#define b_true      ((BYTE)0x01)
-#define b_array_0   ((BYTE)0x02)
-#define b_object_0  ((BYTE)0x03)
-#define b_string_0  ((BYTE)0x0F)
-#define b_number_0  ((BYTE)0x80)
-#define b_null      ((BYTE)0xFF)
-
 typedef enum { /*2#_000*/ /*2#_001*/ /*2#_010*/ /*2#_011*/ /*2#_100*/ /*2#_101*/ /*2#_110*/ /*2#_111*/
 /*2#00000_*/   false,     true,      array_0,   object_0,  array,     object,    array_n,   object_n,
 /*2#00001_*/   octets,    mem_ref,   utf8,      utf8_mem,  utf16,     utf16_mem, s_encoded, string_0,
@@ -141,13 +133,6 @@ BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
 */
 
 static int test_bytecode_types() {
-    assert(b_false == false);
-    assert(b_true == true);
-    assert(b_array_0 == array_0);
-    assert(b_object_0 == object_0);
-    assert(b_string_0 == string_0);
-    assert(b_number_0 == n_0);
-    assert(b_null == null);
     assert(null != 0);
     assert(true);
     assert(!false);
@@ -245,6 +230,7 @@ BYTE parse_from_data(parse_t * parse, DATA_PTR data) {
 }
 
 BYTE parse_integer(parse_t * parse) {
+    // parse Integer value up to WORD size in bits
     LOG_TRACE("parse_integer", (WORD)parse);
     LOG_TRACE("parse_integer: start", parse->start);
     if (parse->start >= parse->size) return false;  // out of bounds
@@ -365,6 +351,7 @@ static int test_parse_integer() {
 }
 
 BYTE parse_string(parse_t * parse) {
+    // parse String header, up to the start of codepoint data
     LOG_TRACE("parse_string", (WORD)parse);
     LOG_TRACE("parse_string: start", parse->start);
     if (parse->start >= parse->size) return false;  // out of bounds
@@ -525,23 +512,49 @@ static int test_parse_string() {
     return 0;
 }
 
+/**
+Usage:
+    BYTE data[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
+    parse_t parse = {
+        .base = data,
+        .size = sizeof(data),
+        .start = 0
+    };
+    if (parse_string(&parse)) {
+        parse.base += parse.end;  // move base to start of codepoint data
+        parse.size = parse.value;
+        parse.start = 0;
+        while (parse.start < parse.size) {
+            if (parse_codepoint(&parse)) {
+                output(parse.value);
+                parse.start = parse.end;
+            }
+        }
+    }
+**/
 BYTE parse_codepoint(parse_t * parse) {
+    // parse a single codepoint value from a String parsed by `parse_string`
     BYTE b;
 
     LOG_TRACE("parse_codepoint", (WORD)parse);
     if (parse->start >= parse->size) return false;  // out of bounds
+    LOG_TRACE("parse_codepoint: prefix", parse->prefix);
     if (parse->prefix == mem_ref) return false;  // FIXME: MEMO GET NOT SUPPORTED!
     parse->end = parse->start;
     parse->value = parse->base[parse->end++];
+    LOG_TRACE("parse_codepoint: value", parse->value);
     switch (parse->prefix) {
-        octets: {
+        case octets: {
             // each byte is an untranslated codepoint in the range 0x00..0xFF
+            LOG_DEBUG("parse_codepoint: octet", parse->value);
             return true;
         }
-        utf8_mem:
-        utf8: {
+        case utf8_mem:
+        case utf8: {
+            LOG_LEVEL(LOG_LEVEL_TRACE + 1, "parse_codepoint: utf8", parse->prefix);
             if ((parse->value & 0x80) == 0x00) {
                 // 7-bit ASCII values in the range 0x00..0x7F are encoded directly
+                LOG_DEBUG("parse_codepoint: utf8 ASCII", parse->value);
                 return true;
             }
             if ((parse->value & 0xE0) == 0xC0) {
@@ -551,6 +564,7 @@ BYTE parse_codepoint(parse_t * parse) {
                 b = parse->base[parse->end++];
                 if ((b & 0xC0) != 0x80) return false;  // invalid continuation byte
                 parse->value = ((parse->value << 6) | (b & 0x3F));  // shift in next 6 bits of codepoint
+                LOG_DEBUG("parse_codepoint: utf8 2-byte", parse->value);
                 return true;
             }
             if ((parse->value & 0xF0) == 0xE0) {
@@ -563,6 +577,7 @@ BYTE parse_codepoint(parse_t * parse) {
                 b = parse->base[parse->end++];
                 if ((b & 0xC0) != 0x80) return false;  // invalid continuation byte
                 parse->value = ((parse->value << 6) | (b & 0x3F));  // shift in next 6 bits of codepoint
+                LOG_DEBUG("parse_codepoint: utf8 3-byte", parse->value);
                 return true;
             }
             if ((parse->value & 0xF8) == 0xF0) {
@@ -578,17 +593,49 @@ BYTE parse_codepoint(parse_t * parse) {
                 b = parse->base[parse->end++];
                 if ((b & 0xC0) != 0x80) return false;  // invalid continuation byte
                 parse->value = ((parse->value << 6) | (b & 0x3F));  // shift in next 6 bits of codepoint
+                LOG_DEBUG("parse_codepoint: utf8 4-byte", parse->value);
                 return true;
             }
+            LOG_DEBUG("parse_codepoint: bad utf8", parse->value);
             return false;  // bad UTF-8
         }
-        utf16_mem:
-        utf16: {
-            return false;  // bad UTF-16
+        case utf16_mem:
+        case utf16: {
+            if (parse->end >= parse->size) return false;  // require at least 1 more byte
+            b = parse->base[parse->end++];
+            LOG_TRACE("parse_codepoint: utf16 b =", b);
+            // FIXME: handle "negative" (LE) ordering
+            parse->value = ((parse->value  << 8) | b);  // combine bytes to form codepoint
+            LOG_DEBUG("parse_codepoint: utf16", parse->value);
+            // FIXME: check for sequences longer than 2 bytes...
+            return true;  // bad UTF-16
         }
-        default: return false;  // bad prefix
+        default: {
+            LOG_DEBUG("parse_codepoint: bad prefix", parse->prefix);
+            return false;  // bad prefix
+        }
     }
     //return false;  // failure
+}
+
+static int test_parse_codepoint() {
+    BYTE data[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
+    parse_t parse = {
+        .base = data,
+        .size = sizeof(data),
+        .start = 0
+    };
+    LOG_TRACE("test_parse_codepoint", (WORD)&parse);
+    if (!parse_string(&parse)) return 1;  // bad String
+    parse.base += parse.end;  // move base to start of codepoint data
+    parse.size = parse.value;
+    parse.start = 0;
+    while (parse.start < parse.size) {
+        if (!parse_codepoint(&parse)) return 1;  // bad codepoint
+        LOG_DEBUG("codepoint =", parse.value);
+        parse.start = parse.end;
+    }
+    return 0;
 }
 
 BYTE value_equal(DATA_PTR x, DATA_PTR y) {
@@ -598,22 +645,42 @@ BYTE value_equal(DATA_PTR x, DATA_PTR y) {
     type_t x_type = prefix_type[x_prefix];
     type_t y_type = prefix_type[y_prefix];
     if ((x_type & T_Base) != (y_type & T_Base)) return false;  // mismatched base types
+    parse_t x_parse = {
+        .base = x,
+        .size = (WORD)-1,  // don't know how big value will be
+        .start = 0
+    };
+    parse_t y_parse = {
+        .base = y,
+        .size = (WORD)-1,  // don't know how big value will be
+        .start = 0
+    };
     switch (x_type & T_Base) {
         case T_Number: {
             break;
         }
         case T_String: {
-            if (x_prefix == mem_ref) {  // find x in memo table
-                x = memo_table[x[1]];
-                prefix_t x_prefix = x[0];
-                type_t x_type = prefix_type[x_prefix];
+            if (parse_string(&x_parse) && parse_string(&y_parse)) {
+                x_parse.base += x_parse.end;  // move base to start of codepoint data
+                x_parse.size = x_parse.value;
+                x_parse.start = 0;
+                y_parse.base += y_parse.end;  // move base to start of codepoint data
+                y_parse.size = y_parse.value;
+                y_parse.start = 0;
+                while ((x_parse.start < x_parse.size) && (y_parse.start < y_parse.size)) {
+                    if (parse_codepoint(&x_parse) && parse_codepoint(&y_parse)) {
+                        if (x_parse.value != y_parse.value) {
+                            return false;  // mismatched codepoints
+                        }
+                        x_parse.start = x_parse.end;
+                        y_parse.start = y_parse.end;
+                    }
+                }
+                if ((x_parse.start < x_parse.size) || (y_parse.start < y_parse.size)) {
+                    return false;  // one string ended before the other
+                }
+                return true;  // String values match
             }
-            if (y_prefix == mem_ref) {  // find y in memo table
-                y = memo_table[y[1]];
-                prefix_t y_prefix = y[0];
-                type_t y_type = prefix_type[y_prefix];
-            }
-            if ((x_prefix == string_0) && (y_prefix == string_0)) return true;  // empty strings
             break;
         }
         case T_Array: {
@@ -628,6 +695,36 @@ BYTE value_equal(DATA_PTR x, DATA_PTR y) {
     }
     return false;
 };
+
+static int test_value_equal() {
+    BYTE data[] = {
+/*
+        string_0,
+        octets, n_4, 'k', 'i', 'n', 'd',
+        utf8, n_4, 'k', 'i', 'n', 'd',
+        utf8, n_7, 0xEF, 0xBB, 0xBF, 'k', 'i', 'n', 'd',
+        utf16, n_8, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd',
+        utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd',
+        utf16, n_10, 0xFF, 0xFE, 'k', '\0', 'i', '\0', 'n', '\0', 'd', '\0',
+        utf8, n_3, 0xEF, 0xBB, 0xBF,
+        utf16, n_2, 0xFF, 0xFE,
+*/
+        octets, n_0
+    };
+    parse_t parse = {
+        .base = data,
+        .size = sizeof(data),
+        .start = 0
+    };
+
+    assert(parse_string(&parse) == true);
+    assert((parse.end - parse.start) == 2);
+    assert(parse.value == 0);
+    parse.end += parse.value;
+
+    assert(parse.end == parse.size);  // used up all the data
+    return 0;
+}
 
 static int test_C_language() {
     BYTE b = 0;
@@ -644,7 +741,9 @@ static int run_test_suite() {
     return test_C_language()
         || test_bytecode_types()
         || test_parse_integer()
-        || test_parse_string();
+        || test_parse_string()
+        || test_parse_codepoint()
+        || test_value_equal();
 }
 
 int main(int argc, char *argv[]) {
