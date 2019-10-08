@@ -15,6 +15,9 @@ static char * _semver = "0.0.1";
 typedef uint8_t BYTE;           // 8-bit data (octet)
 typedef uintptr_t WORD;         // native machine word
 
+#define MAX_BYTE ((BYTE)-1)
+#define MAX_WORD ((WORD)-1)
+
 typedef uint8_t NAT8;           // 8-bit natural ring
 typedef uint16_t NAT16;         // 16-bit natural ring
 typedef uint32_t NAT32;         // 32-bit natural ring
@@ -115,7 +118,7 @@ type_t prefix_type[1<<8] = {
     T_Small, T_Small, T_Small, T_Small, T_Small, T_Small, T_Small, T_Null
 };
 
-BYTE s_[] = { utf8, n_0, '\0' };
+BYTE s_[] = { utf8, n_0 };
 BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
 BYTE s_message[] = { utf8, n_7, 'm', 'e', 's', 's', 'a', 'g', 'e' };
 BYTE s_actor[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r' };
@@ -134,6 +137,7 @@ BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
 
 static int test_bytecode_types() {
     assert(null != 0);
+    assert(null == MAX_BYTE);
     assert(true);
     assert(!false);
     assert(!!true);
@@ -179,6 +183,7 @@ static int test_bytecode_types() {
     assert((n_64 - n_0) == 64);
     assert((n_m64 - n_0) == -64);
     assert((n_126 - n_0) == 126);
+    assert(sizeof(s_) == 2);
     assert(sizeof(s_name) == 6);
     assert(sizeof(s_value) == 7);
     assert(sizeof(s_message) == 9);
@@ -208,7 +213,7 @@ typedef struct {
 BYTE parse_integer(parse_t * parse);  // FORWARD DECLARATION
 
 BYTE parse_from_data(parse_t * parse, DATA_PTR data) {
-    // initialize parse bounds to consume raw byte data
+    // initialize parse bounds to read from byte buffer
     if (data[0] != octets) return false;  // data container must be octets
     parse->prefix = data[0];
     parse->type = prefix_type[parse->prefix];
@@ -231,7 +236,7 @@ BYTE parse_from_data(parse_t * parse, DATA_PTR data) {
 
 BYTE parse_integer(parse_t * parse) {
     // parse Integer value up to WORD size in bits
-    LOG_TRACE("parse_integer", (WORD)parse);
+    LOG_TRACE("parse_integer @", (WORD)parse);
     LOG_TRACE("parse_integer: start", parse->start);
     if (parse->start >= parse->size) return false;  // out of bounds
     parse->end = parse->start;
@@ -263,7 +268,7 @@ BYTE parse_integer(parse_t * parse) {
             }
             if ((parse->type & T_Negative) && (shift < (sizeof(WORD) * 8))) {
                 // sign extend negative value
-                n |= ((WORD)-1 << shift);
+                n |= (MAX_WORD << shift);
             }
             parse->value = n;
             LOG_DEBUG("parse_integer: WORD value", parse->value);
@@ -352,7 +357,7 @@ static int test_parse_integer() {
 
 BYTE parse_string(parse_t * parse) {
     // parse String header, up to the start of codepoint data
-    LOG_TRACE("parse_string", (WORD)parse);
+    LOG_TRACE("parse_string @", (WORD)parse);
     LOG_TRACE("parse_string: start", parse->start);
     if (parse->start >= parse->size) return false;  // out of bounds
     parse->end = parse->start;
@@ -398,6 +403,7 @@ BYTE parse_string(parse_t * parse) {
                     &&  (parse->base[parse->end + 1] == 0xBB)
                     &&  (parse->base[parse->end + 2] == 0xBF)) {
                         // skip byte-order-mark
+                        LOG_TRACE("parse_string: skip BOM", parse->end);
                         parse->end += 3;
                         parse->value -= 3;
                     }
@@ -409,6 +415,7 @@ BYTE parse_string(parse_t * parse) {
                     if ((parse->base[parse->end] == 0xFE)
                     &&  (parse->base[parse->end + 1] == 0xFF)) {
                         // skip BE byte-order-mark
+                        LOG_TRACE("parse_string: skip BOM/BE", parse->end);
                         parse->end += 2;
                         parse->value -= 2;
                     }
@@ -416,13 +423,14 @@ BYTE parse_string(parse_t * parse) {
                     if ((parse->base[parse->end] == 0xFF)
                     &&  (parse->base[parse->end + 1] == 0xFE)) {
                         // skip LE byte-order-mark
-                        parse->prefix |= T_Negative;  // reverse bytes for LE encoding
+                        LOG_TRACE("parse_string: skip BOM/LE", parse->end);
+                        parse->type |= T_Negative;  // reverse bytes for LE encoding
                         parse->end += 2;
                         parse->value -= 2;
                     }
                 }
             }
-            LOG_DEBUG("parse_string: value", parse->value);
+            LOG_DEBUG("parse_string: value/size", parse->value);
             return true;  // success
         }
         return false;  // bad size
@@ -514,7 +522,7 @@ static int test_parse_string() {
 
 /**
 Usage:
-    BYTE data[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
+    BYTE data[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e' };
     parse_t parse = {
         .base = data,
         .size = sizeof(data),
@@ -536,7 +544,7 @@ BYTE parse_codepoint(parse_t * parse) {
     // parse a single codepoint value from a String parsed by `parse_string`
     BYTE b;
 
-    LOG_TRACE("parse_codepoint", (WORD)parse);
+    LOG_TRACE("parse_codepoint @", (WORD)parse);
     if (parse->start >= parse->size) return false;  // out of bounds
     LOG_TRACE("parse_codepoint: prefix", parse->prefix);
     if (parse->prefix == mem_ref) return false;  // FIXME: MEMO GET NOT SUPPORTED!
@@ -603,9 +611,12 @@ BYTE parse_codepoint(parse_t * parse) {
         case utf16: {
             if (parse->end >= parse->size) return false;  // require at least 1 more byte
             b = parse->base[parse->end++];
-            LOG_TRACE("parse_codepoint: utf16 b =", b);
-            // FIXME: handle "negative" (LE) ordering
-            parse->value = ((parse->value  << 8) | b);  // combine bytes to form codepoint
+            LOG_TRACE("parse_codepoint: b16 =", b);
+            if (parse->type & T_Negative) {
+                parse->value = ((b << 8) | parse->value);  // combine bytes (LE) to form codepoint
+            } else {
+                parse->value = ((parse->value << 8) | b);  // combine bytes (BE) to form codepoint
+            }
             LOG_DEBUG("parse_codepoint: utf16", parse->value);
             // FIXME: check for sequences longer than 2 bytes...
             return true;  // bad UTF-16
@@ -619,7 +630,7 @@ BYTE parse_codepoint(parse_t * parse) {
 }
 
 static int test_parse_codepoint() {
-    BYTE data[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
+    BYTE data[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r' };
     parse_t parse = {
         .base = data,
         .size = sizeof(data),
@@ -639,20 +650,31 @@ static int test_parse_codepoint() {
 }
 
 BYTE value_equal(DATA_PTR x, DATA_PTR y) {
-    if (x == y) return true;  // identical values are equal
+    LOG_TRACE("value_equal: x @", (WORD)x);
+    LOG_TRACE("value_equal: y @", (WORD)y);
+    if (x == y) {
+        LOG_DEBUG("value_equal: MATCH same", true);
+        return true;  // identical values are equal
+    }
     prefix_t x_prefix = x[0];
+    LOG_TRACE("value_equal: x_prefix", x_prefix);
     prefix_t y_prefix = y[0];
+    LOG_TRACE("value_equal: y_prefix", y_prefix);
     type_t x_type = prefix_type[x_prefix];
     type_t y_type = prefix_type[y_prefix];
-    if ((x_type & T_Base) != (y_type & T_Base)) return false;  // mismatched base types
+    if ((x_type & T_Base) != (y_type & T_Base)) {  // mismatched base types
+        LOG_DEBUG("value_equal: mismatch x_type", x_type);
+        LOG_DEBUG("value_equal: mismatch y_type", y_type);
+        return false;  // mismatched codepoints
+    }
     parse_t x_parse = {
         .base = x,
-        .size = (WORD)-1,  // don't know how big value will be
+        .size = MAX_WORD,  // don't know how big value will be
         .start = 0
     };
     parse_t y_parse = {
         .base = y,
-        .size = (WORD)-1,  // don't know how big value will be
+        .size = MAX_WORD,  // don't know how big value will be
         .start = 0
     };
     switch (x_type & T_Base) {
@@ -670,6 +692,10 @@ BYTE value_equal(DATA_PTR x, DATA_PTR y) {
                 while ((x_parse.start < x_parse.size) && (y_parse.start < y_parse.size)) {
                     if (parse_codepoint(&x_parse) && parse_codepoint(&y_parse)) {
                         if (x_parse.value != y_parse.value) {
+                            LOG_TRACE("value_equal: mismatch x_parse.end", x_parse.end);
+                            LOG_TRACE("value_equal: mismatch y_parse.end", y_parse.end);
+                            LOG_DEBUG("value_equal: mismatch String x", x_parse.value);
+                            LOG_DEBUG("value_equal: mismatch String y", y_parse.value);
                             return false;  // mismatched codepoints
                         }
                         x_parse.start = x_parse.end;
@@ -677,8 +703,11 @@ BYTE value_equal(DATA_PTR x, DATA_PTR y) {
                     }
                 }
                 if ((x_parse.start < x_parse.size) || (y_parse.start < y_parse.size)) {
+                    if (x_parse.start < x_parse.size) LOG_DEBUG("value_equal: more String x...", x_parse.start);
+                    if (y_parse.start < y_parse.size) LOG_DEBUG("value_equal: more String y...", y_parse.start);
                     return false;  // one string ended before the other
                 }
+                LOG_DEBUG("value_equal: MATCH String", true);
                 return true;  // String values match
             }
             break;
@@ -690,39 +719,57 @@ BYTE value_equal(DATA_PTR x, DATA_PTR y) {
             break;
         }
         default: {
-            return (x_prefix == y_prefix);
+            BYTE result = (x_prefix == y_prefix);
+            LOG_DEBUG("value_equal: MATCH direct", result);
+            return result;
         }
     }
+    LOG_DEBUG("value_equal: FAIL!", false);
     return false;
 };
 
 static int test_value_equal() {
-    BYTE data[] = {
-/*
-        string_0,
-        octets, n_4, 'k', 'i', 'n', 'd',
-        utf8, n_4, 'k', 'i', 'n', 'd',
-        utf8, n_7, 0xEF, 0xBB, 0xBF, 'k', 'i', 'n', 'd',
-        utf16, n_8, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd',
-        utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd',
-        utf16, n_10, 0xFF, 0xFE, 'k', '\0', 'i', '\0', 'n', '\0', 'd', '\0',
-        utf8, n_3, 0xEF, 0xBB, 0xBF,
-        utf16, n_2, 0xFF, 0xFE,
-*/
-        octets, n_0
-    };
-    parse_t parse = {
-        .base = data,
-        .size = sizeof(data),
-        .start = 0
-    };
+    BYTE data_0[] = { string_0 };
+    BYTE data_1[] = { octets, n_0 };
+    BYTE data_2[] = { utf8, n_0 };
+    BYTE data_3[] = { utf8, n_3, 0xEF, 0xBB, 0xBF };
+    BYTE data_4[] = { utf16, n_2, 0xFE, 0xFF };
+    BYTE data_5[] = { utf16, n_2, 0xFF, 0xFE };
 
-    assert(parse_string(&parse) == true);
-    assert((parse.end - parse.start) == 2);
-    assert(parse.value == 0);
-    parse.end += parse.value;
+    assert(value_equal(s_, s_));
+    assert(value_equal(s_, data_0));
+    assert(value_equal(s_, data_1));
+    assert(value_equal(s_, data_2));
+    assert(value_equal(s_, data_3));
+    assert(value_equal(s_, data_4));
+    assert(value_equal(s_, data_5));
+    assert(value_equal(data_3, data_4));
+    assert(value_equal(data_3, data_5));
+    assert(value_equal(data_4, data_5));
 
-    assert(parse.end == parse.size);  // used up all the data
+    assert(!value_equal(s_kind, s_));
+    assert(!value_equal(s_kind, s_actor));
+
+    BYTE data_10[] = { octets, n_4, 'k', 'i', 'n', 'd' };
+    BYTE data_11[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
+    BYTE data_12[] = { utf8, n_7, 0xEF, 0xBB, 0xBF, 'k', 'i', 'n', 'd' };
+    BYTE data_13[] = { utf16, n_8, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd' };
+    BYTE data_14[] = { utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd' };
+    BYTE data_15[] = { utf16, n_10, 0xFF, 0xFE, 'k', '\0', 'i', '\0', 'n', '\0', 'd', '\0' };
+
+    assert(value_equal(s_kind, data_10));
+    assert(value_equal(s_kind, data_11));
+    assert(value_equal(s_kind, data_12));
+    assert(value_equal(s_kind, data_13));
+    assert(value_equal(s_kind, data_14));
+    assert(value_equal(s_kind, data_15));
+    assert(value_equal(data_12, data_13));
+    assert(value_equal(data_12, data_14));
+    assert(value_equal(data_12, data_15));
+    assert(value_equal(data_13, data_14));
+    assert(value_equal(data_13, data_15));
+    assert(value_equal(data_14, data_15));
+
     return 0;
 }
 
@@ -734,6 +781,8 @@ static int test_C_language() {
     assert((BYTE)(b + 1) == 0x00);
     assert((++b) == 0x00);
     assert((--b) == 0xFF);
+    assert((MAX_WORD + 1) == 0);
+    assert((MAX_BYTE + 1) == 256);
     return 0;
 }
 
