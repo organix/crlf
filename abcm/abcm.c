@@ -17,6 +17,7 @@ typedef uintptr_t WORD;         // native machine word
 
 #define MAX_BYTE ((BYTE)-1)
 #define MAX_WORD ((WORD)-1)
+#define MAX_UNICODE ((WORD)0x10FFFF)
 
 typedef uint8_t NAT8;           // 8-bit natural ring
 typedef uint16_t NAT16;         // 16-bit natural ring
@@ -565,6 +566,7 @@ BYTE parse_codepoint(parse_t * parse) {
                 LOG_DEBUG("parse_codepoint: utf8 ASCII", parse->value);
                 return true;
             }
+            // FIXME: should handle invalid and overlong sequences better...
             if ((parse->value & 0xE0) == 0xC0) {
                 // 2-byte UTF-8 sequences encode the range 0x0080..0x07FF
                 if (parse->end >= parse->size) return false;  // require at least 1 more byte
@@ -601,8 +603,10 @@ BYTE parse_codepoint(parse_t * parse) {
                 b = parse->base[parse->end++];
                 if ((b & 0xC0) != 0x80) return false;  // invalid continuation byte
                 parse->value = ((parse->value << 6) | (b & 0x3F));  // shift in next 6 bits of codepoint
-                LOG_DEBUG("parse_codepoint: utf8 4-byte", parse->value);
-                return true;
+                if (parse->value <= MAX_UNICODE) {
+                    LOG_DEBUG("parse_codepoint: utf8 4-byte", parse->value);
+                    return true;
+                }
             }
             LOG_DEBUG("parse_codepoint: bad utf8", parse->value);
             return false;  // bad UTF-8
@@ -617,9 +621,42 @@ BYTE parse_codepoint(parse_t * parse) {
             } else {
                 parse->value = ((parse->value << 8) | b);  // combine bytes (BE) to form codepoint
             }
-            LOG_DEBUG("parse_codepoint: utf16", parse->value);
-            // FIXME: check for sequences longer than 2 bytes...
-            return true;  // bad UTF-16
+            if ((parse->value & 0xF800) == 0xD800) {
+                // surrogates
+                WORD w = parse->value;
+                if ((w & 0xFC00) == 0xD800) {
+                    // high surrogate
+                    LOG_TRACE("parse_codepoint: high surrogate", w);
+                    w &= 0x03FF;  // mask off bottom 10 bits
+                    if ((parse->end + 1) < parse->size) {  // ensure at least 2 more bytes
+                        WORD v = parse->base[parse->end];
+                        LOG_TRACE("parse_codepoint: v =", v);
+                        b = parse->base[parse->end + 1];
+                        LOG_TRACE("parse_codepoint: b =", b);
+                        if (parse->type & T_Negative) {
+                            v = ((b << 8) | v);  // combine bytes (LE) to form codepoint
+                        } else {
+                            v = ((v << 8) | b);  // combine bytes (BE) to form codepoint
+                        }
+                        if ((v & 0xFC00) == 0xDC00) {
+                            // surrogate pair
+                            LOG_TRACE("parse_codepoint: low surrogate", v);
+                            v &= 0x03FF;  // mask off bottom 10 bits
+                            parse->value = ((w << 10) | v) + 0x10000;
+                            parse->end += 2;
+                        }
+                    }
+                } else {
+                    LOG_TRACE("parse_codepoint: low surrogate", w);
+                }
+                // unpaired surrogates pass through unchanged
+            }
+            if (parse->value <= MAX_UNICODE) {
+                LOG_DEBUG("parse_codepoint: utf16", parse->value);
+                return true;
+            }
+            LOG_DEBUG("parse_codepoint: bad utf16", parse->value);
+            return false;  // bad UTF-16
         }
         default: {
             LOG_DEBUG("parse_codepoint: bad prefix", parse->prefix);
@@ -630,6 +667,9 @@ BYTE parse_codepoint(parse_t * parse) {
 }
 
 static int test_parse_codepoint() {
+    int i;
+
+    WORD code[] = { 0x0061, 0x0063, 0x0074, 0x006F, 0x0072 };
     BYTE data[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r' };
     parse_t parse = {
         .base = data,
@@ -637,15 +677,38 @@ static int test_parse_codepoint() {
         .start = 0
     };
     LOG_TRACE("test_parse_codepoint", (WORD)&parse);
+
     if (!parse_string(&parse)) return 1;  // bad String
     parse.base += parse.end;  // move base to start of codepoint data
     parse.size = parse.value;
     parse.start = 0;
+    i = 0;
     while (parse.start < parse.size) {
         if (!parse_codepoint(&parse)) return 1;  // bad codepoint
         LOG_DEBUG("codepoint =", parse.value);
+        assert(parse.value == code[i++]);
         parse.start = parse.end;
     }
+    assert(i == (sizeof(code) / sizeof(WORD)));
+
+    WORD code16[] = { 0xDF62, 0xD852, 0x20AC, 0x24B62 };
+    BYTE data16[] = { utf16, n_10, 0xDF, 0x62, 0xD8, 0x52, 0x20, 0xAC, 0xD8, 0x52, 0xDF, 0x62 };
+    parse.base = data16;
+    parse.size = sizeof(data16);
+    parse.start = 0;
+    if (!parse_string(&parse)) return 1;  // bad String
+    parse.base += parse.end;  // move base to start of codepoint data
+    parse.size = parse.value;
+    parse.start = 0;
+    i = 0;
+    while (parse.start < parse.size) {
+        if (!parse_codepoint(&parse)) return 1;  // bad codepoint
+        LOG_DEBUG("codepoint16 =", parse.value);
+        assert(parse.value == code16[i++]);
+        parse.start = parse.end;
+    }
+    assert(i == (sizeof(code16) / sizeof(WORD)));
+
     return 0;
 }
 
@@ -774,6 +837,7 @@ static int test_value_equal() {
 }
 
 static int test_C_language() {
+    assert(sizeof(WORD) >= 4);  // require at least 32-bit machine words
     BYTE b = 0;
     assert((BYTE)(b + 1) == 0x01);
     assert((BYTE)(b - 1) == 0xFF);
@@ -792,7 +856,8 @@ static int run_test_suite() {
         || test_parse_integer()
         || test_parse_string()
         || test_parse_codepoint()
-        || test_value_equal();
+        || test_value_equal()
+        ;
 }
 
 int main(int argc, char *argv[]) {
