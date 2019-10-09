@@ -948,7 +948,7 @@ static int run_test_suite() {
 }
 
 int main(int argc, char *argv[]) {
-    log_config.level = LOG_LEVEL_DEBUG;
+    log_config.level = LOG_LEVEL_WARN;
     memo_clear();
     int result = run_test_suite();  // pass == 0, fail != 0
     return (exit(result), result);
