@@ -212,6 +212,19 @@ typedef struct {
 
 BYTE parse_integer(parse_t * parse);  // FORWARD DECLARATION
 
+/**
+Input:
+    parse = <parse structure to populate>
+    data = <pointer to octet buffer prefix byte>
+Output:
+    parse->base = <pointer octet buffer data>
+    parse->size = <size of octet buffer in bytes>
+    parse->start = 0
+    parse->end = 0
+    parse->prefix = octets
+    parse->type = prefix_type[octets] // (T_String|T_Sized)
+    parse->value = <input `data` value>
+**/
 BYTE parse_from_data(parse_t * parse, DATA_PTR data) {
     // initialize parse bounds to read from byte buffer
     if (data[0] != octets) return false;  // data container must be octets
@@ -231,12 +244,63 @@ BYTE parse_from_data(parse_t * parse, DATA_PTR data) {
         parse->value = (WORD)data;  // ...in case we need the source pointer
         return true;  // success
     }
+    LOG_WARN("parse_from_data: bad size", size_parse.value);
     return false;  // bad size
 }
 
 /**
 Input:
-    parse->data = <pointer to prefix data byte>
+    parse->base = <pointer to prefix data byte>
+    parse->size = <size of source buffer in bytes>
+    parse->start = 0
+Output:
+    parse->end = <offset to first byte of number data>
+    parse->prefix = <value of prefix byte>
+    parse->type = <value type info>
+    parse->value = <size of number data in bytes, or small integer value>
+**/
+BYTE parse_number(parse_t * parse) {
+    // parse Number header, up to the start of number data
+    LOG_TRACE("parse_number @", (WORD)parse);
+    LOG_TRACE("parse_number: start", parse->start);
+    parse->value = MAX_WORD;  // default (error) value
+    if (parse->start >= parse->size) return false;  // out of bounds
+    parse->end = parse->start;
+    parse->prefix = parse->base[parse->end++];
+    parse->type = prefix_type[parse->prefix];
+    LOG_TRACE("parse_number: prefix", parse->prefix);
+    if ((parse->type & T_Base) != T_Number) return false;  // not a Number type
+    if (parse->type & T_Sized) {
+        // extended (variable sized) Integer
+        parse_t size_parse = {
+            .base = parse->base,
+            .size = parse->size,
+            .start = parse->end
+        };
+        // find out how big it is
+        if (parse_integer(&size_parse)) {
+            WORD size = size_parse.value;
+            parse->end = size_parse.end;
+            parse->value = size;  // value is the size, for extended number scanning
+            if ((parse->end + size) > parse->size) {
+                LOG_WARN("parse_number: not enough data!", size);
+                return false;  // not enough data!
+            }
+            LOG_DEBUG("parse_number: extended size", size);
+            return true;  // success
+        }
+        LOG_WARN("parse_number: bad size", size_parse.value);
+        return false;  // bad size
+    }
+    // must be a Small Integer
+    parse->value = (int)(parse->prefix - n_0);
+    LOG_DEBUG("parse_number: small value", parse->value);
+    return true;  // success
+}
+
+/**
+Input:
+    parse->base = <pointer to prefix data byte>
     parse->size = <size of source buffer in bytes>
     parse->start = 0
 Output:
@@ -248,27 +312,21 @@ Output:
 BYTE parse_integer(parse_t * parse) {
     // parse Integer value up to WORD size in bits
     LOG_TRACE("parse_integer @", (WORD)parse);
-    LOG_TRACE("parse_integer: start", parse->start);
-    if (parse->start >= parse->size) return false;  // out of bounds
-    parse->end = parse->start;
-    parse->prefix = parse->base[parse->end++];
-    parse->type = prefix_type[parse->prefix];
-    LOG_TRACE("parse_integer: prefix", parse->prefix);
-    if ((parse->type & T_Base) != T_Number) return false;  // not a Number type
-    if (parse->type & T_Counted) return false;  // not an Integer type
-    if (parse->type & T_Sized) {
-        // extended (variable sized) Integer
-        parse_t size_parse = {
-            .base = parse->base,
-            .size = parse->size,
-            .start = parse->end
-        };
-        // find out how big it is
-        if (parse_integer(&size_parse) && (size_parse.value < sizeof(WORD))) {
-            WORD size = size_parse.value;
+    if (parse_number(parse)) {
+        if (parse->type & T_Counted) {
+            // FIXME: parse exponent size field for UNUM format...
+            LOG_WARN("parse_integer: no UNUM support!", parse->type);
+            return false;  // not an Integer type
+        }
+        if (parse->type & T_Sized) {
+            // extended (variable sized) Integer
+            WORD size = parse->value;  // value is the size, for extended number scanning
+            if (size > sizeof(WORD)) {
+                LOG_WARN("parse_integer: size > sizeof(WORD)", size);
+                return false;
+            }
+            // NOTE: we count on `parse_number` to range-check `size` relative to `base`
             WORD n = 0;
-            parse->end = size_parse.end;
-            if ((parse->end + size) > parse->size) return false;  // not enough data!
             int shift = 0;
             while (size-- > 0) {
                 // accumulate integer value
@@ -282,15 +340,12 @@ BYTE parse_integer(parse_t * parse) {
                 n |= (MAX_WORD << shift);
             }
             parse->value = n;
-            LOG_DEBUG("parse_integer: WORD value", parse->value);
-            return true;  // success
+            LOG_DEBUG("parse_integer: value =", parse->value);
         }
-        return false;  // bad size, or too big for WORD
+        return true;  // success
     }
-    // must be a Small Integer
-    parse->value = (int)(parse->prefix - n_0);
-    LOG_DEBUG("parse_integer: small value", parse->value);
-    return true;  // success
+    LOG_WARN("parse_integer: bad number", parse->value);
+    return false;  // bad number
 }
 
 static int test_parse_integer() {
@@ -368,14 +423,14 @@ static int test_parse_integer() {
 
 /**
 Input:
-    parse->data = <pointer to prefix data byte>
+    parse->base = <pointer to prefix data byte>
     parse->size = <size of source buffer in bytes>
     parse->start = 0
 Output:
     parse->end = <offset to first byte of codepoint data>
     parse->prefix = <value of prefix byte>
     parse->type = <value type info>
-    parse->value = <size of codepoint data in bytes>
+    parse->value = <size of codepoint data in bytes, or memo index>
 **/
 BYTE parse_string(parse_t * parse) {
     // parse String header, up to the start of codepoint data
@@ -397,7 +452,7 @@ BYTE parse_string(parse_t * parse) {
         // memo table index
         if (parse->start >= parse->size) return false;  // out of bounds
         parse->value = parse->base[parse->end++];  // value is the memo index, caller beware...
-        LOG_DEBUG("parse_string: mem_ref", parse->value);
+        LOG_WARN("parse_string: mem_ref", parse->value);
         return false;  // FIXME: MEMO GET NOT SUPPORTED!
     }
     if (parse->type & T_Counted) return false;  // "encoded" String type not supported (yet?)
@@ -410,11 +465,16 @@ BYTE parse_string(parse_t * parse) {
         };
         // find out how big it is
         if (parse_integer(&size_parse)) {
+            WORD size = size_parse.value;
             parse->end = size_parse.end;
-            parse->value = size_parse.value;  // value is the size, for codepoint scanning
+            parse->value = size;  // value is the size, for codepoint scanning
+            if ((parse->end + size) > parse->size) {
+                LOG_WARN("parse_string: not enough data!", size);
+                return false;  // not enough data!
+            }
             if (parse->type & T_Exact) {
                 // add String to memo table
-                LOG_DEBUG("parse_string: memoize", parse->value);
+                LOG_WARN("parse_string: memoize", parse->value);
                 return false;  // FIXME: MEMO SET NOT SUPPORTED!
             }
             if ((parse->prefix == utf8) || (parse->prefix == utf8_mem)) {
@@ -455,8 +515,10 @@ BYTE parse_string(parse_t * parse) {
             LOG_DEBUG("parse_string: value/size", parse->value);
             return true;  // success
         }
+        LOG_WARN("parse_string: bad size", size_parse.value);
         return false;  // bad size
     }
+    LOG_WARN("parse_string: bad prefix", parse->prefix);
     return false;  // bad prefix/flags
 }
 
@@ -629,7 +691,7 @@ BYTE parse_codepoint(parse_t * parse) {
                     return true;
                 }
             }
-            LOG_DEBUG("parse_codepoint: bad utf8", parse->value);
+            LOG_WARN("parse_codepoint: bad utf8", parse->value);
             return false;  // bad UTF-8
         }
         case utf16_mem:
@@ -677,11 +739,11 @@ BYTE parse_codepoint(parse_t * parse) {
                 LOG_DEBUG("parse_codepoint: utf16", parse->value);
                 return true;
             }
-            LOG_DEBUG("parse_codepoint: bad utf16", parse->value);
+            LOG_WARN("parse_codepoint: bad utf16", parse->value);
             return false;  // bad UTF-16
         }
         default: {
-            LOG_DEBUG("parse_codepoint: bad prefix", parse->prefix);
+            LOG_WARN("parse_codepoint: bad prefix", parse->prefix);
             return false;  // bad prefix
         }
     }
@@ -812,7 +874,7 @@ BYTE value_equal(DATA_PTR x, DATA_PTR y) {
             return result;
         }
     }
-    LOG_DEBUG("value_equal: FAIL!", false);
+    LOG_WARN("value_equal: FAIL!", false);
     return false;
 };
 
