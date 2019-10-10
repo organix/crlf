@@ -71,10 +71,10 @@ typedef enum {
     T_Object,
 /*  T_6_unused, */
     T_Base = ((1 << 3) - 1),  // mask for base type
-    T_Negative = (1 << 3),  // also "utf-16le" for Strings
+    T_Negative = (1 << 3),  // also "UTF-16LE" for Strings
     T_Exact = (1 << 4),  // also "memoize" for Strings
     T_Sized = (1 << 5),
-    T_Counted = (1 << 6),  // also "encoded" for Strings, "unum" for Numbers (has exponent)
+    T_Counted = (1 << 6),  // also "encoded" for Strings, "Unum" for Numbers (has exponent)
     T_Capability = (1 << 7)
 } type_t;
 
@@ -118,14 +118,23 @@ type_t prefix_type[1<<8] = {
     T_Small, T_Small, T_Small, T_Small, T_Small, T_Small, T_Small, T_Null
 };
 
-BYTE s_[] = { utf8, n_0 };
-BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
-BYTE s_message[] = { utf8, n_7, 'm', 'e', 's', 's', 'a', 'g', 'e' };
-BYTE s_actor[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r' };
-BYTE s_behavior[] = { utf8, n_8, 'b', 'e', 'h', 'a', 'v', 'i', 'o', 'r' };
-BYTE s_name[] = { utf8, n_4, 'n', 'a', 'm', 'e' };
-BYTE s_value[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e' };
-BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
+BYTE s_type_name[][10] = {
+    { utf8, n_4, 'N', 'u', 'l', 'l', '\0', '\0', '\0', '\0' },
+    { utf8, n_7, 'B', 'o', 'o', 'l', 'e', 'a', 'n', '\0' },
+    { utf8, n_6, 'N', 'u', 'm', 'b', 'e', 'r', '\0', '\0' },
+    { utf8, n_6, 'S', 't', 'r', 'i', 'n', 'g', '\0', '\0' },
+    { utf8, n_5, 'A', 'r', 'r', 'a', 'y', '\0', '\0', '\0' },
+    { utf8, n_6, 'O', 'b', 'j', 'e', 'c', 't', '\0', '\0' }
+};
+
+BYTE s_[] = { utf8, n_0, '\0' };
+BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd', '\0' };
+BYTE s_message[] = { utf8, n_7, 'm', 'e', 's', 's', 'a', 'g', 'e', '\0' };
+BYTE s_actor[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r', '\0' };
+BYTE s_behavior[] = { utf8, n_8, 'b', 'e', 'h', 'a', 'v', 'i', 'o', 'r', '\0' };
+BYTE s_name[] = { utf8, n_4, 'n', 'a', 'm', 'e', '\0' };
+BYTE s_value[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e', '\0' };
+BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r', '\0' };
 /*
 // Actions
     { "kind":"actor_send", "message":<dictionary>, "actor":<address> }
@@ -183,10 +192,7 @@ static int test_bytecode_types() {
     assert((n_64 - n_0) == 64);
     assert((n_m64 - n_0) == -64);
     assert((n_126 - n_0) == 126);
-    assert(sizeof(s_) == 2);
-    assert(sizeof(s_name) == 6);
-    assert(sizeof(s_value) == 7);
-    assert(sizeof(s_message) == 9);
+    assert(sizeof(s_) == 3);
     return 0;
 }
 
@@ -207,7 +213,8 @@ typedef struct {
     WORD        end;            // offset at which parsing ended (next start)
     prefix_t    prefix;         // parsed data prefix
     type_t      type;           // parsed data type info
-    WORD        value;          // parsed data value (accumulator or pointer)
+    WORD        value;          // parsed data value/size (accumulator or pointer)
+    WORD        count;          // parsed data count (for T_Counted)
 } parse_t;
 
 BYTE parse_integer(parse_t * parse);  // FORWARD DECLARATION
@@ -281,42 +288,110 @@ Input:
     parse->size = <size of source buffer in bytes>
     parse->start = <offset from base to prefix byte>
 Output:
-    parse->end = <offset to first byte of number data>
+    parse->end = <offset past last byte of extended data>
     parse->prefix = <value of prefix byte>
     parse->type = <value type info>
-    parse->value = <size of number data in bytes, or small integer value>
+    parse->value = <size of extended data (if T_Sized), or memo index, or Small Integer value>
+    parse->count = <value of count field (if T_Counted)>
 **/
-BYTE parse_number(parse_t * parse) {
-    // parse Number header, up to the start of number data
-    LOG_TRACE("parse_number @", (WORD)parse);
-    parse->value = MAX_WORD;  // default (error) value
+BYTE parse_value(parse_t * parse) {
+    LOG_TRACE("parse_value @", (WORD)parse);
+    parse->value = 0;  // default value/size
+    parse->count = 0;  // default count
     if (!parse_prefix(parse)) return false;  // bad prefix!
-    if ((parse->type & T_Base) != T_Number) return false;  // not a Number type
-    if (parse->type & T_Sized) {
-        // extended (variable sized) Integer
-        parse_t size_parse = {
+    if (parse->prefix == mem_ref) {
+        // FIXME: handle memo references better...
+        if (parse->end >= parse->size) {
+            LOG_WARN("parse_value: out-of-bounds", parse->size);
+            return false;  // out of bounds
+        }
+        BYTE index = parse->base[parse->end++];
+        parse->value = index;
+        parse->count = (WORD)(memo_table[index]);
+        LOG_DEBUG("parse_value: memoized String", parse->value);
+    } else if (parse->type & T_Sized) {
+        // extended Value
+        parse_t ext_parse = {
             .base = parse->base,
             .size = parse->size,
             .start = parse->end
         };
-        // find out how big it is
-        if (parse_integer(&size_parse)) {
-            WORD size = size_parse.value;
-            parse->end = size_parse.end;
-            parse->value = size;  // value is the size, for extended number scanning
-            if ((parse->end + size) > parse->size) {
-                LOG_WARN("parse_number: not enough data!", size);
-                return false;  // not enough data!
-            }
-            LOG_DEBUG("parse_number: extended size", size);
-            return true;  // success
+        // parse size field
+        if (!parse_integer(&ext_parse)) {
+            LOG_WARN("parse_value: bad size", ext_parse.value);
+            return false;  // bad size
         }
-        LOG_WARN("parse_number: bad size", size_parse.value);
-        return false;  // bad size
+        WORD start = ext_parse.end;
+        LOG_TRACE("parse_value: start =", start);
+        WORD size = ext_parse.value;
+        parse->end = start + size;  // advance to end of Value
+        LOG_TRACE("parse_value: end =", parse->end);
+        parse->value = size;  // value is the size
+        if (parse->end > parse->size) {
+            LOG_WARN("parse_value: not enough data!", size);
+            return false;  // not enough data!
+        }
+        if (parse->type & T_Counted) {
+            // parse count field
+            ext_parse.start = ext_parse.end;
+            if (parse->prefix == s_encoded) {
+                // FIXME: parse encoding String
+                LOG_WARN("parse_value: unsupported encoding!", (WORD)(ext_parse.base + ext_parse.start));
+                return false;  // unsupported encoding!
+            }
+            if (!parse_integer(&ext_parse)) {
+                LOG_WARN("parse_value: bad count", ext_parse.value);
+                return false;  // bad count
+            }
+            parse->count = ext_parse.value;
+            WORD skip = ext_parse.end - ext_parse.start;
+            parse->value -= skip;  // remove count field from size
+        }
+        if ((parse->prefix == utf8) || (parse->prefix == utf8_mem)) {
+            LOG_TRACE("parse_value: utf8", parse->value);
+            // check for byte-order-mark
+            if (parse->value >= 3) {  // require at least 3 bytes
+                if ((parse->base[start] == 0xEF)
+                &&  (parse->base[start + 1] == 0xBB)
+                &&  (parse->base[start + 2] == 0xBF)) {
+                    LOG_TRACE("parse_value: skip BOM", start);
+                    parse->value -= 3;  // remove BOM from size
+                }
+            }
+            if (parse->type & T_Exact) {
+                // FIXME: add String to memo table
+                LOG_WARN("parse_string: memo not implemented", parse->value);
+                return false;  // memo not implemented
+            }
+        } else if ((parse->prefix == utf16) || (parse->prefix == utf16_mem)) {
+            LOG_TRACE("parse_value: utf16", parse->value);
+            // check for byte-order-mark
+            if (parse->value >= 2) {  // require at least 2 bytes
+                if ((parse->base[start] == 0xFE)
+                &&  (parse->base[start + 1] == 0xFF)) {
+                    LOG_TRACE("parse_value: skip BOM/BE", start);
+                    parse->value -= 2;  // remove BOM/BE from size
+                }
+                else 
+                if ((parse->base[start] == 0xFF)
+                &&  (parse->base[start + 1] == 0xFE)) {
+                    LOG_TRACE("parse_value: skip BOM/LE", start);
+                    parse->type |= T_Negative;  // reverse bytes for LE encoding
+                    parse->value -= 2;  // remove BOM/LE from size
+                }
+            }
+            if (parse->type & T_Exact) {
+                // FIXME: add String to memo table
+                LOG_WARN("parse_string: memo not implemented", parse->value);
+                return false;  // memo not implemented
+            }
+        }
+        LOG_DEBUG("parse_value: extended data size", parse->value);
+    } else if ((parse->type & ~T_Negative) == T_Small) {
+        // direct-coded Small Integer
+        parse->value = (int)(parse->prefix - n_0);
+        LOG_DEBUG("parse_value: Small Integer", parse->value);
     }
-    // must be a Small Integer
-    parse->value = (int)(parse->prefix - n_0);
-    LOG_DEBUG("parse_number: small value", parse->value);
     return true;  // success
 }
 
@@ -334,50 +409,43 @@ Output:
 BYTE parse_integer(parse_t * parse) {
     // parse Integer value up to WORD size in bits
     LOG_TRACE("parse_integer @", (WORD)parse);
-    if (parse_number(parse)) {
-        if (parse->type & T_Counted) {
-            // Unum / Floating Point
-            parse_t exp_parse = {
-                .base = parse->base,
-                .size = parse->size,
-                .start = parse->end
-            };
-            // find out how many bits are exponent
-            if (!parse_integer(&exp_parse)) return false;  // bad exponent field
-            WORD exp_bits = exp_parse.value;
-            parse->end = exp_parse.end + parse->value;  // skip number data
-            LOG_WARN("parse_integer: no Unum support!", parse->type);
-            return false;  // not an Integer type
-        }
-        if (parse->type & T_Sized) {
-            // extended (variable sized) Integer
-            WORD size = parse->value;  // value is the size, for extended number scanning
-            if (size > sizeof(WORD)) {
-                parse->end += size;  // skip number data
-                LOG_DEBUG("parse_integer: size > sizeof(WORD)", size);
-                return false;
-            }
-            // NOTE: we count on `parse_number` to range-check `size` relative to `base`
-            WORD n = 0;
-            int shift = 0;
-            while (size-- > 0) {
-                // accumulate integer value
-                WORD m = parse->base[parse->end++];
-                m <<= shift;
-                n |= m;
-                shift += 8;
-            }
-            if ((parse->type & T_Negative) && (shift < (sizeof(WORD) * 8))) {
-                // sign extend negative value
-                n |= (MAX_WORD << shift);
-            }
-            parse->value = n;
-            LOG_DEBUG("parse_integer: value =", parse->value);
-        }
-        return true;  // success
+    if (!parse_value(parse)) return false;  // bad Value!
+    if ((parse->type & T_Base) != T_Number) {
+        LOG_WARN("parse_integer: not a Number", parse->type);
+        return false;  // not a Number type
     }
-    LOG_WARN("parse_integer: bad number", parse->value);
-    return false;  // bad number
+    if (parse->type & T_Counted) {
+        LOG_WARN("parse_integer: not an Integer", parse->type);
+        return false;  // not an Integer type
+    }
+    if (parse->type & T_Sized) {
+        // extended (variable sized) Integer
+        LOG_TRACE("parse_integer: end =", parse->end);
+        WORD size = parse->value;  // value is the size, for extended number scanning
+        if (size > sizeof(WORD)) {
+            LOG_DEBUG("parse_integer: size > sizeof(WORD)", size);
+            return false;
+        }
+        // NOTE: we count on `parse_value` to range-check `size` relative to `base`
+        WORD i = parse->end - size;  // start at beginning of extended data
+        WORD n = 0;
+        int shift = 0;
+        while (size-- > 0) {
+            // accumulate integer value
+            WORD m = parse->base[i++];
+            LOG_TRACE("parse_integer: m =", m);
+            m <<= shift;
+            n |= m;
+            shift += 8;
+        }
+        if ((parse->type & T_Negative) && (shift < (sizeof(WORD) * 8))) {
+            // sign extend negative value
+            n |= (MAX_WORD << shift);
+        }
+        parse->value = n;
+    }
+    LOG_DEBUG("parse_integer: value =", parse->value);
+    return true;  // success
 }
 
 static int test_parse_integer() {
@@ -465,94 +533,41 @@ Input:
     parse->size = <size of source buffer in bytes>
     parse->start = <offset from base to prefix byte>
 Output:
-    parse->end = <offset to first byte of codepoint data>
+    parse->end = <offset past end of codepoint data>
     parse->prefix = <value of prefix byte>
     parse->type = <value type info>
     parse->value = <size of codepoint data in bytes, or memo index>
+    (parse->end - parse->value) = <offset to start of codepoint data>
 **/
 BYTE parse_string(parse_t * parse) {
-    // parse String header, up to the start of codepoint data
     LOG_TRACE("parse_string @", (WORD)parse);
-    if (!parse_prefix(parse)) return false;  // bad prefix!
-    if ((parse->type & T_Base) != T_String) return false;  // not a String type
-    if (parse->prefix == string_0) {
-        // empty string
-        parse->value = 0;  // value is the size, for codepoint scanning
-        LOG_DEBUG("parse_string: string_0", parse->value);
-        return true;  // success
+    if (!parse_value(parse)) return false;  // bad Value!
+    if ((parse->type & T_Base) != T_String) {
+        LOG_WARN("parse_string: not a String", parse->type);
+        return false;  // not a String type
+    }
+    if (parse->type & T_Counted) {
+        LOG_WARN("parse_string: encoding not supported", parse->type);
+        return false;  // encoding not supported
     }
     if (parse->prefix == mem_ref) {
-        // memo table index
-        if (parse->start >= parse->size) return false;  // out of bounds
-        parse->value = parse->base[parse->end++];  // value is the memo index, caller beware...
-        LOG_WARN("parse_string: mem_ref", parse->value);
-        return false;  // FIXME: MEMO GET NOT SUPPORTED!
+        LOG_WARN("parse_string: memo not implemented", parse->value);
+        return false;  // memo not implemented
     }
-    if (parse->type & T_Counted) return false;  // "encoded" String type not supported (yet?)
+    if (parse->prefix == string_0) {
+        // empty String
+        assert(parse->value == 0);
+    }
     if (parse->type & T_Sized) {
         // extended (variable sized) String
-        parse_t size_parse = {
-            .base = parse->base,
-            .size = parse->size,
-            .start = parse->end
-        };
-        // find out how big it is
-        if (parse_integer(&size_parse)) {
-            WORD size = size_parse.value;
-            parse->end = size_parse.end;
-            parse->value = size;  // value is the size, for codepoint scanning
-            if ((parse->end + size) > parse->size) {
-                LOG_WARN("parse_string: not enough data!", size);
-                return false;  // not enough data!
-            }
-            if (parse->type & T_Exact) {
-                // add String to memo table
-                LOG_WARN("parse_string: memoize", parse->value);
-                return false;  // FIXME: MEMO SET NOT SUPPORTED!
-            }
-            if ((parse->prefix == utf8) || (parse->prefix == utf8_mem)) {
-                LOG_TRACE("parse_string: utf8", parse->value);
-                // check for byte-order-mark
-                if ((parse->end + 2) < parse->size) {  // require at least 3 more bytes
-                    if ((parse->base[parse->end] == 0xEF)
-                    &&  (parse->base[parse->end + 1] == 0xBB)
-                    &&  (parse->base[parse->end + 2] == 0xBF)) {
-                        // skip byte-order-mark
-                        LOG_TRACE("parse_string: skip BOM", parse->end);
-                        parse->end += 3;
-                        parse->value -= 3;
-                    }
-                }
-            } else if ((parse->prefix == utf16) || (parse->prefix == utf16_mem)) {
-                LOG_TRACE("parse_string: utf16", parse->value);
-                // check for byte-order-mark
-                if ((parse->end + 1) < parse->size) {  // require at least 2 more bytes
-                    if ((parse->base[parse->end] == 0xFE)
-                    &&  (parse->base[parse->end + 1] == 0xFF)) {
-                        // skip BE byte-order-mark
-                        LOG_TRACE("parse_string: skip BOM/BE", parse->end);
-                        parse->end += 2;
-                        parse->value -= 2;
-                    }
-                    else 
-                    if ((parse->base[parse->end] == 0xFF)
-                    &&  (parse->base[parse->end + 1] == 0xFE)) {
-                        // skip LE byte-order-mark
-                        LOG_TRACE("parse_string: skip BOM/LE", parse->end);
-                        parse->type |= T_Negative;  // reverse bytes for LE encoding
-                        parse->end += 2;
-                        parse->value -= 2;
-                    }
-                }
-            }
-            LOG_DEBUG("parse_string: value/size", parse->value);
-            return true;  // success
+        if (parse->type & T_Exact) {
+            // FIXME: add String to memo table
+            LOG_WARN("parse_string: memo not implemented", parse->value);
+            return false;  // memo not implemented
         }
-        LOG_WARN("parse_string: bad size", size_parse.value);
-        return false;  // bad size
     }
-    LOG_WARN("parse_string: bad prefix", parse->prefix);
-    return false;  // bad prefix/flags
+    LOG_DEBUG("parse_string: value/size", parse->value);
+    return true;  // success
 }
 
 static int test_parse_string() {
@@ -577,61 +592,51 @@ static int test_parse_string() {
     assert(parse_string(&parse) == true);
     assert((parse.end - parse.start) == 1);
     assert(parse.value == 0);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_string(&parse) == true);
-    assert((parse.end - parse.start) == 2);
+    assert((parse.end - parse.start) == 6);
     assert(parse.value == 4);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_string(&parse) == true);
-    assert((parse.end - parse.start) == 2);
+    assert((parse.end - parse.start) == 6);
     assert(parse.value == 4);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_string(&parse) == true);
-    assert((parse.end - parse.start) == 5);
+    assert((parse.end - parse.start) == 9);
     assert(parse.value == 4);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_string(&parse) == true);
-    assert((parse.end - parse.start) == 2);
+    assert((parse.end - parse.start) == 10);
     assert(parse.value == 8);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_string(&parse) == true);
-    assert((parse.end - parse.start) == 4);
+    assert((parse.end - parse.start) == 12);
     assert(parse.value == 8);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_string(&parse) == true);
-    assert((parse.end - parse.start) == 4);
+    assert((parse.end - parse.start) == 12);
     assert(parse.value == 8);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_string(&parse) == true);
     assert((parse.end - parse.start) == 5);
     assert(parse.value == 0);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_string(&parse) == true);
     assert((parse.end - parse.start) == 4);
     assert(parse.value == 0);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_string(&parse) == true);
     assert((parse.end - parse.start) == 2);
     assert(parse.value == 0);
-    parse.end += parse.value;
 
     assert(parse.end == parse.size);  // used up all the data
     return 0;
@@ -646,28 +651,30 @@ Usage:
         .start = 0
     };
     if (parse_string(&parse)) {
-        parse.base += parse.end;  // move base to start of codepoint data
-        parse.size = parse.value;
-        parse.start = 0;
+        parse.size = parse.end;
+        parse.start = (parse.end - parse.value);  // start of codepoint data
         while (parse.start < parse.size) {
-            if (parse_codepoint(&parse)) {
-                output(parse.value);
-                parse.start = parse.end;
+            if (!parse_codepoint(&parse)) {
+                break;  // or `return false;`
             }
+            output(parse.value);
+            parse.start = parse.end;
         }
     }
 **/
 BYTE parse_codepoint(parse_t * parse) {
     // parse a single codepoint value from a String parsed by `parse_string`
-    BYTE b;
-
     LOG_TRACE("parse_codepoint @", (WORD)parse);
-    if (parse->start >= parse->size) return false;  // out of bounds
+    if (parse->start >= parse->size) {
+        LOG_WARN("parse_codepoint: out-of-bounds", parse->size);
+        return false;  // out of bounds
+    }
     LOG_TRACE("parse_codepoint: prefix", parse->prefix);
     if (parse->prefix == mem_ref) return false;  // FIXME: MEMO GET NOT SUPPORTED!
     parse->end = parse->start;
     parse->value = parse->base[parse->end++];
     LOG_TRACE("parse_codepoint: value", parse->value);
+    BYTE b;
     switch (parse->prefix) {
         case octets: {
             // each byte is an untranslated codepoint in the range 0x00..0xFF
@@ -797,7 +804,7 @@ static int test_parse_codepoint() {
     LOG_TRACE("test_parse_codepoint", (WORD)&parse);
 
     if (!parse_string(&parse)) return 1;  // bad String
-    parse.base += parse.end;  // move base to start of codepoint data
+    parse.base += (parse.end - parse.value);  // move base to start of codepoint data
     parse.size = parse.value;
     parse.start = 0;
     i = 0;
@@ -816,7 +823,7 @@ static int test_parse_codepoint() {
     parse.size = sizeof(data16);
     parse.start = 0;
     if (!parse_string(&parse)) return 1;  // bad String
-    parse.base += parse.end;  // move base to start of codepoint data
+    parse.base += (parse.end - parse.value);  // move base to start of codepoint data
     parse.size = parse.value;
     parse.start = 0;
     i = 0;
@@ -838,64 +845,38 @@ Input:
     parse->size = <size of source buffer in bytes>
     parse->start = <offset from base to prefix byte>
 Output:
-    parse->end = <offset to first byte of element data>
+    parse->end = <offset past last byte of extended data>
     parse->prefix = <value of prefix byte>
     parse->type = <value type info>
     parse->value = <size of element data in bytes>
+    parse->count = <value of count field (if T_Counted)>
+    (parse->end - parse->value) = <offset to start of element data>
 **/
 BYTE parse_array(parse_t * parse) {
-    // parse Array header, up to the start of element data
     LOG_TRACE("parse_array @", (WORD)parse);
-    if (!parse_prefix(parse)) return false;  // bad prefix!
-    if ((parse->type & T_Base) != T_Array) return false;  // not a Array type
+    if (!parse_value(parse)) return false;  // bad Value!
+    if ((parse->type & T_Base) != T_Array) {
+        LOG_WARN("parse_string: not an Array", parse->type);
+        return false;  // not an Array type
+    }
+    // NOTE: we count on `parse_value` to range-check `size` relative to `base`
     if (parse->prefix == array_0) {
-        // empty array
+        // empty Array
+        assert(parse->value == 0);
+/*
         parse->value = 0;  // value is the size, for element scanning
         LOG_DEBUG("parse_array: array_0", parse->value);
         return true;  // success
+*/
     }
-    if (parse->type & T_Sized) {
-        // extended (variable sized) array
-        parse_t size_parse = {
-            .base = parse->base,
-            .size = parse->size,
-            .start = parse->end
-        };
-        // find out how big it is
-        if (parse_integer(&size_parse)) {
-            WORD size = size_parse.value;
-            parse->end = size_parse.end;
-            parse->value = size;  // value is the size, for element scanning
-            if ((parse->end + size) > parse->size) {
-                LOG_WARN("parse_array: not enough data!", size);
-                return false;  // not enough data!
-            }
-            if (parse->type & T_Counted) {
-                // counted array
-                size_parse.start = parse->end;
-                if (!parse_integer(&size_parse)) {
-                    LOG_WARN("parse_array: bad count", size_parse.value);
-                    return false;  // bad count
-                }
-                WORD count = size_parse.value;
-                parse->end = size_parse.end;
-                parse->value -= (size_parse.end - size_parse.start);  // remove count field from size
-                LOG_DEBUG("parse_array: ignoring count", count);
-            }
-            LOG_DEBUG("parse_array: value/size", parse->value);
-            return true;  // success
-        }
-        LOG_WARN("parse_array: bad size", size_parse.value);
-        return false;  // bad size
-    }
-    LOG_WARN("parse_array: bad prefix", parse->prefix);
-    return false;  // bad prefix/flags
+    LOG_DEBUG("parse_array: value/size", parse->value);
+    return true;  // success
 }
 
 static int test_parse_array() {
     BYTE data[] = {
         array_0,
-        array, n_4, n_0, n_1, n_2, n_3,
+        array, n_4, true, false, n_0, null,
         array_n, n_1, n_0,
         array, n_0
     };
@@ -908,25 +889,21 @@ static int test_parse_array() {
     assert(parse_array(&parse) == true);
     assert((parse.end - parse.start) == 1);
     assert(parse.value == 0);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_array(&parse) == true);
-    assert((parse.end - parse.start) == 2);
+    assert((parse.end - parse.start) == 6);
     assert(parse.value == 4);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_array(&parse) == true);
     assert((parse.end - parse.start) == 3);
     assert(parse.value == 0);
-    parse.end += parse.value;
 
     parse.start = parse.end;
     assert(parse_array(&parse) == true);
     assert((parse.end - parse.start) == 2);
     assert(parse.value == 0);
-    parse.end += parse.value;
 
     assert(parse.end == parse.size);  // used up all the data
     return 0;
@@ -937,11 +914,10 @@ BYTE parse_equal(parse_t * x_parse, parse_t * y_parse) {
     LOG_TRACE("parse_equal: y @", (WORD)y_parse);
     if (x_parse == y_parse) {
         LOG_DEBUG("parse_equal: MATCH same", true);
-        // FIXME: should advance to end of value?
-        return true;  // identical parse-states are equal
+        return parse_value(x_parse);  // advance "both" parsers (aliased)
     }
-    if (!(parse_prefix(x_parse) && parse_prefix(y_parse))) {
-        return false;  // bad prefix
+    if (!(parse_value(x_parse) && parse_value(y_parse))) {
+        return false;  // bad Value(s)
     }
     if ((x_parse->type & T_Base) != (y_parse->type & T_Base)) {
         LOG_DEBUG("parse_equal: mismatch x_type", x_parse->type);
@@ -950,118 +926,102 @@ BYTE parse_equal(parse_t * x_parse, parse_t * y_parse) {
     }
     switch (x_parse->type & T_Base) {
         case T_Number: {
-            if (parse_number(x_parse) && parse_number(y_parse)) {
-                // FIXME: it may be easier to use `parse_integer` and handle (size > sizeof(WORD)) below...
-                if (x_parse->type & T_Counted) {
-                    LOG_WARN("parse_equal: no Unum support for x", x_parse->type);
-                    return false;  // not an Integer type
-                }
-                if (y_parse->type & T_Counted) {
-                    LOG_WARN("parse_equal: no Unum support for y", y_parse->type);
-                    return false;  // not an Integer type
-                }
-                if (x_parse->type & T_Sized) {
-                    // extended integer
-                    x_parse->base += x_parse->end;  // move base to start of number data
-                    x_parse->size = x_parse->value;
-                } else {
-                    // direct-coded (small) integer
-                    BYTE xx_data = x_parse->value;
-                    x_parse->base = &xx_data;  // redirect to temporary local buffer
-                    x_parse->size = 1;
-                }
-                x_parse->start = 0;
-                if (y_parse->type & T_Sized) {
-                    // extended integer
-                    y_parse->base += y_parse->end;  // move base to start of number data
-                    y_parse->size = y_parse->value;
-                } else {
-                    // direct-coded (small) integer
-                    BYTE yy_data = y_parse->value;
-                    y_parse->base = &yy_data;  // redirect to temporary local buffer
-                    y_parse->size = 1;
-                }
-                y_parse->start = 0;
-                BYTE xx_sign = (x_parse->type & T_Negative) ? -1 : 0;
-                BYTE yy_sign = (y_parse->type & T_Negative) ? -1 : 0;
-                while ((x_parse->start < x_parse->size) || (y_parse->start < y_parse->size)) {
-                    BYTE xx_byte = (x_parse->start < x_parse->size)
-                        ? x_parse->base[x_parse->start++]
-                        : xx_sign;
-                    BYTE yy_byte = (y_parse->start < y_parse->size)
-                        ? y_parse->base[y_parse->start++]
-                        : yy_sign;
-                    if (xx_byte != yy_byte) {
-                        LOG_DEBUG("parse_equal: mismatch Number xx", xx_byte);
-                        LOG_DEBUG("parse_equal: mismatch Number yy", yy_byte);
-                        return false;  // mismatched elements
-                    }
-                }
-                LOG_DEBUG("parse_equal: MATCH Number", true);
-                return true;  // Number values match
+            if (x_parse->type & T_Counted) {
+                LOG_WARN("parse_equal: no Unum support for x", x_parse->type);
+                return false;  // not an Integer type
             }
-            break;
+            if (y_parse->type & T_Counted) {
+                LOG_WARN("parse_equal: no Unum support for y", y_parse->type);
+                return false;  // not an Integer type
+            }
+            DATA_PTR x_p;  // pointer to x number data
+            WORD x_n;  // number of data bytes in x
+            if (x_parse->type & T_Sized) {
+                // extended integer
+                x_p = x_parse->base + (x_parse->end - x_parse->value);
+                x_n = x_parse->value;
+            } else {
+                // direct-coded (small) integer
+                BYTE xx_data = x_parse->value;
+                x_p = &xx_data;
+                x_n = sizeof(xx_data);
+            }
+            DATA_PTR y_p;  // pointer to y number data
+            WORD y_n;  // number of data bytes in y
+            if (y_parse->type & T_Sized) {
+                // extended integer
+                y_p = y_parse->base + (y_parse->end - y_parse->value);
+                y_n = y_parse->value;
+            } else {
+                // direct-coded (small) integer
+                BYTE yy_data = y_parse->value;
+                y_p = &yy_data;
+                y_n = sizeof(yy_data);
+            }
+            BYTE xx_sign = (x_parse->type & T_Negative) ? -1 : 0;
+            BYTE yy_sign = (y_parse->type & T_Negative) ? -1 : 0;
+            WORD i = 0;
+            while ((i < x_n) || (i < y_n)) {
+                BYTE xx_byte = (i < x_n) ? x_p[i] : xx_sign;  // sign extended comparison
+                BYTE yy_byte = (i < y_n) ? y_p[i] : yy_sign;  // sign extended comparison
+                if (xx_byte != yy_byte) {
+                    LOG_DEBUG("parse_equal: mismatch Number xx", xx_byte);
+                    LOG_DEBUG("parse_equal: mismatch Number yy", yy_byte);
+                    return false;  // mismatched elements
+                }
+                ++i;
+            }
+            LOG_DEBUG("parse_equal: MATCH Number", true);
+            return true;  // Number values match
         }
         case T_String: {
-            if (parse_string(x_parse) && parse_string(y_parse)) {
-                x_parse->base += x_parse->end;  // move base to start of codepoint data
-                x_parse->size = x_parse->value;
-                x_parse->start = 0;
-                y_parse->base += y_parse->end;  // move base to start of codepoint data
-                y_parse->size = y_parse->value;
-                y_parse->start = 0;
-                while ((x_parse->start < x_parse->size) && (y_parse->start < y_parse->size)) {
-                    if (parse_codepoint(x_parse) && parse_codepoint(y_parse)) {
-                        if (x_parse->value != y_parse->value) {
-                            LOG_TRACE("parse_equal: mismatch x_parse->end", x_parse->end);
-                            LOG_TRACE("parse_equal: mismatch y_parse->end", y_parse->end);
-                            LOG_DEBUG("parse_equal: mismatch String x", x_parse->value);
-                            LOG_DEBUG("parse_equal: mismatch String y", y_parse->value);
-                            return false;  // mismatched codepoints
-                        }
-                        x_parse->start = x_parse->end;
-                        y_parse->start = y_parse->end;
-                    }
+            x_parse->start = (x_parse->end - x_parse->value);  // start of x codepoint data
+            y_parse->start = (y_parse->end - y_parse->value);  // start of y codepoint data
+            WORD x_end = x_parse->end;
+            WORD y_end = y_parse->end;
+            while ((x_parse->start < x_end) && (y_parse->start < y_end)) {
+                if (!(parse_codepoint(x_parse) && parse_codepoint(y_parse))) return false;  // bad codepoint
+                if (x_parse->value != y_parse->value) {
+                    LOG_TRACE("parse_equal: mismatch x_parse->end", x_parse->end);
+                    LOG_TRACE("parse_equal: mismatch y_parse->end", y_parse->end);
+                    LOG_DEBUG("parse_equal: mismatch String x", x_parse->value);
+                    LOG_DEBUG("parse_equal: mismatch String y", y_parse->value);
+                    return false;  // mismatched codepoints
                 }
-                if ((x_parse->start < x_parse->size) || (y_parse->start < y_parse->size)) {
-                    if (x_parse->start < x_parse->size) LOG_DEBUG("parse_equal: more String x...", x_parse->start);
-                    if (y_parse->start < y_parse->size) LOG_DEBUG("parse_equal: more String y...", y_parse->start);
-                    return false;  // one string ended before the other
-                }
-                LOG_DEBUG("parse_equal: MATCH String", true);
-                return true;  // String values match
+                x_parse->start = x_parse->end;
+                y_parse->start = y_parse->end;
             }
-            break;
+            if ((x_parse->start < x_end) || (y_parse->start < y_end)) {
+                if (x_parse->start < x_end) LOG_DEBUG("parse_equal: more String x...", x_parse->start);
+                if (y_parse->start < y_end) LOG_DEBUG("parse_equal: more String y...", y_parse->start);
+                return false;  // one string ended before the other
+            }
+            LOG_DEBUG("parse_equal: MATCH String", true);
+            return true;  // String values match
         }
         case T_Array: {
-            if (parse_array(x_parse) && parse_array(y_parse)) {
-                // FIXME: probably need to create new parsers for nested element values
-                x_parse->base += x_parse->end;  // move base to start of element data
-                x_parse->size = x_parse->value;
-                x_parse->start = 0;
-                y_parse->base += y_parse->end;  // move base to start of element data
-                y_parse->size = y_parse->value;
-                y_parse->start = 0;
-                while ((x_parse->start < x_parse->size) && (y_parse->start < y_parse->size)) {
-                    if (!parse_equal(x_parse, y_parse)) {
-                        LOG_TRACE("parse_equal: mismatch x_parse->end", x_parse->end);
-                        LOG_TRACE("parse_equal: mismatch y_parse->end", y_parse->end);
-                        LOG_DEBUG("parse_equal: mismatch Array x", x_parse->value);
-                        LOG_DEBUG("parse_equal: mismatch Array y", y_parse->value);
-                        return false;  // mismatched elements
-                    }
-                    x_parse->start = x_parse->end;
-                    y_parse->start = y_parse->end;
+            x_parse->start = (x_parse->end - x_parse->value);  // start of x element data
+            y_parse->start = (y_parse->end - y_parse->value);  // start of y element data
+            WORD x_end = x_parse->end;
+            WORD y_end = y_parse->end;
+            while ((x_parse->start < x_end) && (y_parse->start < y_end)) {
+                if (!parse_equal(x_parse, y_parse)) {
+                    LOG_TRACE("parse_equal: mismatch x_parse->end", x_parse->end);
+                    LOG_TRACE("parse_equal: mismatch y_parse->end", y_parse->end);
+                    LOG_DEBUG("parse_equal: mismatch Array x", x_parse->value);
+                    LOG_DEBUG("parse_equal: mismatch Array y", y_parse->value);
+                    return false;  // mismatched elements
                 }
-                if ((x_parse->start < x_parse->size) || (y_parse->start < y_parse->size)) {
-                    if (x_parse->start < x_parse->size) LOG_DEBUG("parse_equal: more Array x...", x_parse->start);
-                    if (y_parse->start < y_parse->size) LOG_DEBUG("parse_equal: more Array y...", y_parse->start);
-                    return false;  // one array ended before the other
-                }
-                LOG_DEBUG("parse_equal: MATCH Array", true);
-                return true;  // Array values match
+                x_parse->start = x_parse->end;
+                y_parse->start = y_parse->end;
             }
-            break;
+            if ((x_parse->start < x_end) || (y_parse->start < y_end)) {
+                if (x_parse->start < x_end) LOG_DEBUG("parse_equal: more Array x...", x_parse->start);
+                if (y_parse->start < y_end) LOG_DEBUG("parse_equal: more Array y...", y_parse->start);
+                return false;  // one array ended before the other
+            }
+            LOG_DEBUG("parse_equal: MATCH Array", true);
+            return true;  // Array values match
         }
         case T_Object: {
             break;
@@ -1166,7 +1126,7 @@ static int test_value_equal() {
         utf8, n_8, 0xEF, 0xBB, 0xBF, 'a', 'c', 't', 'o', 'r' };
     BYTE data_34[] = { array, n_16,
         utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd',
-        utf16, n_10, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0' };
+        utf16, n_12, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0' };
 
     assert(value_equal(data_30, data_30));
     assert(value_equal(data_30, data_31));
