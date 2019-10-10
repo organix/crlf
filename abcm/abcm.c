@@ -336,15 +336,25 @@ BYTE parse_integer(parse_t * parse) {
     LOG_TRACE("parse_integer @", (WORD)parse);
     if (parse_number(parse)) {
         if (parse->type & T_Counted) {
-            // FIXME: parse exponent size field for UNUM format...
-            LOG_WARN("parse_integer: no UNUM support!", parse->type);
+            // Unum / Floating Point
+            parse_t exp_parse = {
+                .base = parse->base,
+                .size = parse->size,
+                .start = parse->end
+            };
+            // find out how many bits are exponent
+            if (!parse_integer(&exp_parse)) return false;  // bad exponent field
+            WORD exp_bits = exp_parse.value;
+            parse->end = exp_parse.end + parse->value;  // skip number data
+            LOG_WARN("parse_integer: no Unum support!", parse->type);
             return false;  // not an Integer type
         }
         if (parse->type & T_Sized) {
             // extended (variable sized) Integer
             WORD size = parse->value;  // value is the size, for extended number scanning
             if (size > sizeof(WORD)) {
-                LOG_WARN("parse_integer: size > sizeof(WORD)", size);
+                parse->end += size;  // skip number data
+                LOG_DEBUG("parse_integer: size > sizeof(WORD)", size);
                 return false;
             }
             // NOTE: we count on `parse_number` to range-check `size` relative to `base`
@@ -381,6 +391,7 @@ static int test_parse_integer() {
         m_int_4, n_2, 0x00, 0xF8,
         m_int_0, n_4, 0xFE, 0xFF, 0xFF, 0xFF,
         p_int_0, n_2, 0xFE, 0xFF,
+        m_int_3, n_9, 0x00, 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
         p_int_0, n_0
     };
     parse_t parse = {
@@ -433,6 +444,11 @@ static int test_parse_integer() {
     assert((parse.end - parse.start) == 4);
     assert(parse.value == 0xFFFE);
     assert(parse.value == 65534);
+
+    parse.start = parse.end;
+    assert(parse_integer(&parse) == false);
+    assert((parse.end - parse.start) == 11);
+    assert(parse.value == 9);
 
     parse.start = parse.end;
     assert(parse_integer(&parse) == true);
@@ -856,13 +872,14 @@ BYTE parse_array(parse_t * parse) {
             }
             if (parse->type & T_Counted) {
                 // counted array
-                size_parse.start = size_parse.end;
+                size_parse.start = parse->end;
                 if (!parse_integer(&size_parse)) {
                     LOG_WARN("parse_array: bad count", size_parse.value);
                     return false;  // bad count
                 }
                 WORD count = size_parse.value;
                 parse->end = size_parse.end;
+                parse->value -= (size_parse.end - size_parse.start);  // remove count field from size
                 LOG_DEBUG("parse_array: ignoring count", count);
             }
             LOG_DEBUG("parse_array: value/size", parse->value);
@@ -879,7 +896,7 @@ static int test_parse_array() {
     BYTE data[] = {
         array_0,
         array, n_4, n_0, n_1, n_2, n_3,
-        array_n, n_0, n_0,
+        array_n, n_1, n_0,
         array, n_0
     };
     parse_t parse = {
@@ -933,6 +950,56 @@ BYTE parse_equal(parse_t * x_parse, parse_t * y_parse) {
     }
     switch (x_parse->type & T_Base) {
         case T_Number: {
+            if (parse_number(x_parse) && parse_number(y_parse)) {
+                // FIXME: it may be easier to use `parse_integer` and handle (size > sizeof(WORD)) below...
+                if (x_parse->type & T_Counted) {
+                    LOG_WARN("parse_equal: no Unum support for x", x_parse->type);
+                    return false;  // not an Integer type
+                }
+                if (y_parse->type & T_Counted) {
+                    LOG_WARN("parse_equal: no Unum support for y", y_parse->type);
+                    return false;  // not an Integer type
+                }
+                if (x_parse->type & T_Sized) {
+                    // extended integer
+                    x_parse->base += x_parse->end;  // move base to start of number data
+                    x_parse->size = x_parse->value;
+                } else {
+                    // direct-coded (small) integer
+                    BYTE xx_data = x_parse->value;
+                    x_parse->base = &xx_data;  // redirect to temporary local buffer
+                    x_parse->size = 1;
+                }
+                x_parse->start = 0;
+                if (y_parse->type & T_Sized) {
+                    // extended integer
+                    y_parse->base += y_parse->end;  // move base to start of number data
+                    y_parse->size = y_parse->value;
+                } else {
+                    // direct-coded (small) integer
+                    BYTE yy_data = y_parse->value;
+                    y_parse->base = &yy_data;  // redirect to temporary local buffer
+                    y_parse->size = 1;
+                }
+                y_parse->start = 0;
+                BYTE xx_sign = (x_parse->type & T_Negative) ? -1 : 0;
+                BYTE yy_sign = (y_parse->type & T_Negative) ? -1 : 0;
+                while ((x_parse->start < x_parse->size) || (y_parse->start < y_parse->size)) {
+                    BYTE xx_byte = (x_parse->start < x_parse->size)
+                        ? x_parse->base[x_parse->start++]
+                        : xx_sign;
+                    BYTE yy_byte = (y_parse->start < y_parse->size)
+                        ? y_parse->base[y_parse->start++]
+                        : yy_sign;
+                    if (xx_byte != yy_byte) {
+                        LOG_DEBUG("parse_equal: mismatch Number xx", xx_byte);
+                        LOG_DEBUG("parse_equal: mismatch Number yy", yy_byte);
+                        return false;  // mismatched elements
+                    }
+                }
+                LOG_DEBUG("parse_equal: MATCH Number", true);
+                return true;  // Number values match
+            }
             break;
         }
         case T_String: {
@@ -1030,63 +1097,83 @@ BYTE value_equal(DATA_PTR x, DATA_PTR y) {
 };
 
 static int test_value_equal() {
-    BYTE data_0[] = { string_0 };
-    BYTE data_1[] = { octets, n_0 };
-    BYTE data_2[] = { utf8, n_0 };
-    BYTE data_3[] = { utf8, n_3, 0xEF, 0xBB, 0xBF };
-    BYTE data_4[] = { utf16, n_2, 0xFE, 0xFF };
-    BYTE data_5[] = { utf16, n_2, 0xFF, 0xFE };
+    BYTE data_0[] = { n_0 };
+    BYTE data_1[] = { p_int_0, n_0 };
+    BYTE data_2[] = { p_int_0, n_1, 0x00 };
+    BYTE data_3[] = { p_int_0, n_4, 0x00, 0x00, 0x00, 0x00 };
+    BYTE data_4[] = { n_m2 };
+    BYTE data_5[] = { m_int_0, n_3, 0xFE, 0xFF, 0xFF };
+    BYTE data_6[] = { n_126 };
+    BYTE data_7[] = { p_int_0, n_2, 0x7E, 0x00 };
+    BYTE data_8[] = { m_int_3, n_9, 0x00, 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
+    BYTE data_9[] = { m_int_6, n_10, 0x00, 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0xFF };
+
+    assert(value_equal(data_0, data_0));
+    assert(value_equal(data_0, data_1));
+    assert(value_equal(data_0, data_2));
+    assert(value_equal(data_0, data_3));
+    assert(value_equal(data_2, data_3));
+    assert(value_equal(data_4, data_5));
+    assert(value_equal(data_6, data_7));
+    assert(value_equal(data_8, data_9));
+
+    BYTE data_10[] = { string_0 };
+    BYTE data_11[] = { octets, n_0 };
+    BYTE data_12[] = { utf8, n_0 };
+    BYTE data_13[] = { utf8, n_3, 0xEF, 0xBB, 0xBF };
+    BYTE data_14[] = { utf16, n_2, 0xFE, 0xFF };
+    BYTE data_15[] = { utf16, n_2, 0xFF, 0xFE };
 
     assert(value_equal(s_, s_));
-    assert(value_equal(s_, data_0));
-    assert(value_equal(s_, data_1));
-    assert(value_equal(s_, data_2));
-    assert(value_equal(s_, data_3));
-    assert(value_equal(s_, data_4));
-    assert(value_equal(s_, data_5));
-    assert(value_equal(data_3, data_4));
-    assert(value_equal(data_3, data_5));
-    assert(value_equal(data_4, data_5));
-
-    assert(!value_equal(s_kind, s_));
-    assert(!value_equal(s_kind, s_actor));
-
-    BYTE data_10[] = { octets, n_4, 'k', 'i', 'n', 'd' };
-    BYTE data_11[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
-    BYTE data_12[] = { utf8, n_7, 0xEF, 0xBB, 0xBF, 'k', 'i', 'n', 'd' };
-    BYTE data_13[] = { utf16, n_8, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd' };
-    BYTE data_14[] = { utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd' };
-    BYTE data_15[] = { utf16, n_10, 0xFF, 0xFE, 'k', '\0', 'i', '\0', 'n', '\0', 'd', '\0' };
-
-    assert(value_equal(s_kind, data_10));
-    assert(value_equal(s_kind, data_11));
-    assert(value_equal(s_kind, data_12));
-    assert(value_equal(s_kind, data_13));
-    assert(value_equal(s_kind, data_14));
-    assert(value_equal(s_kind, data_15));
-    assert(value_equal(data_12, data_13));
-    assert(value_equal(data_12, data_14));
-    assert(value_equal(data_12, data_15));
+    assert(value_equal(s_, data_10));
+    assert(value_equal(s_, data_11));
+    assert(value_equal(s_, data_12));
+    assert(value_equal(s_, data_13));
+    assert(value_equal(s_, data_14));
+    assert(value_equal(s_, data_15));
     assert(value_equal(data_13, data_14));
     assert(value_equal(data_13, data_15));
     assert(value_equal(data_14, data_15));
 
-    BYTE data_20[] = { array_0 };
-    BYTE data_21[] = { array_n, n_0, n_0 };
-    BYTE data_22[] = { array, n_0 };
-    BYTE data_23[] = { array, n_16,
+    assert(!value_equal(s_kind, s_));
+    assert(!value_equal(s_kind, s_actor));
+
+    BYTE data_20[] = { octets, n_4, 'k', 'i', 'n', 'd' };
+    BYTE data_21[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
+    BYTE data_22[] = { utf8, n_7, 0xEF, 0xBB, 0xBF, 'k', 'i', 'n', 'd' };
+    BYTE data_23[] = { utf16, n_8, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd' };
+    BYTE data_24[] = { utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd' };
+    BYTE data_25[] = { utf16, n_10, 0xFF, 0xFE, 'k', '\0', 'i', '\0', 'n', '\0', 'd', '\0' };
+
+    assert(value_equal(s_kind, data_20));
+    assert(value_equal(s_kind, data_21));
+    assert(value_equal(s_kind, data_22));
+    assert(value_equal(s_kind, data_23));
+    assert(value_equal(s_kind, data_24));
+    assert(value_equal(s_kind, data_25));
+    assert(value_equal(data_22, data_23));
+    assert(value_equal(data_22, data_24));
+    assert(value_equal(data_22, data_25));
+    assert(value_equal(data_23, data_24));
+    assert(value_equal(data_23, data_25));
+    assert(value_equal(data_24, data_25));
+
+    BYTE data_30[] = { array_0 };
+    BYTE data_31[] = { array_n, n_1, n_0 };
+    BYTE data_32[] = { array, n_0 };
+    BYTE data_33[] = { array, n_16,
         utf8, n_4, 'k', 'i', 'n', 'd',
         utf8, n_8, 0xEF, 0xBB, 0xBF, 'a', 'c', 't', 'o', 'r' };
-    BYTE data_24[] = { array, n_16,
+    BYTE data_34[] = { array, n_16,
         utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd',
         utf16, n_10, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0' };
 
-    assert(value_equal(data_20, data_20));
-    assert(value_equal(data_20, data_21));
-    assert(value_equal(data_20, data_22));
-    assert(value_equal(data_21, data_22));
-    assert(value_equal(data_22, data_22));
-    assert(value_equal(data_23, data_24));
+    assert(value_equal(data_30, data_30));
+    assert(value_equal(data_30, data_31));
+    assert(value_equal(data_30, data_32));
+    assert(value_equal(data_31, data_32));
+    assert(value_equal(data_32, data_32));
+    assert(value_equal(data_33, data_34));
 
     return 0;
 }
