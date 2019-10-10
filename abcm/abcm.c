@@ -217,17 +217,20 @@ Input:
     parse = <parse structure to populate>
     data = <pointer to octet buffer prefix byte>
 Output:
-    parse->base = <pointer octet buffer data>
+    parse->base = <pointer to octet buffer data>
     parse->size = <size of octet buffer in bytes>
     parse->start = 0
     parse->end = 0
     parse->prefix = octets
-    parse->type = prefix_type[octets] // (T_String|T_Sized)
+    parse->type = prefix_type[octets]  // (T_String|T_Sized)
     parse->value = <input `data` value>
 **/
 BYTE parse_from_data(parse_t * parse, DATA_PTR data) {
     // initialize parse bounds to read from byte buffer
-    if (data[0] != octets) return false;  // data container must be octets
+    if (data[0] != octets) {
+        LOG_WARN("parse_from_data: octet data required!", data[0]);
+        return false;  // data container must be octets
+    }
     parse->prefix = data[0];
     parse->type = prefix_type[parse->prefix];
     parse_t size_parse = {
@@ -250,9 +253,33 @@ BYTE parse_from_data(parse_t * parse, DATA_PTR data) {
 
 /**
 Input:
-    parse->base = <pointer to prefix data byte>
+    parse->base = <pointer to data byte(s)>
     parse->size = <size of source buffer in bytes>
-    parse->start = 0
+    parse->start = <offset from base to prefix byte>
+Output:
+    parse->end = <offset to data following prefix>
+    parse->prefix = <value of prefix byte>
+    parse->type = <value type info>
+**/
+BYTE parse_prefix(parse_t * parse) {
+    LOG_TRACE("parse_prefix: base", (WORD)parse->base);
+    LOG_TRACE("parse_prefix: start", parse->start);
+    if (parse->start >= parse->size) {
+        LOG_WARN("parse_prefix: out-of-bounds", parse->size);
+        return false;  // out of bounds
+    }
+    parse->end = parse->start;
+    parse->prefix = parse->base[parse->end++];
+    parse->type = prefix_type[parse->prefix];
+    LOG_TRACE("parse_prefix: prefix", parse->prefix);
+    return true;
+}
+
+/**
+Input:
+    parse->base = <pointer to data byte(s)>
+    parse->size = <size of source buffer in bytes>
+    parse->start = <offset from base to prefix byte>
 Output:
     parse->end = <offset to first byte of number data>
     parse->prefix = <value of prefix byte>
@@ -262,13 +289,8 @@ Output:
 BYTE parse_number(parse_t * parse) {
     // parse Number header, up to the start of number data
     LOG_TRACE("parse_number @", (WORD)parse);
-    LOG_TRACE("parse_number: start", parse->start);
     parse->value = MAX_WORD;  // default (error) value
-    if (parse->start >= parse->size) return false;  // out of bounds
-    parse->end = parse->start;
-    parse->prefix = parse->base[parse->end++];
-    parse->type = prefix_type[parse->prefix];
-    LOG_TRACE("parse_number: prefix", parse->prefix);
+    if (!parse_prefix(parse)) return false;  // bad prefix!
     if ((parse->type & T_Base) != T_Number) return false;  // not a Number type
     if (parse->type & T_Sized) {
         // extended (variable sized) Integer
@@ -300,9 +322,9 @@ BYTE parse_number(parse_t * parse) {
 
 /**
 Input:
-    parse->base = <pointer to prefix data byte>
+    parse->base = <pointer to data byte(s)>
     parse->size = <size of source buffer in bytes>
-    parse->start = 0
+    parse->start = <offset from base to prefix byte>
 Output:
     parse->end = <offset past end of number data>
     parse->prefix = <value of prefix byte>
@@ -423,9 +445,9 @@ static int test_parse_integer() {
 
 /**
 Input:
-    parse->base = <pointer to prefix data byte>
+    parse->base = <pointer to data byte(s)>
     parse->size = <size of source buffer in bytes>
-    parse->start = 0
+    parse->start = <offset from base to prefix byte>
 Output:
     parse->end = <offset to first byte of codepoint data>
     parse->prefix = <value of prefix byte>
@@ -435,12 +457,7 @@ Output:
 BYTE parse_string(parse_t * parse) {
     // parse String header, up to the start of codepoint data
     LOG_TRACE("parse_string @", (WORD)parse);
-    LOG_TRACE("parse_string: start", parse->start);
-    if (parse->start >= parse->size) return false;  // out of bounds
-    parse->end = parse->start;
-    parse->prefix = parse->base[parse->end++];
-    parse->type = prefix_type[parse->prefix];
-    LOG_TRACE("parse_string: prefix", parse->prefix);
+    if (!parse_prefix(parse)) return false;  // bad prefix!
     if ((parse->type & T_Base) != T_String) return false;  // not a String type
     if (parse->prefix == string_0) {
         // empty string
@@ -799,23 +816,205 @@ static int test_parse_codepoint() {
     return 0;
 }
 
+/**
+Input:
+    parse->base = <pointer to data byte(s)>
+    parse->size = <size of source buffer in bytes>
+    parse->start = <offset from base to prefix byte>
+Output:
+    parse->end = <offset to first byte of element data>
+    parse->prefix = <value of prefix byte>
+    parse->type = <value type info>
+    parse->value = <size of element data in bytes>
+**/
+BYTE parse_array(parse_t * parse) {
+    // parse Array header, up to the start of element data
+    LOG_TRACE("parse_array @", (WORD)parse);
+    if (!parse_prefix(parse)) return false;  // bad prefix!
+    if ((parse->type & T_Base) != T_Array) return false;  // not a Array type
+    if (parse->prefix == array_0) {
+        // empty array
+        parse->value = 0;  // value is the size, for element scanning
+        LOG_DEBUG("parse_array: array_0", parse->value);
+        return true;  // success
+    }
+    if (parse->type & T_Sized) {
+        // extended (variable sized) array
+        parse_t size_parse = {
+            .base = parse->base,
+            .size = parse->size,
+            .start = parse->end
+        };
+        // find out how big it is
+        if (parse_integer(&size_parse)) {
+            WORD size = size_parse.value;
+            parse->end = size_parse.end;
+            parse->value = size;  // value is the size, for element scanning
+            if ((parse->end + size) > parse->size) {
+                LOG_WARN("parse_array: not enough data!", size);
+                return false;  // not enough data!
+            }
+            if (parse->type & T_Counted) {
+                // counted array
+                size_parse.start = size_parse.end;
+                if (!parse_integer(&size_parse)) {
+                    LOG_WARN("parse_array: bad count", size_parse.value);
+                    return false;  // bad count
+                }
+                WORD count = size_parse.value;
+                parse->end = size_parse.end;
+                LOG_DEBUG("parse_array: ignoring count", count);
+            }
+            LOG_DEBUG("parse_array: value/size", parse->value);
+            return true;  // success
+        }
+        LOG_WARN("parse_array: bad size", size_parse.value);
+        return false;  // bad size
+    }
+    LOG_WARN("parse_array: bad prefix", parse->prefix);
+    return false;  // bad prefix/flags
+}
+
+static int test_parse_array() {
+    BYTE data[] = {
+        array_0,
+        array, n_4, n_0, n_1, n_2, n_3,
+        array_n, n_0, n_0,
+        array, n_0
+    };
+    parse_t parse = {
+        .base = data,
+        .size = sizeof(data),
+        .start = 0
+    };
+
+    assert(parse_array(&parse) == true);
+    assert((parse.end - parse.start) == 1);
+    assert(parse.value == 0);
+    parse.end += parse.value;
+
+    parse.start = parse.end;
+    assert(parse_array(&parse) == true);
+    assert((parse.end - parse.start) == 2);
+    assert(parse.value == 4);
+    parse.end += parse.value;
+
+    parse.start = parse.end;
+    assert(parse_array(&parse) == true);
+    assert((parse.end - parse.start) == 3);
+    assert(parse.value == 0);
+    parse.end += parse.value;
+
+    parse.start = parse.end;
+    assert(parse_array(&parse) == true);
+    assert((parse.end - parse.start) == 2);
+    assert(parse.value == 0);
+    parse.end += parse.value;
+
+    assert(parse.end == parse.size);  // used up all the data
+    return 0;
+}
+
+BYTE parse_equal(parse_t * x_parse, parse_t * y_parse) {
+    LOG_TRACE("parse_equal: x @", (WORD)x_parse);
+    LOG_TRACE("parse_equal: y @", (WORD)y_parse);
+    if (x_parse == y_parse) {
+        LOG_DEBUG("parse_equal: MATCH same", true);
+        // FIXME: should advance to end of value?
+        return true;  // identical parse-states are equal
+    }
+    if (!(parse_prefix(x_parse) && parse_prefix(y_parse))) {
+        return false;  // bad prefix
+    }
+    if ((x_parse->type & T_Base) != (y_parse->type & T_Base)) {
+        LOG_DEBUG("parse_equal: mismatch x_type", x_parse->type);
+        LOG_DEBUG("parse_equal: mismatch y_type", y_parse->type);
+        return false;  // mismatched base types
+    }
+    switch (x_parse->type & T_Base) {
+        case T_Number: {
+            break;
+        }
+        case T_String: {
+            if (parse_string(x_parse) && parse_string(y_parse)) {
+                x_parse->base += x_parse->end;  // move base to start of codepoint data
+                x_parse->size = x_parse->value;
+                x_parse->start = 0;
+                y_parse->base += y_parse->end;  // move base to start of codepoint data
+                y_parse->size = y_parse->value;
+                y_parse->start = 0;
+                while ((x_parse->start < x_parse->size) && (y_parse->start < y_parse->size)) {
+                    if (parse_codepoint(x_parse) && parse_codepoint(y_parse)) {
+                        if (x_parse->value != y_parse->value) {
+                            LOG_TRACE("parse_equal: mismatch x_parse->end", x_parse->end);
+                            LOG_TRACE("parse_equal: mismatch y_parse->end", y_parse->end);
+                            LOG_DEBUG("parse_equal: mismatch String x", x_parse->value);
+                            LOG_DEBUG("parse_equal: mismatch String y", y_parse->value);
+                            return false;  // mismatched codepoints
+                        }
+                        x_parse->start = x_parse->end;
+                        y_parse->start = y_parse->end;
+                    }
+                }
+                if ((x_parse->start < x_parse->size) || (y_parse->start < y_parse->size)) {
+                    if (x_parse->start < x_parse->size) LOG_DEBUG("parse_equal: more String x...", x_parse->start);
+                    if (y_parse->start < y_parse->size) LOG_DEBUG("parse_equal: more String y...", y_parse->start);
+                    return false;  // one string ended before the other
+                }
+                LOG_DEBUG("parse_equal: MATCH String", true);
+                return true;  // String values match
+            }
+            break;
+        }
+        case T_Array: {
+            if (parse_array(x_parse) && parse_array(y_parse)) {
+                // FIXME: probably need to create new parsers for nested element values
+                x_parse->base += x_parse->end;  // move base to start of element data
+                x_parse->size = x_parse->value;
+                x_parse->start = 0;
+                y_parse->base += y_parse->end;  // move base to start of element data
+                y_parse->size = y_parse->value;
+                y_parse->start = 0;
+                while ((x_parse->start < x_parse->size) && (y_parse->start < y_parse->size)) {
+                    if (!parse_equal(x_parse, y_parse)) {
+                        LOG_TRACE("parse_equal: mismatch x_parse->end", x_parse->end);
+                        LOG_TRACE("parse_equal: mismatch y_parse->end", y_parse->end);
+                        LOG_DEBUG("parse_equal: mismatch Array x", x_parse->value);
+                        LOG_DEBUG("parse_equal: mismatch Array y", y_parse->value);
+                        return false;  // mismatched elements
+                    }
+                    x_parse->start = x_parse->end;
+                    y_parse->start = y_parse->end;
+                }
+                if ((x_parse->start < x_parse->size) || (y_parse->start < y_parse->size)) {
+                    if (x_parse->start < x_parse->size) LOG_DEBUG("parse_equal: more Array x...", x_parse->start);
+                    if (y_parse->start < y_parse->size) LOG_DEBUG("parse_equal: more Array y...", y_parse->start);
+                    return false;  // one array ended before the other
+                }
+                LOG_DEBUG("parse_equal: MATCH Array", true);
+                return true;  // Array values match
+            }
+            break;
+        }
+        case T_Object: {
+            break;
+        }
+        default: {
+            BYTE result = (x_parse->prefix == y_parse->prefix);
+            LOG_DEBUG("parse_equal: MATCH direct", result);
+            return result;
+        }
+    }
+    LOG_WARN("parse_equal: FAIL!", false);
+    return false;
+}
+
 BYTE value_equal(DATA_PTR x, DATA_PTR y) {
     LOG_TRACE("value_equal: x @", (WORD)x);
     LOG_TRACE("value_equal: y @", (WORD)y);
     if (x == y) {
         LOG_DEBUG("value_equal: MATCH same", true);
         return true;  // identical values are equal
-    }
-    prefix_t x_prefix = x[0];
-    LOG_TRACE("value_equal: x_prefix", x_prefix);
-    prefix_t y_prefix = y[0];
-    LOG_TRACE("value_equal: y_prefix", y_prefix);
-    type_t x_type = prefix_type[x_prefix];
-    type_t y_type = prefix_type[y_prefix];
-    if ((x_type & T_Base) != (y_type & T_Base)) {  // mismatched base types
-        LOG_DEBUG("value_equal: mismatch x_type", x_type);
-        LOG_DEBUG("value_equal: mismatch y_type", y_type);
-        return false;  // mismatched codepoints
     }
     parse_t x_parse = {
         .base = x,
@@ -827,55 +1026,7 @@ BYTE value_equal(DATA_PTR x, DATA_PTR y) {
         .size = MAX_WORD,  // don't know how big value will be
         .start = 0
     };
-    switch (x_type & T_Base) {
-        case T_Number: {
-            break;
-        }
-        case T_String: {
-            if (parse_string(&x_parse) && parse_string(&y_parse)) {
-                x_parse.base += x_parse.end;  // move base to start of codepoint data
-                x_parse.size = x_parse.value;
-                x_parse.start = 0;
-                y_parse.base += y_parse.end;  // move base to start of codepoint data
-                y_parse.size = y_parse.value;
-                y_parse.start = 0;
-                while ((x_parse.start < x_parse.size) && (y_parse.start < y_parse.size)) {
-                    if (parse_codepoint(&x_parse) && parse_codepoint(&y_parse)) {
-                        if (x_parse.value != y_parse.value) {
-                            LOG_TRACE("value_equal: mismatch x_parse.end", x_parse.end);
-                            LOG_TRACE("value_equal: mismatch y_parse.end", y_parse.end);
-                            LOG_DEBUG("value_equal: mismatch String x", x_parse.value);
-                            LOG_DEBUG("value_equal: mismatch String y", y_parse.value);
-                            return false;  // mismatched codepoints
-                        }
-                        x_parse.start = x_parse.end;
-                        y_parse.start = y_parse.end;
-                    }
-                }
-                if ((x_parse.start < x_parse.size) || (y_parse.start < y_parse.size)) {
-                    if (x_parse.start < x_parse.size) LOG_DEBUG("value_equal: more String x...", x_parse.start);
-                    if (y_parse.start < y_parse.size) LOG_DEBUG("value_equal: more String y...", y_parse.start);
-                    return false;  // one string ended before the other
-                }
-                LOG_DEBUG("value_equal: MATCH String", true);
-                return true;  // String values match
-            }
-            break;
-        }
-        case T_Array: {
-            break;
-        }
-        case T_Object: {
-            break;
-        }
-        default: {
-            BYTE result = (x_prefix == y_prefix);
-            LOG_DEBUG("value_equal: MATCH direct", result);
-            return result;
-        }
-    }
-    LOG_WARN("value_equal: FAIL!", false);
-    return false;
+    return parse_equal(&x_parse, &y_parse);
 };
 
 static int test_value_equal() {
@@ -920,6 +1071,23 @@ static int test_value_equal() {
     assert(value_equal(data_13, data_15));
     assert(value_equal(data_14, data_15));
 
+    BYTE data_20[] = { array_0 };
+    BYTE data_21[] = { array_n, n_0, n_0 };
+    BYTE data_22[] = { array, n_0 };
+    BYTE data_23[] = { array, n_16,
+        utf8, n_4, 'k', 'i', 'n', 'd',
+        utf8, n_8, 0xEF, 0xBB, 0xBF, 'a', 'c', 't', 'o', 'r' };
+    BYTE data_24[] = { array, n_16,
+        utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd',
+        utf16, n_10, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0' };
+
+    assert(value_equal(data_20, data_20));
+    assert(value_equal(data_20, data_21));
+    assert(value_equal(data_20, data_22));
+    assert(value_equal(data_21, data_22));
+    assert(value_equal(data_22, data_22));
+    assert(value_equal(data_23, data_24));
+
     return 0;
 }
 
@@ -943,6 +1111,7 @@ static int run_test_suite() {
         || test_parse_integer()
         || test_parse_string()
         || test_parse_codepoint()
+        || test_parse_array()
         || test_value_equal()
         ;
 }
