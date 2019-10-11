@@ -119,14 +119,14 @@ type_t prefix_type[1<<8] = {
 };
 
 BYTE s_type_name[][10] = {
-    { utf8, n_4, 'N', 'u', 'l', 'l', '\0', '\0', '\0', '\0' },
+    { utf8, n_4, 'N', 'u', 'l', 'l', '\0' },
     { utf8, n_7, 'B', 'o', 'o', 'l', 'e', 'a', 'n', '\0' },
-    { utf8, n_6, 'N', 'u', 'm', 'b', 'e', 'r', '\0', '\0' },
-    { utf8, n_6, 'S', 't', 'r', 'i', 'n', 'g', '\0', '\0' },
-    { utf8, n_5, 'A', 'r', 'r', 'a', 'y', '\0', '\0', '\0' },
-    { utf8, n_6, 'O', 'b', 'j', 'e', 'c', 't', '\0', '\0' }
+    { utf8, n_6, 'N', 'u', 'm', 'b', 'e', 'r', '\0' },
+    { utf8, n_6, 'S', 't', 'r', 'i', 'n', 'g', '\0' },
+    { utf8, n_5, 'A', 'r', 'r', 'a', 'y', '\0' },
+    { utf8, n_6, 'O', 'b', 'j', 'e', 'c', 't', '\0' }
 };
-
+// NOTE: the '\0'-terminators are not required, but interoperate better with C
 BYTE s_[] = { utf8, n_0, '\0' };
 BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd', '\0' };
 BYTE s_message[] = { utf8, n_7, 'm', 'e', 's', 's', 'a', 'g', 'e', '\0' };
@@ -271,6 +271,7 @@ Output:
 BYTE parse_prefix(parse_t * parse) {
     LOG_TRACE("parse_prefix: base", (WORD)parse->base);
     LOG_TRACE("parse_prefix: start", parse->start);
+    LOG_TRACE("parse_prefix: size", parse->size);
     if (parse->start >= parse->size) {
         LOG_WARN("parse_prefix: out-of-bounds", parse->size);
         return false;  // out of bounds
@@ -344,10 +345,21 @@ BYTE parse_value(parse_t * parse) {
                 return false;  // bad count
             }
             parse->count = ext_parse.value;
+            LOG_TRACE("parse_value: count =", parse->count);
             WORD skip = ext_parse.end - ext_parse.start;
             parse->value -= skip;  // remove count field from size
         }
-        if ((parse->prefix == utf8) || (parse->prefix == utf8_mem)) {
+        if (parse->prefix == octets) {
+            LOG_TRACE("parse_value: octets", parse->value);
+            // check for capability-mark
+            if (parse->value >= 2) {  // require at least 2 bytes
+                if (parse->base[start] == 0x10) {
+                    LOG_TRACE("parse_value: skip CAP-mark", start);
+                    parse->value -= 1;  // remove CAP-mark from size
+                    parse->type |= T_Capability;  // set Capability flag
+                }
+            }
+        } else if ((parse->prefix == utf8) || (parse->prefix == utf8_mem)) {
             LOG_TRACE("parse_value: utf8", parse->value);
             // check for byte-order-mark
             if (parse->value >= 3) {  // require at least 3 bytes
@@ -856,18 +868,13 @@ BYTE parse_array(parse_t * parse) {
     LOG_TRACE("parse_array @", (WORD)parse);
     if (!parse_value(parse)) return false;  // bad Value!
     if ((parse->type & T_Base) != T_Array) {
-        LOG_WARN("parse_string: not an Array", parse->type);
+        LOG_WARN("parse_array: not an Array", parse->type);
         return false;  // not an Array type
     }
     // NOTE: we count on `parse_value` to range-check `size` relative to `base`
     if (parse->prefix == array_0) {
         // empty Array
         assert(parse->value == 0);
-/*
-        parse->value = 0;  // value is the size, for element scanning
-        LOG_DEBUG("parse_array: array_0", parse->value);
-        return true;  // success
-*/
     }
     LOG_DEBUG("parse_array: value/size", parse->value);
     return true;  // success
@@ -909,11 +916,110 @@ static int test_parse_array() {
     return 0;
 }
 
+/**
+Input:
+    parse->base = <pointer to data byte(s)>
+    parse->size = <size of source buffer in bytes>
+    parse->start = <offset from base to prefix byte>
+Output:
+    parse->end = <offset past last byte of extended data>
+    parse->prefix = <value of prefix byte>
+    parse->type = <value type info>
+    parse->value = <size of element data in bytes>
+    parse->count = <value of count field (if T_Counted)>
+    (parse->end - parse->value) = <offset to start of element data>
+**/
+BYTE parse_object(parse_t * parse) {
+    LOG_TRACE("parse_object @", (WORD)parse);
+    if (!parse_value(parse)) return false;  // bad Value!
+    if ((parse->type & T_Base) != T_Object) {
+        LOG_WARN("parse_object: not an Object", parse->type);
+        return false;  // not an Object type
+    }
+    // NOTE: we count on `parse_value` to range-check `size` relative to `base`
+    if (parse->prefix == object_0) {
+        // empty Object
+        assert(parse->value == 0);
+    }
+    LOG_DEBUG("parse_object: value/size", parse->value);
+    return true;  // success
+}
+
+static int test_parse_object() {
+    BYTE data[] = {
+        object_0,
+        object, n_8, utf8, n_5, 'v', 'a', 'l', 'u', 'e', n_42,
+        object_n, n_9, n_1, utf8, n_5, 'v', 'a', 'l', 'u', 'e', n_42,
+        object_n, n_1, n_0,
+        object, n_0
+    };
+    parse_t parse = {
+        .base = data,
+        .size = sizeof(data),
+        .start = 0
+    };
+
+    assert(parse_object(&parse) == true);
+    assert((parse.end - parse.start) == 1);
+    assert(parse.value == 0);
+
+    parse.start = parse.end;
+    assert(parse_object(&parse) == true);
+    assert((parse.end - parse.start) == 10);
+    assert(parse.value == 8);
+    assert(parse.count == 0);
+
+    parse.start = parse.end;
+    assert(parse_object(&parse) == true);
+    assert((parse.end - parse.start) == 11);
+    assert(parse.value == 8);
+    assert(parse.count == 1);
+
+    parse.start = parse.end;
+    assert(parse_object(&parse) == true);
+    assert((parse.end - parse.start) == 3);
+    assert(parse.value == 0);
+
+    parse.start = parse.end;
+    assert(parse_object(&parse) == true);
+    assert((parse.end - parse.start) == 2);
+    assert(parse.value == 0);
+
+    assert(parse.end == parse.size);  // used up all the data
+    return 0;
+}
+
+BYTE object_count_props(parse_t * parse, WORD * count_ptr) {
+    LOG_TRACE("object_count_props @", (WORD)parse);
+    WORD count = 0;
+    WORD start = parse->start;
+    LOG_TRACE("object_count_props: type", parse->type);
+    while (parse->start < parse->size) {
+        WORD key_start = parse->start;
+        LOG_TRACE("object_count_props: key_start =", key_start);
+        if (!parse_string(parse)) return false;  // key needed
+        parse->start = parse->end;
+        WORD value_start = parse->start;
+        LOG_TRACE("object_count_props: value_start =", value_start);
+        if (!parse_value(parse)) return false;  // value needed
+        parse->start = parse->end;
+        ++count;
+        LOG_TRACE("object_count_props: count =", count);
+    }
+    LOG_DEBUG("object_count_props: property count", count);
+    if ((parse->type & T_Counted) && (count != parse->count)) {
+        LOG_WARN("object_count_props: expected count", parse->count);
+    }
+    parse->start = start;  // restore original starting point
+    *count_ptr = count;  // "return" count value
+    return true;
+}
+
 BYTE parse_equal(parse_t * x_parse, parse_t * y_parse) {
     LOG_TRACE("parse_equal: x @", (WORD)x_parse);
     LOG_TRACE("parse_equal: y @", (WORD)y_parse);
     if (x_parse == y_parse) {
-        LOG_DEBUG("parse_equal: MATCH same", true);
+        LOG_WARN("parse_equal: MATCH same (aliased)!?", true);
         return parse_value(x_parse);  // advance "both" parsers (aliased)
     }
     if (!(parse_value(x_parse) && parse_value(y_parse))) {
@@ -1016,15 +1122,46 @@ BYTE parse_equal(parse_t * x_parse, parse_t * y_parse) {
                 y_parse->start = y_parse->end;
             }
             if ((x_parse->start < x_end) || (y_parse->start < y_end)) {
-                if (x_parse->start < x_end) LOG_DEBUG("parse_equal: more Array x...", x_parse->start);
-                if (y_parse->start < y_end) LOG_DEBUG("parse_equal: more Array y...", y_parse->start);
+                if (x_parse->start < x_end) LOG_WARN("parse_equal: more Array x...", x_parse->start);
+                if (y_parse->start < y_end) LOG_WARN("parse_equal: more Array y...", y_parse->start);
                 return false;  // one array ended before the other
             }
             LOG_DEBUG("parse_equal: MATCH Array", true);
             return true;  // Array values match
         }
         case T_Object: {
-            break;
+            parse_t x_prop_parse = {
+                .base = x_parse->base,
+                .size = x_parse->end,
+                .start = (x_parse->end - x_parse->value),
+                .prefix = x_parse->prefix,
+                .type = x_parse->type,
+                .count = x_parse->count
+            };
+            parse_t y_prop_parse = {
+                .base = y_parse->base,
+                .size = y_parse->end,
+                .start = (y_parse->end - y_parse->value),
+                .prefix = y_parse->prefix,
+                .type = y_parse->type,
+                .count = y_parse->count
+            };
+            WORD x_count;
+            WORD y_count;
+            if (!(object_count_props(&x_prop_parse, &x_count) && object_count_props(&y_prop_parse, &y_count))) {
+                return false;  // bad Properties
+            }
+            if (x_count != y_count) {
+                LOG_DEBUG("parse_equal: mismatched property counts", (x_count - y_count));
+                return false;  // mismatched elements
+            }
+/*
+            while (x_prop_parse.start < x_prop_parse.size) {
+                ;
+            }
+*/
+            LOG_DEBUG("parse_equal: MATCH Object", true);
+            return true;  // Object values match
         }
         default: {
             BYTE result = (x_parse->prefix == y_parse->prefix);
@@ -1121,12 +1258,14 @@ static int test_value_equal() {
     BYTE data_30[] = { array_0 };
     BYTE data_31[] = { array_n, n_1, n_0 };
     BYTE data_32[] = { array, n_0 };
-    BYTE data_33[] = { array, n_16,
+    BYTE data_33[] = { array, n_19,
         utf8, n_4, 'k', 'i', 'n', 'd',
-        utf8, n_8, 0xEF, 0xBB, 0xBF, 'a', 'c', 't', 'o', 'r' };
-    BYTE data_34[] = { array, n_16,
+        utf8, n_8, 0xEF, 0xBB, 0xBF, 'a', 'c', 't', 'o', 'r',
+        true, false, null };
+    BYTE data_34[] = { array, n_29,
         utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd',
-        utf16, n_12, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0' };
+        utf16, n_12, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0',
+        true, false, null };
 
     assert(value_equal(data_30, data_30));
     assert(value_equal(data_30, data_31));
@@ -1134,6 +1273,17 @@ static int test_value_equal() {
     assert(value_equal(data_31, data_32));
     assert(value_equal(data_32, data_32));
     assert(value_equal(data_33, data_34));
+
+    BYTE data_40[] = { object_0 };
+    BYTE data_41[] = { object, n_8, utf8, n_5, 'v', 'a', 'l', 'u', 'e', n_42 };
+    BYTE data_42[] = { object_n, n_9, n_1, utf8, n_5, 'v', 'a', 'l', 'u', 'e', n_42 };
+    BYTE data_43[] = { object, n_10, utf8, n_1, 'x', n_m2, utf8, n_1, 'y', p_int_3, n_1, 0x03 };
+    BYTE data_44[] = { object_n, n_12, n_2, utf8, n_1, 'x', m_int_5, n_1, 0xFE, utf16, n_2, '\0', 'y', n_3 };
+    BYTE data_45[] = { object_n, n_1, n_0 };
+    BYTE data_46[] = { object, n_0 };
+
+    assert(value_equal(data_41, data_42));
+    assert(value_equal(data_43, data_44));
 
     return 0;
 }
@@ -1159,12 +1309,15 @@ static int run_test_suite() {
         || test_parse_string()
         || test_parse_codepoint()
         || test_parse_array()
+        || test_parse_object()
+/*
+*/
         || test_value_equal()
         ;
 }
 
 int main(int argc, char *argv[]) {
-    log_config.level = LOG_LEVEL_WARN;
+    log_config.level = LOG_LEVEL_TRACE;
     memo_clear();
     int result = run_test_suite();  // pass == 0, fail != 0
     return (exit(result), result);
