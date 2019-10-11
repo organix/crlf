@@ -145,6 +145,14 @@ BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r', '\0' };
 */
 
 static int test_bytecode_types() {
+    LOG_TRACE("test_bytecode_types: sizeof(s_) =", sizeof(s_));
+    LOG_TRACE("test_bytecode_types: (s_kind - s_) =", (s_kind - s_));
+    LOG_TRACE("test_bytecode_types: sizeof(s_kind) =", sizeof(s_kind));
+    LOG_TRACE("test_bytecode_types: (s_actor - s_kind) =", (s_actor - s_kind));
+    LOG_TRACE("test_bytecode_types: sizeof(s_actor) =", sizeof(s_actor));
+    assert(sizeof(s_) == 3);
+    assert((s_kind - s_) == 3);  // ensure tightly-packed data
+
     assert(null != 0);
     assert(null == MAX_BYTE);
     assert(true);
@@ -192,7 +200,6 @@ static int test_bytecode_types() {
     assert((n_64 - n_0) == 64);
     assert((n_m64 - n_0) == -64);
     assert((n_126 - n_0) == 126);
-    assert(sizeof(s_) == 3);
     return 0;
 }
 
@@ -695,7 +702,7 @@ BYTE parse_codepoint(parse_t * parse) {
         }
         case utf8_mem:
         case utf8: {
-            LOG_LEVEL(LOG_LEVEL_TRACE + 1, "parse_codepoint: utf8", parse->prefix);
+            LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_codepoint: utf8", parse->prefix);
             if ((parse->value & 0x80) == 0x00) {
                 // 7-bit ASCII values in the range 0x00..0x7F are encoded directly
                 LOG_DEBUG("parse_codepoint: utf8 ASCII", parse->value);
@@ -748,7 +755,7 @@ BYTE parse_codepoint(parse_t * parse) {
         }
         case utf16_mem:
         case utf16: {
-            LOG_LEVEL(LOG_LEVEL_TRACE + 1, "parse_codepoint: utf16", parse->prefix);
+            LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_codepoint: utf16", parse->prefix);
             if (parse->end >= parse->size) return false;  // require at least 1 more byte
             b = parse->base[parse->end++];
             LOG_TRACE("parse_codepoint: b16 =", b);
@@ -989,30 +996,108 @@ static int test_parse_object() {
     return 0;
 }
 
-BYTE object_count_props(parse_t * parse, WORD * count_ptr) {
-    LOG_TRACE("object_count_props @", (WORD)parse);
+BYTE object_property_count(parse_t * parse, WORD * count_ptr) {
+    LOG_TRACE("object_property_count @", (WORD)parse);
     WORD count = 0;
-    WORD start = parse->start;
-    LOG_TRACE("object_count_props: type", parse->type);
+    WORD origin = parse->start;
     while (parse->start < parse->size) {
         WORD key_start = parse->start;
-        LOG_TRACE("object_count_props: key_start =", key_start);
+        LOG_TRACE("object_property_count: key_start =", key_start);
         if (!parse_string(parse)) return false;  // key needed
         parse->start = parse->end;
         WORD value_start = parse->start;
-        LOG_TRACE("object_count_props: value_start =", value_start);
+        LOG_TRACE("object_property_count: value_start =", value_start);
         if (!parse_value(parse)) return false;  // value needed
         parse->start = parse->end;
         ++count;
-        LOG_TRACE("object_count_props: count =", count);
+        LOG_TRACE("object_property_count: count =", count);
     }
-    LOG_DEBUG("object_count_props: property count", count);
-    if ((parse->type & T_Counted) && (count != parse->count)) {
-        LOG_WARN("object_count_props: expected count", parse->count);
-    }
-    parse->start = start;  // restore original starting point
+    LOG_DEBUG("object_property_count: final", count);
+    parse->start = origin;  // restore original starting point
     *count_ptr = count;  // "return" count value
     return true;
+}
+
+static int test_object_property_count() {
+    BYTE data_0[] = { object_0 };
+    BYTE data_1[] = { object, n_8, utf8, n_5, 'v', 'a', 'l', 'u', 'e', n_42 };
+    BYTE data_2[] = { object_n, n_12, n_2, utf8, n_1, 'x', m_int_5, n_1, 0xFE, utf16, n_2, '\0', 'y', n_3 };
+    BYTE data_3[] = { object_n, n_1, n_0 };
+    BYTE data_4[] = { object, n_0 };
+    parse_t parse;
+    WORD count;
+
+    parse.base = data_0;
+    parse.size = sizeof(data_0);
+    parse.start = 0;
+    assert(parse_value(&parse));
+    LOG_TRACE("test_object_property_count: Object data_0 payload", parse.value);
+    parse.start = (parse.end - parse.value);
+    assert(object_property_count(&parse, &count));
+    assert(count == 0);
+
+    parse.base = data_1;
+    parse.size = sizeof(data_1);
+    parse.start = 0;
+    assert(parse_value(&parse));
+    LOG_TRACE("test_object_property_count: Object data_1 payload", parse.value);
+    parse.start = (parse.end - parse.value);
+    assert(object_property_count(&parse, &count));
+    assert(count == 1);
+
+    parse.base = data_2;
+    parse.size = sizeof(data_2);
+    parse.start = 0;
+    assert(parse_value(&parse));
+    LOG_TRACE("test_object_property_count: Object data_2 payload", parse.value);
+    parse.start = (parse.end - parse.value);
+    assert(object_property_count(&parse, &count));
+    assert(count == 2);
+
+    parse.base = data_3;
+    parse.size = sizeof(data_3);
+    parse.start = 0;
+    assert(parse_value(&parse));
+    LOG_TRACE("test_object_property_count: Object data_3 payload", parse.value);
+    parse.start = (parse.end - parse.value);
+    assert(object_property_count(&parse, &count));
+    assert(count == 0);
+
+    parse.base = data_4;
+    parse.size = sizeof(data_4);
+    parse.start = 0;
+    assert(parse_value(&parse));
+    LOG_TRACE("test_object_property_count: Object data_4 payload", parse.value);
+    parse.start = (parse.end - parse.value);
+    assert(object_property_count(&parse, &count));
+    assert(count == 0);
+
+    return 0;
+}
+
+BYTE value_equal(DATA_PTR x, DATA_PTR y);  // FORWARD DECLARATION
+
+BYTE object_get_property(parse_t * parse, DATA_PTR key) {
+    LOG_TRACE("object_get_property @", (WORD)parse);
+    WORD count = 0;
+    WORD origin = parse->start;
+    while (parse->start < parse->size) {
+        WORD key_start = parse->start;
+        LOG_TRACE("object_get_property: key_start =", key_start);
+        if (!parse_string(parse)) return false;  // key needed
+        parse->start = parse->end;
+        WORD value_start = parse->start;
+        LOG_TRACE("object_get_property: value_start =", value_start);
+        if (!parse_value(parse)) return false;  // value needed
+        if (value_equal(key, parse->base + key_start)) {
+            // keys match
+            return true;  // return with value parsed
+        }
+        parse->start = parse->end;
+    }
+    LOG_DEBUG("object_get_property: not found", parse->end);
+    parse->start = origin;  // restore original starting point
+    return false;  // property not found
 }
 
 BYTE parse_equal(parse_t * x_parse, parse_t * y_parse) {
@@ -1133,33 +1218,66 @@ BYTE parse_equal(parse_t * x_parse, parse_t * y_parse) {
             parse_t x_prop_parse = {
                 .base = x_parse->base,
                 .size = x_parse->end,
-                .start = (x_parse->end - x_parse->value),
-                .prefix = x_parse->prefix,
-                .type = x_parse->type,
-                .count = x_parse->count
+                .start = (x_parse->end - x_parse->value)
             };
             parse_t y_prop_parse = {
                 .base = y_parse->base,
                 .size = y_parse->end,
-                .start = (y_parse->end - y_parse->value),
-                .prefix = y_parse->prefix,
-                .type = y_parse->type,
-                .count = y_parse->count
+                .start = (y_parse->end - y_parse->value)
             };
+            WORD x_origin = x_prop_parse.start;  // save original starting point
+            WORD y_origin = y_prop_parse.start;  // save original starting point
             WORD x_count;
-            WORD y_count;
-            if (!(object_count_props(&x_prop_parse, &x_count) && object_count_props(&y_prop_parse, &y_count))) {
+            if (!(object_property_count(&x_prop_parse, &x_count))) {
                 return false;  // bad Properties
+            }
+            LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_equal: Object x type", x_parse->type);
+            if (x_parse->type & T_Counted) {
+                LOG_TRACE("parse_equal: Object x counted", x_parse->count);
+                if (x_count != x_parse->count) {
+                    LOG_WARN("parse_equal: Object x expected", x_parse->count);
+                }
+            }
+            WORD y_count;
+            if (!(object_property_count(&y_prop_parse, &y_count))) {
+                return false;  // bad Properties
+            }
+            LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_equal: Object y type", y_parse->type);
+            if (y_parse->type & T_Counted) {
+                LOG_TRACE("parse_equal: Object y counted", y_parse->count);
+                if (y_count != y_parse->count) {
+                    LOG_WARN("parse_equal: Object y expected", y_parse->count);
+                }
             }
             if (x_count != y_count) {
                 LOG_DEBUG("parse_equal: mismatched property counts", (x_count - y_count));
                 return false;  // mismatched elements
             }
-/*
-            while (x_prop_parse.start < x_prop_parse.size) {
-                ;
+            x_prop_parse.start = x_origin;  // restore original starting point
+            y_prop_parse.start = y_origin;  // restore original starting point
+            parse_t * parse = &x_prop_parse;
+            while (parse->start < parse->size) {
+                WORD key_start = parse->start;
+                if (!parse_string(parse)) return false;  // key needed
+                parse->start = parse->end;
+                WORD value_start = parse->start;
+                if (!parse_value(parse)) return false;  // value needed
+                WORD prop_end = parse->end;
+                if (object_get_property(&y_prop_parse, (parse->base + key_start))) {
+                    // found matching property
+                    x_prop_parse.start = value_start;
+                    if (!parse_equal(&x_prop_parse, &y_prop_parse)) {
+                        LOG_DEBUG("parse_equal: mismatched Object property", value_start);
+                        return false;  // mismatched property
+                    }
+                } else {
+                    LOG_DEBUG("parse_equal: missing Object property", key_start);
+                    return false;  // missing property
+                }
+                y_prop_parse.start = y_origin;  // restore original starting point
+                parse->start = prop_end;
             }
-*/
+            x_prop_parse.start = x_origin;  // restore original starting point
             LOG_DEBUG("parse_equal: MATCH Object", true);
             return true;  // Object values match
         }
@@ -1289,6 +1407,7 @@ static int test_value_equal() {
 }
 
 static int test_C_language() {
+    LOG_TRACE("sizeof(WORD) =", sizeof(WORD));
     assert(sizeof(WORD) >= 4);  // require at least 32-bit machine words
     BYTE b = 0;
     assert((BYTE)(b + 1) == 0x01);
@@ -1310,14 +1429,13 @@ static int run_test_suite() {
         || test_parse_codepoint()
         || test_parse_array()
         || test_parse_object()
-/*
-*/
+        || test_object_property_count()
         || test_value_equal()
         ;
 }
 
 int main(int argc, char *argv[]) {
-    log_config.level = LOG_LEVEL_TRACE;
+    log_config.level = LOG_LEVEL_TRACE+1;
     memo_clear();
     int result = run_test_suite();  // pass == 0, fail != 0
     return (exit(result), result);
