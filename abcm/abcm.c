@@ -1,13 +1,12 @@
 /*
- *  ABCM - Actor Byte-Code Machine
+ * abcm.c - Actor Byte-Code Machine
  */
 #include <stdlib.h>
 #include <stdint.h>
 //#include <unistd.h>
 #include <assert.h>
 
-#define LOG_ALL
-#include "log.c"
+#include "log.h"
 
 static char * _semver = "0.0.1";
 
@@ -145,6 +144,8 @@ BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r', '\0' };
 */
 
 static int test_bytecode_types() {
+    LOG_INFO(_semver, (WORD)_semver);
+    assert(_semver == _semver);  // FIXME: vacuous use of `_semver`
     LOG_TRACE("test_bytecode_types: sizeof(s_) =", sizeof(s_));
     LOG_TRACE("test_bytecode_types: (s_kind - s_) =", (s_kind - s_));
     LOG_TRACE("test_bytecode_types: sizeof(s_kind) =", sizeof(s_kind));
@@ -1012,12 +1013,12 @@ BYTE object_property_count(parse_t * parse, WORD * count_ptr) {
     WORD count = 0;
     WORD origin = parse->start;
     while (parse->start < parse->size) {
-        WORD key_start = parse->start;
-        LOG_TRACE("object_property_count: key_start =", key_start);
+        //WORD key_start = parse->start;
+        LOG_TRACE("object_property_count: key_start =", parse->start);
         if (!parse_string(parse)) return false;  // key needed
         parse->start = parse->end;
-        WORD value_start = parse->start;
-        LOG_TRACE("object_property_count: value_start =", value_start);
+        //WORD value_start = parse->start;
+        LOG_TRACE("object_property_count: value_start =", parse->start);
         if (!parse_value(parse)) return false;  // value needed
         parse->start = parse->end;
         ++count;
@@ -1218,11 +1219,11 @@ static BYTE object_get_property(parse_t * parse, DATA_PTR key) {
     WORD origin = parse->start;
     while (parse->start < parse->size) {
         WORD key_start = parse->start;
-        LOG_TRACE("object_get_property: key_start =", key_start);
+        LOG_TRACE("object_get_property: key_start =", parse->start);
         if (!parse_string(parse)) return false;  // key needed
         parse->start = parse->end;
-        WORD value_start = parse->start;
-        LOG_TRACE("object_get_property: value_start =", value_start);
+        //WORD value_start = parse->start;
+        LOG_TRACE("object_get_property: value_start =", parse->start);
         if (!parse_value(parse)) return false;  // value needed
         if (value_equal(key, parse->base + key_start)) {
             // keys match
@@ -1282,7 +1283,6 @@ static BYTE object_equal(parse_t * x_parse, parse_t * y_parse) {
         parse->start = parse->end;
         WORD value_start = parse->start;
         if (!parse_value(parse)) return false;  // value needed
-        WORD prop_end = parse->end;
         if (object_get_property(&y_prop, (parse->base + key_start))) {
             // found matching property
             x_prop.start = value_start;
@@ -1448,8 +1448,12 @@ static int test_value_equal() {
     BYTE data_45[] = { object_n, n_1, n_0 };
     BYTE data_46[] = { object, n_0 };
 
+    assert(value_equal(data_40, data_40));
     assert(value_equal(data_41, data_42));
     assert(value_equal(data_43, data_44));
+    assert(value_equal(data_40, data_45));
+    assert(value_equal(data_40, data_46));
+    assert(value_equal(data_45, data_46));
 
     return 0;
 }
@@ -1483,7 +1487,8 @@ static int run_test_suite() {
 }
 
 int main(int argc, char *argv[]) {
-    log_config.level = LOG_LEVEL_WARN;//LOG_LEVEL_TRACE+1;
+    log_config.level = LOG_LEVEL_WARN;
+    //log_config.level = LOG_LEVEL_TRACE+1;
     memo_clear();
     int result = run_test_suite();  // pass == 0, fail != 0
     return (exit(result), result);
