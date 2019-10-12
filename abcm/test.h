@@ -1,5 +1,5 @@
 /*
- * test.h -- Unit Test Suite
+ * test.h -- unit test suite
  */
 #ifndef _TEST_H_
 #define _TEST_H_

@@ -1,10 +1,11 @@
 /*
- * abcm.c -- Unit Test Suite
+ * test.c -- unit test suite
  */
 #include <assert.h>
 
 #include "test.h"
 #include "abcm.h"
+#include "equal.h"
 #include "log.h"
 
 static int test_bytecode_types() {

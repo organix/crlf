@@ -1,11 +1,10 @@
 /*
- * log.h -- LOG output facilities
+ * log.h -- event logging instrumentation
  */
 #ifndef _LOG_H_
 #define _LOG_H_
 
 #include <stdint.h>
-
 
 typedef enum {
     LOG_LEVEL_NONE,

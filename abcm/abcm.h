@@ -241,7 +241,6 @@ Output:
 BYTE parse_object(parse_t * parse);
 
 BYTE object_property_count(parse_t * parse, WORD * count_ptr);
-BYTE parse_equal(parse_t * x_parse, parse_t * y_parse);
-BYTE value_equal(DATA_PTR x, DATA_PTR y);
+BYTE object_get_property(parse_t * parse, DATA_PTR key);
 
 #endif // _ABCM_H_
