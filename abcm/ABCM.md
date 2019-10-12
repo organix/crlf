@@ -1,6 +1,7 @@
 # ABCM - Actor Byte-Code Machine
 
 The **Actor Byte-Code Machine** is a byte-code interpreter for Actor programs.
+Programs are stored and executed directly from Binary Octet-Stream Encoding representation (isomorphic to JSON).
 
 An actor program is a sequence of _Actions_:
 ```javascript
@@ -36,6 +37,12 @@ Typed expressions include:
 ## Binary Octet-Stream Encoding
 
 For more-efficient network transmission, we propose an octet-stream encoding which is isomorphic to JSON.
+As with ASCII text, there are multiple ways to encode the same abstract JSON value.
+All valid encodings produce valid equivalent JSON values, although some representation details are lost.
+Every valid JSON value can be represented in Binary Octet-Stream Encoding.
+As far as possible, values may be round-tripped without loss of information.
+Floating-point values are problematic, even in JSON, due to translation between base-10 and base-2.
+Binary Octet-Stream Encoding, by itself, is **not** lossy, since values remain in base-2 representation.
 
 There are six types of abstract data values representable in JSON:
  * Null

@@ -4,8 +4,9 @@
 #include <assert.h>
 
 #include "test.h"
-#include "abcm.h"
+#include "bose.h"
 #include "equal.h"
+#include "abcm.h"
 #include "log.h"
 
 static int test_bytecode_types() {

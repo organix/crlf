@@ -1,5 +1,5 @@
 /*
- *  LOG output facilities
+ * log.c -- event logging instrumentation
  */
 #include "log.h"
 
@@ -7,6 +7,10 @@ log_config_t log_config = {
     .level = LOG_LEVEL_INFO
 };
 
+// FIXME: should automatically include timestamp in log event
+/*
+uint64_t log_time();    // log-event timestamp
+*/
 
 /*
  *  All logging comes through a single synchronous enter-point.
@@ -14,11 +18,6 @@ log_config_t log_config = {
  */
 
 #include <stdio.h>
-
-// FIXME: should automatically include timestamp in log event
-/*
-uint64_t log_time();    // log-event timestamp
-*/
 
 void log_event(         // log event synchronously
     char * _file_,

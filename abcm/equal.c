@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #include "equal.h"
-#include "abcm.h"
+#include "bose.h"
 #include "log.h"
 
 static BYTE number_equal(parse_t * x_parse, parse_t * y_parse) {

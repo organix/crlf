@@ -14,8 +14,8 @@ CFLAGS=	-Wall -DLOG_ALL
 #CFLAGS=	-Wall
 
 LIB=	libabc.a
-LOBJS=	equal.o log.o test.o
-LHDRS=	equal.h log.h test.h abcm.h
+LOBJS=	bose.o equal.o log.o test.o
+LHDRS=	bose.h equal.h log.h test.h abcm.h
 
 LIBS=	$(LIB)
 
