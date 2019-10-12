@@ -410,6 +410,9 @@ BYTE parse_value(parse_t * parse) {
         // direct-coded Small Integer
         parse->value = (int)(parse->prefix - n_0);
         LOG_DEBUG("parse_value: Small Integer", parse->value);
+    } else {
+        assert(parse->value == 0);
+        LOG_DEBUG("parse_value: direct-coded", parse->value);
     }
     return true;  // success
 }
@@ -664,20 +667,26 @@ static int test_parse_string() {
 /**
 Usage:
     BYTE data[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e' };
-    parse_t parse = {
+    parse_t string_parse = {
         .base = data,
         .size = sizeof(data),
         .start = 0
     };
-    if (parse_string(&parse)) {
-        parse.size = parse.end;
-        parse.start = (parse.end - parse.value);  // start of codepoint data
-        while (parse.start < parse.size) {
-            if (!parse_codepoint(&parse)) {
+    if (parse_string(&string_parse)) {
+        WORD code_start = (string_parse.end - string_parse.value);  // start of codepoint data
+        parse_t code_parse = {
+            .base = string_parse.base + code_start,
+            .size = string_parse.value,
+            .prefix = string_parse.prefix,
+            .type = string_parse.type,
+            .start = 0
+        };
+        while (code_parse.start < code_parse.size) {
+            if (!parse_codepoint(&code_parse)) {
                 break;  // or `return false;`
             }
-            output(parse.value);
-            parse.start = parse.end;
+            output(code_parse.value);
+            code_parse.start = code_parse.end;
         }
     }
 **/
@@ -810,50 +819,52 @@ BYTE parse_codepoint(parse_t * parse) {
 }
 
 static int test_parse_codepoint() {
+    parse_t string_parse;
+    parse_t code_parse;
     int i;
     WORD w;
 
     WORD code[] = { 0x0061, 0x0063, 0x0074, 0x006F, 0x0072 };
     BYTE data[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r' };
-    parse_t parse = {
-        .base = data,
-        .size = sizeof(data),
-        .start = 0
-    };
-    LOG_TRACE("test_parse_codepoint", (WORD)&parse);
-
-    if (!parse_string(&parse)) return 1;  // bad String
-    parse.base += (parse.end - parse.value);  // move base to start of codepoint data
-    parse.size = parse.value;
-    parse.start = 0;
+    string_parse.base = data;
+    string_parse.size = sizeof(data);
+    string_parse.start = 0;
+    if (!parse_string(&string_parse)) return 1;  // bad String
+    code_parse.base = string_parse.base + (string_parse.end - string_parse.value);  // start of codepoint data
+    code_parse.size = string_parse.value;
+    code_parse.prefix = string_parse.prefix;
+    code_parse.type = string_parse.type;
+    code_parse.start = 0;
     i = 0;
-    while (parse.start < parse.size) {
-        if (!parse_codepoint(&parse)) return 1;  // bad codepoint
-        LOG_DEBUG("codepoint =", parse.value);
+    while (code_parse.start < code_parse.size) {
+        if (!parse_codepoint(&code_parse)) return 1;  // bad codepoint
+        LOG_DEBUG("test_parse_codepoint: codepoint =", code_parse.value);
         w = code[i++];
-        assert(parse.value == w);
-        parse.start = parse.end;
+        assert(code_parse.value == w);
+        code_parse.start = code_parse.end;
     }
-    assert(i == (sizeof(code) / sizeof(WORD)));
+    assert(i == (sizeof(code) / sizeof(WORD)));  // make sure we used all the results
 
     WORD code16[] = { 0xDF62, 0xD852, 0x20AC, 0x24B62 };
     BYTE data16[] = { utf16, n_10, 0xDF, 0x62, 0xD8, 0x52, 0x20, 0xAC, 0xD8, 0x52, 0xDF, 0x62 };
-    parse.base = data16;
-    parse.size = sizeof(data16);
-    parse.start = 0;
-    if (!parse_string(&parse)) return 1;  // bad String
-    parse.base += (parse.end - parse.value);  // move base to start of codepoint data
-    parse.size = parse.value;
-    parse.start = 0;
+    string_parse.base = data16;
+    string_parse.size = sizeof(data16);
+    string_parse.start = 0;
+    if (!parse_string(&string_parse)) return 1;  // bad String
+    code_parse.base = string_parse.base + (string_parse.end - string_parse.value);  // start of codepoint data
+    code_parse.size = string_parse.value;
+    code_parse.prefix = string_parse.prefix;
+    code_parse.type = string_parse.type;
+    code_parse.start = 0;
     i = 0;
-    while (parse.start < parse.size) {
-        if (!parse_codepoint(&parse)) return 1;  // bad codepoint
-        LOG_DEBUG("codepoint16 =", parse.value);
+    while (code_parse.start < code_parse.size) {
+        if (!parse_codepoint(&code_parse)) return 1;  // bad codepoint
+        LOG_DEBUG("test_parse_codepoint: codepoint =", code_parse.value);
         w = code16[i++];
-        assert(parse.value == w);
-        parse.start = parse.end;
+        assert(code_parse.value == w);
+        code_parse.start = code_parse.end;
     }
-    assert(i == (sizeof(code16) / sizeof(WORD)));
+    assert(i == (sizeof(code16) / sizeof(WORD)));  // make sure we used all the results
 
     return 0;
 }
@@ -1076,10 +1087,134 @@ static int test_object_property_count() {
 }
 
 BYTE value_equal(DATA_PTR x, DATA_PTR y);  // FORWARD DECLARATION
+BYTE parse_equal(parse_t * x_parse, parse_t * y_parse);  // FORWARD DECLARATION
 
-BYTE object_get_property(parse_t * parse, DATA_PTR key) {
+static BYTE number_equal(parse_t * x_parse, parse_t * y_parse) {
+    // compare parsed values known to be Numbers
+    if (x_parse->type & T_Counted) {
+        LOG_WARN("number_equal: no Unum support for x", x_parse->type);
+        return false;  // not an Integer type
+    }
+    if (y_parse->type & T_Counted) {
+        LOG_WARN("number_equal: no Unum support for y", y_parse->type);
+        return false;  // not an Integer type
+    }
+    DATA_PTR x_data;  // pointer to x number data
+    WORD x_n;  // number of data bytes in x
+    if (x_parse->type & T_Sized) {
+        // extended integer
+        x_data = x_parse->base + (x_parse->end - x_parse->value);
+        x_n = x_parse->value;
+    } else {
+        // direct-coded (small) integer
+        BYTE xx_data = x_parse->value;
+        x_data = &xx_data;
+        x_n = sizeof(xx_data);
+    }
+    DATA_PTR y_data;  // pointer to y number data
+    WORD y_n;  // number of data bytes in y
+    if (y_parse->type & T_Sized) {
+        // extended integer
+        y_data = y_parse->base + (y_parse->end - y_parse->value);
+        y_n = y_parse->value;
+    } else {
+        // direct-coded (small) integer
+        BYTE yy_data = y_parse->value;
+        y_data = &yy_data;
+        y_n = sizeof(yy_data);
+    }
+    BYTE xx_sign = (x_parse->type & T_Negative) ? -1 : 0;
+    BYTE yy_sign = (y_parse->type & T_Negative) ? -1 : 0;
+    WORD i = 0;
+    while ((i < x_n) || (i < y_n)) {
+        BYTE xx_byte = (i < x_n) ? x_data[i] : xx_sign;  // sign extended comparison
+        BYTE yy_byte = (i < y_n) ? y_data[i] : yy_sign;  // sign extended comparison
+        if (xx_byte != yy_byte) {
+            LOG_DEBUG("number_equal: mismatch Number xx", xx_byte);
+            LOG_DEBUG("number_equal: mismatch Number yy", yy_byte);
+            return false;  // mismatched elements
+        }
+        ++i;
+    }
+    LOG_DEBUG("number_equal: MATCH Number", true);
+    return true;  // Number values match
+}
+
+static BYTE string_equal(parse_t * x_parse, parse_t * y_parse) {
+    // compare parsed values known to be Strings
+    assert(x_parse->start < (x_parse->end - x_parse->value));
+    assert(y_parse->start < (y_parse->end - y_parse->value));
+    parse_t x_code = {
+        .base = x_parse->base + (x_parse->end - x_parse->value),  // start of x codepoint data
+        .size = x_parse->value,
+        .prefix = x_parse->prefix,
+        .type = x_parse->type,
+        .start = 0
+    };
+    parse_t y_code = {
+        .base = y_parse->base + (y_parse->end - y_parse->value),  // start of y codepoint data
+        .size = y_parse->value,
+        .prefix = y_parse->prefix,
+        .type = y_parse->type,
+        .start = 0
+    };
+    while ((x_code.start < x_code.size) && (y_code.start < y_code.size)) {
+        if (!(parse_codepoint(&x_code) && parse_codepoint(&y_code))) return false;  // bad codepoint
+        if (x_code.value != y_code.value) {
+            LOG_TRACE("string_equal: mismatch x start", x_code.start);
+            LOG_TRACE("string_equal: mismatch y start", y_code.start);
+            LOG_DEBUG("string_equal: mismatch String x", x_code.value);
+            LOG_DEBUG("string_equal: mismatch String y", y_code.value);
+            return false;  // mismatched codepoints
+        }
+        x_code.start = x_code.end;
+        y_code.start = y_code.end;
+    }
+    if ((x_code.start < x_code.size) || (y_code.start < y_code.size)) {
+        if (x_code.start < x_code.size) LOG_DEBUG("string_equal: more String x...", x_code.start);
+        if (y_code.start < y_code.size) LOG_DEBUG("string_equal: more String y...", y_code.start);
+        return false;  // one String ended before the other
+    }
+    LOG_DEBUG("string_equal: MATCH String", true);
+    return true;  // String values match
+}
+
+static BYTE array_equal(parse_t * x_parse, parse_t * y_parse) {
+    // compare parsed values known to be Arrays
+    assert(x_parse->start < (x_parse->end - x_parse->value));
+    assert(y_parse->start < (y_parse->end - y_parse->value));
+    parse_t x_item = {
+        .base = x_parse->base + (x_parse->end - x_parse->value),  // start of x element data
+        .size = x_parse->value,
+        .start = 0
+    };
+    parse_t y_item = {
+        .base = y_parse->base + (y_parse->end - y_parse->value),  // start of y element data
+        .size = y_parse->value,
+        .start = 0
+    };
+    while ((x_item.start < x_item.size) && (y_item.start < y_item.size)) {
+        if (!parse_equal(&x_item, &y_item)) {  // recursively compare corresponding items
+            LOG_TRACE("array_equal: mismatch x start", x_item.start);
+            LOG_TRACE("array_equal: mismatch y start", y_item.start);
+            LOG_DEBUG("array_equal: mismatch Array x", x_item.value);
+            LOG_DEBUG("array_equal: mismatch Array y", y_item.value);
+            return false;  // mismatched elements
+        }
+        x_item.start = x_item.end;
+        y_item.start = y_item.end;
+    }
+    if ((x_item.start < x_item.size) || (y_item.start < y_item.size)) {
+        if (x_item.start < x_item.size) LOG_DEBUG("array_equal: more Array x...", x_item.start);
+        if (y_item.start < y_item.size) LOG_DEBUG("array_equal: more Array y...", y_item.start);
+        return false;  // one Array ended before the other
+    }
+    LOG_DEBUG("array_equal: MATCH Array", true);
+    return true;  // Array values match
+}
+
+static BYTE object_get_property(parse_t * parse, DATA_PTR key) {
     LOG_TRACE("object_get_property @", (WORD)parse);
-    WORD count = 0;
     WORD origin = parse->start;
     while (parse->start < parse->size) {
         WORD key_start = parse->start;
@@ -1100,6 +1235,72 @@ BYTE object_get_property(parse_t * parse, DATA_PTR key) {
     return false;  // property not found
 }
 
+static BYTE object_equal(parse_t * x_parse, parse_t * y_parse) {
+    // compare parsed values known to be Objects
+    parse_t x_prop = {
+        .base = x_parse->base + (x_parse->end - x_parse->value),  // start of x property data
+        .size = x_parse->value,
+        .start = 0
+    };
+    parse_t y_prop = {
+        .base = y_parse->base + (y_parse->end - y_parse->value),  // start of y property data
+        .size = y_parse->value,
+        .start = 0
+    };
+    WORD x_count;
+    if (!(object_property_count(&x_prop, &x_count))) {
+        return false;  // bad Properties
+    }
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "object_equal: Object x type", x_parse->type);
+    if (x_parse->type & T_Counted) {
+        LOG_TRACE("object_equal: Object x counted", x_parse->count);
+        if (x_count != x_parse->count) {
+            LOG_WARN("object_equal: Object x expected", x_parse->count);
+        }
+    }
+    WORD y_count;
+    if (!(object_property_count(&y_prop, &y_count))) {
+        return false;  // bad Properties
+    }
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "object_equal: Object y type", y_parse->type);
+    if (y_parse->type & T_Counted) {
+        LOG_TRACE("object_equal: Object y counted", y_parse->count);
+        if (y_count != y_parse->count) {
+            LOG_WARN("object_equal: Object y expected", y_parse->count);
+        }
+    }
+    if (x_count != y_count) {
+        LOG_DEBUG("object_equal: mismatched property counts", (x_count - y_count));
+        return false;  // mismatched elements
+    }
+    x_prop.start = 0;  // restore original starting point
+    y_prop.start = 0;  // restore original starting point
+    parse_t * parse = &x_prop;
+    while (parse->start < parse->size) {
+        WORD key_start = parse->start;
+        if (!parse_string(parse)) return false;  // key needed
+        parse->start = parse->end;
+        WORD value_start = parse->start;
+        if (!parse_value(parse)) return false;  // value needed
+        WORD prop_end = parse->end;
+        if (object_get_property(&y_prop, (parse->base + key_start))) {
+            // found matching property
+            x_prop.start = value_start;
+            if (!parse_equal(&x_prop, &y_prop)) {
+                LOG_DEBUG("object_equal: mismatched Object property", value_start);
+                return false;  // mismatched property
+            }
+        } else {
+            LOG_DEBUG("object_equal: missing Object property", key_start);
+            return false;  // missing property
+        }
+        y_prop.start = 0;  // restore original starting point
+        parse->start = parse->end;
+    }
+    LOG_DEBUG("object_equal: MATCH Object", true);
+    return true;  // Object values match
+}
+
 BYTE parse_equal(parse_t * x_parse, parse_t * y_parse) {
     LOG_TRACE("parse_equal: x @", (WORD)x_parse);
     LOG_TRACE("parse_equal: y @", (WORD)y_parse);
@@ -1117,169 +1318,16 @@ BYTE parse_equal(parse_t * x_parse, parse_t * y_parse) {
     }
     switch (x_parse->type & T_Base) {
         case T_Number: {
-            if (x_parse->type & T_Counted) {
-                LOG_WARN("parse_equal: no Unum support for x", x_parse->type);
-                return false;  // not an Integer type
-            }
-            if (y_parse->type & T_Counted) {
-                LOG_WARN("parse_equal: no Unum support for y", y_parse->type);
-                return false;  // not an Integer type
-            }
-            DATA_PTR x_p;  // pointer to x number data
-            WORD x_n;  // number of data bytes in x
-            if (x_parse->type & T_Sized) {
-                // extended integer
-                x_p = x_parse->base + (x_parse->end - x_parse->value);
-                x_n = x_parse->value;
-            } else {
-                // direct-coded (small) integer
-                BYTE xx_data = x_parse->value;
-                x_p = &xx_data;
-                x_n = sizeof(xx_data);
-            }
-            DATA_PTR y_p;  // pointer to y number data
-            WORD y_n;  // number of data bytes in y
-            if (y_parse->type & T_Sized) {
-                // extended integer
-                y_p = y_parse->base + (y_parse->end - y_parse->value);
-                y_n = y_parse->value;
-            } else {
-                // direct-coded (small) integer
-                BYTE yy_data = y_parse->value;
-                y_p = &yy_data;
-                y_n = sizeof(yy_data);
-            }
-            BYTE xx_sign = (x_parse->type & T_Negative) ? -1 : 0;
-            BYTE yy_sign = (y_parse->type & T_Negative) ? -1 : 0;
-            WORD i = 0;
-            while ((i < x_n) || (i < y_n)) {
-                BYTE xx_byte = (i < x_n) ? x_p[i] : xx_sign;  // sign extended comparison
-                BYTE yy_byte = (i < y_n) ? y_p[i] : yy_sign;  // sign extended comparison
-                if (xx_byte != yy_byte) {
-                    LOG_DEBUG("parse_equal: mismatch Number xx", xx_byte);
-                    LOG_DEBUG("parse_equal: mismatch Number yy", yy_byte);
-                    return false;  // mismatched elements
-                }
-                ++i;
-            }
-            LOG_DEBUG("parse_equal: MATCH Number", true);
-            return true;  // Number values match
+            return number_equal(x_parse, y_parse);
         }
         case T_String: {
-            x_parse->start = (x_parse->end - x_parse->value);  // start of x codepoint data
-            y_parse->start = (y_parse->end - y_parse->value);  // start of y codepoint data
-            WORD x_end = x_parse->end;
-            WORD y_end = y_parse->end;
-            while ((x_parse->start < x_end) && (y_parse->start < y_end)) {
-                if (!(parse_codepoint(x_parse) && parse_codepoint(y_parse))) return false;  // bad codepoint
-                if (x_parse->value != y_parse->value) {
-                    LOG_TRACE("parse_equal: mismatch x_parse->end", x_parse->end);
-                    LOG_TRACE("parse_equal: mismatch y_parse->end", y_parse->end);
-                    LOG_DEBUG("parse_equal: mismatch String x", x_parse->value);
-                    LOG_DEBUG("parse_equal: mismatch String y", y_parse->value);
-                    return false;  // mismatched codepoints
-                }
-                x_parse->start = x_parse->end;
-                y_parse->start = y_parse->end;
-            }
-            if ((x_parse->start < x_end) || (y_parse->start < y_end)) {
-                if (x_parse->start < x_end) LOG_DEBUG("parse_equal: more String x...", x_parse->start);
-                if (y_parse->start < y_end) LOG_DEBUG("parse_equal: more String y...", y_parse->start);
-                return false;  // one string ended before the other
-            }
-            LOG_DEBUG("parse_equal: MATCH String", true);
-            return true;  // String values match
+            return string_equal(x_parse, y_parse);
         }
         case T_Array: {
-            x_parse->start = (x_parse->end - x_parse->value);  // start of x element data
-            y_parse->start = (y_parse->end - y_parse->value);  // start of y element data
-            WORD x_end = x_parse->end;
-            WORD y_end = y_parse->end;
-            while ((x_parse->start < x_end) && (y_parse->start < y_end)) {
-                if (!parse_equal(x_parse, y_parse)) {
-                    LOG_TRACE("parse_equal: mismatch x_parse->end", x_parse->end);
-                    LOG_TRACE("parse_equal: mismatch y_parse->end", y_parse->end);
-                    LOG_DEBUG("parse_equal: mismatch Array x", x_parse->value);
-                    LOG_DEBUG("parse_equal: mismatch Array y", y_parse->value);
-                    return false;  // mismatched elements
-                }
-                x_parse->start = x_parse->end;
-                y_parse->start = y_parse->end;
-            }
-            if ((x_parse->start < x_end) || (y_parse->start < y_end)) {
-                if (x_parse->start < x_end) LOG_WARN("parse_equal: more Array x...", x_parse->start);
-                if (y_parse->start < y_end) LOG_WARN("parse_equal: more Array y...", y_parse->start);
-                return false;  // one array ended before the other
-            }
-            LOG_DEBUG("parse_equal: MATCH Array", true);
-            return true;  // Array values match
+            return array_equal(x_parse, y_parse);
         }
         case T_Object: {
-            parse_t x_prop_parse = {
-                .base = x_parse->base,
-                .size = x_parse->end,
-                .start = (x_parse->end - x_parse->value)
-            };
-            parse_t y_prop_parse = {
-                .base = y_parse->base,
-                .size = y_parse->end,
-                .start = (y_parse->end - y_parse->value)
-            };
-            WORD x_origin = x_prop_parse.start;  // save original starting point
-            WORD y_origin = y_prop_parse.start;  // save original starting point
-            WORD x_count;
-            if (!(object_property_count(&x_prop_parse, &x_count))) {
-                return false;  // bad Properties
-            }
-            LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_equal: Object x type", x_parse->type);
-            if (x_parse->type & T_Counted) {
-                LOG_TRACE("parse_equal: Object x counted", x_parse->count);
-                if (x_count != x_parse->count) {
-                    LOG_WARN("parse_equal: Object x expected", x_parse->count);
-                }
-            }
-            WORD y_count;
-            if (!(object_property_count(&y_prop_parse, &y_count))) {
-                return false;  // bad Properties
-            }
-            LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_equal: Object y type", y_parse->type);
-            if (y_parse->type & T_Counted) {
-                LOG_TRACE("parse_equal: Object y counted", y_parse->count);
-                if (y_count != y_parse->count) {
-                    LOG_WARN("parse_equal: Object y expected", y_parse->count);
-                }
-            }
-            if (x_count != y_count) {
-                LOG_DEBUG("parse_equal: mismatched property counts", (x_count - y_count));
-                return false;  // mismatched elements
-            }
-            x_prop_parse.start = x_origin;  // restore original starting point
-            y_prop_parse.start = y_origin;  // restore original starting point
-            parse_t * parse = &x_prop_parse;
-            while (parse->start < parse->size) {
-                WORD key_start = parse->start;
-                if (!parse_string(parse)) return false;  // key needed
-                parse->start = parse->end;
-                WORD value_start = parse->start;
-                if (!parse_value(parse)) return false;  // value needed
-                WORD prop_end = parse->end;
-                if (object_get_property(&y_prop_parse, (parse->base + key_start))) {
-                    // found matching property
-                    x_prop_parse.start = value_start;
-                    if (!parse_equal(&x_prop_parse, &y_prop_parse)) {
-                        LOG_DEBUG("parse_equal: mismatched Object property", value_start);
-                        return false;  // mismatched property
-                    }
-                } else {
-                    LOG_DEBUG("parse_equal: missing Object property", key_start);
-                    return false;  // missing property
-                }
-                y_prop_parse.start = y_origin;  // restore original starting point
-                parse->start = prop_end;
-            }
-            x_prop_parse.start = x_origin;  // restore original starting point
-            LOG_DEBUG("parse_equal: MATCH Object", true);
-            return true;  // Object values match
+            return object_equal(x_parse, y_parse);
         }
         default: {
             BYTE result = (x_parse->prefix == y_parse->prefix);
@@ -1435,7 +1483,7 @@ static int run_test_suite() {
 }
 
 int main(int argc, char *argv[]) {
-    log_config.level = LOG_LEVEL_TRACE+1;
+    log_config.level = LOG_LEVEL_WARN;//LOG_LEVEL_TRACE+1;
     memo_clear();
     int result = run_test_suite();  // pass == 0, fail != 0
     return (exit(result), result);
