@@ -7,7 +7,6 @@
 #include "bose.h"
 #include "equal.h"
 #include "log.h"
-#include "test.h"
 
 type_t prefix_type[1<<8] = {
     T_Boolean, T_Boolean, T_Array, T_Object, T_Array|T_Sized, T_Object|T_Sized, T_Array|T_Sized|T_Counted, T_Object|T_Sized|T_Counted,

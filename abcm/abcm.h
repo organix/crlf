@@ -6,6 +6,8 @@
 
 #include "bose.h"
 
+extern char * _semver;  // semantic version number (C-string)
+
 #if 0  // FIXME: these types are currently unused, do we really need them?
 typedef uint8_t NAT8;           // 8-bit natural ring
 typedef uint16_t NAT16;         // 16-bit natural ring
@@ -28,5 +30,12 @@ extern BYTE s_error[];
     { "kind":"actor_assign", "name":<string>, "value":<expression> }
     { "kind":"actor_fail", "error":<expression> }
 */
+extern BYTE k_actor_send[];
+extern BYTE k_actor_become[];
+extern BYTE k_actor_ignore[];
+extern BYTE k_actor_assign[];
+extern BYTE k_actor_fail[];
+
+int start_abcm();  // ok == 0, fail != 0
 
 #endif // _ABCM_H_

@@ -89,8 +89,8 @@ static BYTE string_equal(parse_t * x_parse, parse_t * y_parse) {
         y_code.start = y_code.end;
     }
     if ((x_code.start < x_code.size) || (y_code.start < y_code.size)) {
-        if (x_code.start < x_code.size) LOG_DEBUG("string_equal: more String x...", x_code.start);
-        if (y_code.start < y_code.size) LOG_DEBUG("string_equal: more String y...", y_code.start);
+        if (x_code.start < x_code.size) { LOG_DEBUG("string_equal: more String x...", x_code.start); }
+        if (y_code.start < y_code.size) { LOG_DEBUG("string_equal: more String y...", y_code.start); }
         return false;  // one String ended before the other
     }
     LOG_DEBUG("string_equal: MATCH String", true);
@@ -123,8 +123,8 @@ static BYTE array_equal(parse_t * x_parse, parse_t * y_parse) {
         y_item.start = y_item.end;
     }
     if ((x_item.start < x_item.size) || (y_item.start < y_item.size)) {
-        if (x_item.start < x_item.size) LOG_DEBUG("array_equal: more Array x...", x_item.start);
-        if (y_item.start < y_item.size) LOG_DEBUG("array_equal: more Array y...", y_item.start);
+        if (x_item.start < x_item.size) { LOG_DEBUG("array_equal: more Array x...", x_item.start); }
+        if (y_item.start < y_item.size) { LOG_DEBUG("array_equal: more Array y...", y_item.start); }
         return false;  // one Array ended before the other
     }
     LOG_DEBUG("array_equal: MATCH Array", true);

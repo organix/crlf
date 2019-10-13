@@ -349,6 +349,13 @@ static int test_object_property_count() {
     BYTE data_2[] = { object_n, n_12, n_2, utf8, n_1, 'x', m_int_5, n_1, 0xFE, utf16, n_2, '\0', 'y', n_3 };
     BYTE data_3[] = { object_n, n_1, n_0 };
     BYTE data_4[] = { object, n_0 };
+    BYTE data_5[] = { object, n_40,
+        utf8, n_7, 'B', 'o', 'o', 'l', 'e', 'a', 'n', object, n_15,
+            utf8, n_4, 't', 'r', 'u', 'e', true,
+            utf8, n_5, 'f', 'a', 'l', 's', 'e', false,
+        utf8, n_4, 'z', 'e', 'r', 'o', n_0,
+        utf8, n_4, 'N', 'u', 'l', 'l', null
+    };
     parse_t parse;
     WORD count;
 
@@ -396,6 +403,15 @@ static int test_object_property_count() {
     parse.start = (parse.end - parse.value);
     assert(object_property_count(&parse, &count));
     assert(count == 0);
+
+    parse.base = data_5;
+    parse.size = sizeof(data_5);
+    parse.start = 0;
+    assert(parse_value(&parse));
+    LOG_TRACE("test_object_property_count: Object data_5 payload", parse.value);
+    parse.start = (parse.end - parse.value);
+    assert(object_property_count(&parse, &count));
+    assert(count == 3);
 
     return 0;
 }
@@ -500,7 +516,7 @@ static int test_value_equal() {
 }
 
 static int test_C_language() {
-    LOG_TRACE("sizeof(WORD) =", sizeof(WORD));
+    LOG_INFO("sizeof(WORD)", sizeof(WORD));
     assert(sizeof(WORD) >= 4);  // require at least 32-bit machine words
     BYTE b = 0;
     assert((BYTE)(b + 1) == 0x01);
@@ -511,6 +527,15 @@ static int test_C_language() {
     assert((--b) == 0xFF);
     assert((MAX_WORD + 1) == 0);
     assert((MAX_BYTE + 1) == 256);
+    // report big-endian or small-endian integer representation
+    BYTE utf16_BOM[] = { 0xFE, 0xFF };
+    assert(sizeof(utf16_BOM) == sizeof(uint16_t));
+    LOG_INFO("BOM", *((uint16_t *)utf16_BOM));
+    if (sizeof(WORD) >= sizeof(uint64_t)) {
+        BYTE byte_order[] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
+        assert(sizeof(byte_order) == sizeof(uint64_t));
+        LOG_INFO("endianness", *((uint64_t *)byte_order));
+    }
     return 0;
 }
 

@@ -10,12 +10,12 @@
 #CFLAGS=	-m32 -O2 -Wall
 #CFLAGS=	-O2 -Wall
 #CFLAGS=	-g -Wall -DLOG_ALL
-CFLAGS=	-Wall -DLOG_ALL
-#CFLAGS=	-Wall
+#CFLAGS=	-Wall -DMAIN -DLOG_ALL
+CFLAGS=	-DMAIN -Wall
 
 LIB=	libabc.a
-LOBJS=	bose.o equal.o log.o test.o
-LHDRS=	bose.h equal.h log.h test.h abcm.h
+LOBJS=	bose.o equal.o log.o
+LHDRS=	bose.h equal.h log.h
 
 LIBS=	$(LIB)
 
@@ -36,8 +36,8 @@ $(LIB): $(LOBJS)
 
 $(LOBJS): $(LHDRS)
 
-abcm: abcm.o $(LIB) Makefile
-	$(CC) $(CFLAGS) -o $@ abcm.o $(LIBS)
+abcm: abcm.o $(LIB) test.o test.h abcm.h Makefile
+	$(CC) $(CFLAGS) -o $@ abcm.o $(LIBS) test.o
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<

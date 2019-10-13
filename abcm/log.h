@@ -4,6 +4,8 @@
 #ifndef _LOG_H_
 #define _LOG_H_
 
+#define LOG_ALL // enable all logging
+
 #include <stdint.h>
 
 typedef enum {

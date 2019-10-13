@@ -50,7 +50,7 @@ typedef enum { /*2#_000*/ /*2#_001*/ /*2#_010*/ /*2#_011*/ /*2#_100*/ /*2#_101*/
 /*2#11101_*/   n_104,     n_105,     n_106,     n_107,     n_108,     n_109,     n_110,     n_111,
 /*2#11110_*/   n_112,     n_113,     n_114,     n_115,     n_116,     n_117,     n_118,     n_119,
 /*2#11111_*/   n_120,     n_121,     n_122,     n_123,     n_124,     n_125,     n_126,     null
-} prefix_t;
+} prefix_t;  // prefix BYTE values
 
 typedef enum {
     T_Null,
@@ -66,16 +66,16 @@ typedef enum {
     T_Sized = (1 << 5),
     T_Counted = (1 << 6),  // also "encoded" for Strings, "Unum" for Numbers (has exponent)
     T_Capability = (1 << 7)
-} type_t;
+} type_t;  // type info BYTE values
 
 #define T_Small (T_Number|T_Exact)
 #define T_Integer (T_Number|T_Exact|T_Sized)
 #define T_Float (T_Number|T_Exact|T_Sized|T_Counted)
 #define T_Range (T_Number|T_Sized|T_Counted)
 
-extern type_t prefix_type[1<<8];
+extern type_t prefix_type[];  // translation from prefix_t to type_t
 
-extern BYTE s_type_name[][10];
+extern BYTE s_type_name[][10];  // names for T_Base types (encoded)
 
 extern BYTE s_[];  // empty string (encoded)
 
