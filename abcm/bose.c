@@ -5,7 +5,7 @@
 #include <assert.h>
 
 #include "bose.h"
-#include "equal.h"
+#include "equiv.h"
 #include "log.h"
 
 type_t prefix_type[1<<8] = {
@@ -599,7 +599,7 @@ BYTE object_get_property(parse_t * parse, DATA_PTR key) {
         //WORD value_start = parse->start;
         LOG_TRACE("object_get_property: value_start =", parse->start);
         if (!parse_value(parse)) return false;  // value needed
-        if (value_equal(key, parse->base + key_start)) {
+        if (value_equiv(key, parse->base + key_start)) {
             // keys match
             return true;  // return with value parsed
         }

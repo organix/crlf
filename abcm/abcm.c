@@ -5,11 +5,11 @@
 
 #include "abcm.h"
 #include "bose.h"
-#include "equal.h"
+//#include "equiv.h"
 #include "log.h"
 #include "test.h"
 
-char * _semver = "0.0.1";
+char * _semver = "0.0.2";
 
 // NOTE: the '\0'-terminators are not required, but interoperate better with C
 BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd', '\0' };

@@ -14,8 +14,8 @@
 CFLAGS=	-DMAIN -Wall
 
 LIB=	libabc.a
-LOBJS=	bose.o equal.o log.o
-LHDRS=	bose.h equal.h log.h
+LOBJS=	bose.o equiv.o log.o
+LHDRS=	bose.h equiv.h log.h
 
 LIBS=	$(LIB)
 

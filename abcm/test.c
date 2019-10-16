@@ -5,7 +5,7 @@
 
 #include "test.h"
 #include "bose.h"
-#include "equal.h"
+#include "equiv.h"
 #include "abcm.h"
 #include "log.h"
 
@@ -416,7 +416,7 @@ static int test_object_property_count() {
     return 0;
 }
 
-static int test_value_equal() {
+static int test_value_equiv() {
     BYTE data_0[] = { n_0 };
     BYTE data_1[] = { p_int_0, n_0 };
     BYTE data_2[] = { p_int_0, n_1, 0x00 };
@@ -428,14 +428,14 @@ static int test_value_equal() {
     BYTE data_8[] = { m_int_3, n_9, 0x00, 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
     BYTE data_9[] = { m_int_6, n_10, 0x00, 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0xFF };
 
-    assert(value_equal(data_0, data_0));
-    assert(value_equal(data_0, data_1));
-    assert(value_equal(data_0, data_2));
-    assert(value_equal(data_0, data_3));
-    assert(value_equal(data_2, data_3));
-    assert(value_equal(data_4, data_5));
-    assert(value_equal(data_6, data_7));
-    assert(value_equal(data_8, data_9));
+    assert(value_equiv(data_0, data_0));
+    assert(value_equiv(data_0, data_1));
+    assert(value_equiv(data_0, data_2));
+    assert(value_equiv(data_0, data_3));
+    assert(value_equiv(data_2, data_3));
+    assert(value_equiv(data_4, data_5));
+    assert(value_equiv(data_6, data_7));
+    assert(value_equiv(data_8, data_9));
 
     BYTE data_10[] = { string_0 };
     BYTE data_11[] = { octets, n_0 };
@@ -444,19 +444,19 @@ static int test_value_equal() {
     BYTE data_14[] = { utf16, n_2, 0xFE, 0xFF };
     BYTE data_15[] = { utf16, n_2, 0xFF, 0xFE };
 
-    assert(value_equal(s_, s_));
-    assert(value_equal(s_, data_10));
-    assert(value_equal(s_, data_11));
-    assert(value_equal(s_, data_12));
-    assert(value_equal(s_, data_13));
-    assert(value_equal(s_, data_14));
-    assert(value_equal(s_, data_15));
-    assert(value_equal(data_13, data_14));
-    assert(value_equal(data_13, data_15));
-    assert(value_equal(data_14, data_15));
+    assert(value_equiv(s_, s_));
+    assert(value_equiv(s_, data_10));
+    assert(value_equiv(s_, data_11));
+    assert(value_equiv(s_, data_12));
+    assert(value_equiv(s_, data_13));
+    assert(value_equiv(s_, data_14));
+    assert(value_equiv(s_, data_15));
+    assert(value_equiv(data_13, data_14));
+    assert(value_equiv(data_13, data_15));
+    assert(value_equiv(data_14, data_15));
 
-    assert(!value_equal(s_kind, s_));
-    assert(!value_equal(s_kind, s_actor));
+    assert(!value_equiv(s_kind, s_));
+    assert(!value_equiv(s_kind, s_actor));
 
     BYTE data_20[] = { octets, n_4, 'k', 'i', 'n', 'd' };
     BYTE data_21[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
@@ -465,18 +465,18 @@ static int test_value_equal() {
     BYTE data_24[] = { utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd' };
     BYTE data_25[] = { utf16, n_10, 0xFF, 0xFE, 'k', '\0', 'i', '\0', 'n', '\0', 'd', '\0' };
 
-    assert(value_equal(s_kind, data_20));
-    assert(value_equal(s_kind, data_21));
-    assert(value_equal(s_kind, data_22));
-    assert(value_equal(s_kind, data_23));
-    assert(value_equal(s_kind, data_24));
-    assert(value_equal(s_kind, data_25));
-    assert(value_equal(data_22, data_23));
-    assert(value_equal(data_22, data_24));
-    assert(value_equal(data_22, data_25));
-    assert(value_equal(data_23, data_24));
-    assert(value_equal(data_23, data_25));
-    assert(value_equal(data_24, data_25));
+    assert(value_equiv(s_kind, data_20));
+    assert(value_equiv(s_kind, data_21));
+    assert(value_equiv(s_kind, data_22));
+    assert(value_equiv(s_kind, data_23));
+    assert(value_equiv(s_kind, data_24));
+    assert(value_equiv(s_kind, data_25));
+    assert(value_equiv(data_22, data_23));
+    assert(value_equiv(data_22, data_24));
+    assert(value_equiv(data_22, data_25));
+    assert(value_equiv(data_23, data_24));
+    assert(value_equiv(data_23, data_25));
+    assert(value_equiv(data_24, data_25));
 
     BYTE data_30[] = { array_0 };
     BYTE data_31[] = { array_n, n_1, n_0 };
@@ -490,12 +490,12 @@ static int test_value_equal() {
         utf16, n_12, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0',
         true, false, null };
 
-    assert(value_equal(data_30, data_30));
-    assert(value_equal(data_30, data_31));
-    assert(value_equal(data_30, data_32));
-    assert(value_equal(data_31, data_32));
-    assert(value_equal(data_32, data_32));
-    assert(value_equal(data_33, data_34));
+    assert(value_equiv(data_30, data_30));
+    assert(value_equiv(data_30, data_31));
+    assert(value_equiv(data_30, data_32));
+    assert(value_equiv(data_31, data_32));
+    assert(value_equiv(data_32, data_32));
+    assert(value_equiv(data_33, data_34));
 
     BYTE data_40[] = { object_0 };
     BYTE data_41[] = { object, n_8, utf8, n_5, 'v', 'a', 'l', 'u', 'e', n_42 };
@@ -505,12 +505,12 @@ static int test_value_equal() {
     BYTE data_45[] = { object_n, n_1, n_0 };
     BYTE data_46[] = { object, n_0 };
 
-    assert(value_equal(data_40, data_40));
-    assert(value_equal(data_41, data_42));
-    assert(value_equal(data_43, data_44));
-    assert(value_equal(data_40, data_45));
-    assert(value_equal(data_40, data_46));
-    assert(value_equal(data_45, data_46));
+    assert(value_equiv(data_40, data_40));
+    assert(value_equiv(data_41, data_42));
+    assert(value_equiv(data_43, data_44));
+    assert(value_equiv(data_40, data_45));
+    assert(value_equiv(data_40, data_46));
+    assert(value_equiv(data_45, data_46));
 
     return 0;
 }
@@ -548,6 +548,6 @@ int run_test_suite() {
         || test_parse_array()
         || test_parse_object()
         || test_object_property_count()
-        || test_value_equal()
+        || test_value_equiv()
         ;
 }
