@@ -37,11 +37,11 @@ void log_event(         // log event synchronously
     }
     if (level > LOG_LEVEL_TRACE) {
         int plus = level - LOG_LEVEL_TRACE;
-        fprintf(stderr, "%s:%d %s%+d %s (%p)\n", 
+        fprintf(stdout, "%s:%d %s%+d %s (%p)\n",
             _file_, _line_, level_name[LOG_LEVEL_TRACE], plus, label, (void *)value);
     } else {
-        fprintf(stderr, "%s:%d %s %s (%p)\n", 
+        fprintf(stdout, "%s:%d %s %s (%p)\n",
             _file_, _line_, level_name[level], label, (void *)value);
     }
-    fflush(stderr);
+    fflush(stdout);
 }

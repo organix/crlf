@@ -8,7 +8,9 @@
 #include "equiv.h"
 #include "abcm.h"
 
-#define LOG_ALL // enable all logging
+//#define LOG_ALL // enable all logging
+#define LOG_INFO
+#define LOG_WARN
 #include "log.h"
 
 static int test_bytecode_types() {

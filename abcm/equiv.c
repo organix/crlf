@@ -116,6 +116,14 @@ static BYTE array_equiv(parse_t * x_parse, parse_t * y_parse) {
         .start = 0
     };
     while ((x_item.start < x_item.size) && (y_item.start < y_item.size)) {
+        if (!parse_value(&x_item)) {
+            LOG_WARN("array_equiv: bad x value", x_item.start);
+            return false;  // bad x value
+        }
+        if (!parse_value(&y_item)) {
+            LOG_WARN("array_equiv: bad y value", y_item.start);
+            return false;  // bad y value
+        }
         if (!parse_equiv(&x_item, &y_item)) {  // recursively compare corresponding items
             LOG_TRACE("array_equiv: mismatch x start", x_item.start);
             LOG_TRACE("array_equiv: mismatch y start", y_item.start);
@@ -203,6 +211,7 @@ static BYTE object_equiv(parse_t * x_parse, parse_t * y_parse) {
 BYTE parse_equiv(parse_t * x_parse, parse_t * y_parse) {
     LOG_TRACE("parse_equiv: x @", (WORD)x_parse);
     LOG_TRACE("parse_equiv: y @", (WORD)y_parse);
+/*
     if (x_parse == y_parse) {
         LOG_WARN("parse_equiv: MATCH same (aliased)!?", true);
         return parse_value(x_parse);  // advance "both" parsers (aliased)
@@ -210,6 +219,7 @@ BYTE parse_equiv(parse_t * x_parse, parse_t * y_parse) {
     if (!(parse_value(x_parse) && parse_value(y_parse))) {
         return false;  // bad Value(s)
     }
+*/
     if ((x_parse->type & T_Base) != (y_parse->type & T_Base)) {
         LOG_DEBUG("parse_equiv: mismatch x_type", x_parse->type);
         LOG_DEBUG("parse_equiv: mismatch y_type", y_parse->type);
@@ -255,5 +265,13 @@ BYTE value_equiv(DATA_PTR x, DATA_PTR y) {
         .size = MAX_WORD,  // don't know how big value will be
         .start = 0
     };
+    if (!parse_value(&x_parse)) {
+        LOG_WARN("array_equiv: bad x value", x_parse.start);
+        return false;  // bad x value
+    }
+    if (!parse_value(&y_parse)) {
+        LOG_WARN("array_equiv: bad y value", y_parse.start);
+        return false;  // bad y value
+    }
     return parse_equiv(&x_parse, &y_parse);
 };
