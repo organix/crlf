@@ -4,8 +4,6 @@
 #ifndef _LOG_H_
 #define _LOG_H_
 
-#define LOG_ALL // enable all logging
-
 #include <stdint.h>
 
 typedef enum {
@@ -83,6 +81,16 @@ extern log_config_t log_config;  // logging configuration options
 #define LOG_LEVEL(level, label, value) /* LOG_LEVEL */
 #endif
 
+#define DUMP_PARSE(label, parse) \
+    LOG_INFO(label, (WORD)(parse));                   \
+    LOG_INFO("      base =", (WORD)((parse)->base));  \
+    LOG_INFO("      size =", (parse)->size);          \
+    LOG_INFO("     start =", (parse)->start);         \
+    LOG_INFO("       end =", (parse)->end);           \
+    LOG_INFO("    prefix =", (parse)->prefix);        \
+    LOG_INFO("      type =", (parse)->type);          \
+    LOG_INFO("     value =", (parse)->value);         \
+    LOG_INFO("     count =", (parse)->count);
 
 /*
  *  All logging comes through a single synchronous enter-point.

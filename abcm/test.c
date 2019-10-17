@@ -7,6 +7,8 @@
 #include "bose.h"
 #include "equiv.h"
 #include "abcm.h"
+
+#define LOG_ALL // enable all logging
 #include "log.h"
 
 static int test_bytecode_types() {
@@ -531,15 +533,13 @@ static int test_C_language() {
     BYTE utf16_BOM[] = { 0xFE, 0xFF };
     assert(sizeof(utf16_BOM) == sizeof(uint16_t));
     LOG_INFO("BOM", *((uint16_t *)utf16_BOM));
-    if (sizeof(WORD) >= sizeof(uint64_t)) {
-        BYTE byte_order[] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
-        assert(sizeof(byte_order) == sizeof(uint64_t));
-        LOG_INFO("endianness", *((uint64_t *)byte_order));
-    }
+    BYTE byte_order[] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
+    LOG_INFO("endianness", *((WORD *)byte_order));
     return 0;
 }
 
 int run_test_suite() {
+    memo_clear();
     return test_C_language()
         || test_bytecode_types()
         || test_parse_integer()

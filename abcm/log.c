@@ -1,6 +1,7 @@
 /*
  * log.c -- event logging instrumentation
  */
+#define LOG_ALL // enable all logging
 #include "log.h"
 
 log_config_t log_config = {

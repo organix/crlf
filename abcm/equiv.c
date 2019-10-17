@@ -5,6 +5,10 @@
 
 #include "equiv.h"
 #include "bose.h"
+
+//#define LOG_ALL // enable all logging
+#define LOG_INFO
+#define LOG_WARN
 #include "log.h"
 
 static BYTE number_equiv(parse_t * x_parse, parse_t * y_parse) {
@@ -27,7 +31,7 @@ static BYTE number_equiv(parse_t * x_parse, parse_t * y_parse) {
         // direct-coded (small) integer
         BYTE xx_data = x_parse->value;
         x_data = &xx_data;
-        x_n = sizeof(xx_data);
+        x_n = sizeof(xx_data);  // == 1
     }
     DATA_PTR y_data;  // pointer to y number data
     WORD y_n;  // number of data bytes in y
@@ -39,7 +43,7 @@ static BYTE number_equiv(parse_t * x_parse, parse_t * y_parse) {
         // direct-coded (small) integer
         BYTE yy_data = y_parse->value;
         y_data = &yy_data;
-        y_n = sizeof(yy_data);
+        y_n = sizeof(yy_data);  // == 1
     }
     BYTE xx_sign = (x_parse->type & T_Negative) ? -1 : 0;
     BYTE yy_sign = (y_parse->type & T_Negative) ? -1 : 0;

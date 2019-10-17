@@ -17,17 +17,19 @@ LIB=	libabc.a
 LOBJS=	bose.o equiv.o log.o
 LHDRS=	bose.h equiv.h log.h
 
+MAIN=	abcm
+MOBJS=	abcm.o program.o test.o
+MHDRS=	abcm.h program.h test.h
 LIBS=	$(LIB)
 
-PROGS=	abcm
 JUNK=	*.exe *.stackdump core *~
 
-all: $(LIB) $(PROGS)
+all: $(LIB) $(MAIN)
 
 clean:
-	rm -f $(LIB) $(PROGS) $(JUNK) *.o
+	rm -f $(LIB) $(MAIN) $(JUNK) *.o
 
-test: $(PROGS)
+test: $(MAIN)
 	rm -f $(JUNK)
 	./abcm
 
@@ -36,8 +38,10 @@ $(LIB): $(LOBJS)
 
 $(LOBJS): $(LHDRS)
 
-abcm: abcm.o $(LIB) test.o test.h abcm.h Makefile
-	$(CC) $(CFLAGS) -o $@ abcm.o $(LIBS) test.o
+$(MAIN): $(MOBJS) $(LIB) Makefile
+	$(CC) $(CFLAGS) -o $@ $(MOBJS) $(LIBS)
+
+$(MOBJS): $(MHDRS)
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<

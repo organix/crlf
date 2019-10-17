@@ -6,6 +6,10 @@
 
 #include "bose.h"
 #include "equiv.h"
+
+//#define LOG_ALL // enable all logging
+#define LOG_INFO
+#define LOG_WARN
 #include "log.h"
 
 type_t prefix_type[1<<8] = {
@@ -141,7 +145,7 @@ Output:
     parse->prefix = <value of prefix byte>
     parse->type = <value type info>
     parse->value = <size of extended data (if T_Sized), or memo index, or Small Integer value>
-    parse->count = <value of count field (if T_Counted)>
+    parse->count = <value of count field (if T_Counted)>, or memo_table[index]
 **/
 BYTE parse_value(parse_t * parse) {
     LOG_TRACE("parse_value @", (WORD)parse);
