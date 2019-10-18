@@ -11,6 +11,8 @@
 #define LOG_WARN
 #include "log.h"
 
+#define HEXDUMP_ANNOTATION 0 /* dump bose-encoded bytes for collection values */
+
 #include <stdio.h>
 // FIXME: implement non-stdio output primitives
 void print(WORD unicode) {
@@ -27,6 +29,26 @@ void newline() {
     fputc('\n', stdout);
     fflush(stdout);
 }
+
+static void hex_print(BYTE b) {
+    static char * hex = "0123456789ABCDEF";
+    print(hex[(b >> 4) & 0xF]);
+    print(hex[b & 0xF]);
+}
+
+#if HEXDUMP_ANNOTATION
+static void hexdump(DATA_PTR data, WORD size) {
+    for (WORD i = 0; i < size; ++i) {
+        print(' ');
+        hex_print(data[i]);
+        if (i > 9) {
+            print(' ');
+            print('~');
+            break;  // size-limited dump cut-off
+        }
+    }
+}
+#endif
 
 static void space(WORD indent) {  // space between values
     if (indent) {
@@ -64,11 +86,6 @@ static BYTE boolean_print(parse_t * parse) {
     return true;  // success!
 }
 
-static void hex_print_byte(BYTE b) {
-    static char * hex = "0123456789ABCDEF";
-    print(hex[(b >> 4) & 0xF]);
-    print(hex[b & 0xF]);
-}
 static BYTE number_print(parse_t * parse) {
     // print parsed value known to be a Number
     print('0');
@@ -76,7 +93,7 @@ static BYTE number_print(parse_t * parse) {
     // FIXME: JSON requires base-10, but we only generate base-16 here...
     if (!(parse->type & T_Sized)) {
         // direct-coded (small) integer
-        hex_print_byte(parse->value);
+        hex_print(parse->value);
         return true;  // success!
     }
     if (parse->type & T_Counted) {
@@ -86,11 +103,11 @@ static BYTE number_print(parse_t * parse) {
     WORD end = parse->end;  // offset past end of number data
     WORD start = end - parse->value;  // offset to start of number data
     if (start == end) {
-        hex_print_byte(0);  // special case for zero bit-count
+        hex_print(0);  // special case for zero bit-count
         return true;
     }
     while (start < end--) {
-        hex_print_byte(parse->base[end]);
+        hex_print(parse->base[end]);
 /* byte separator...
         if (start != end) {
             print('_');
@@ -133,6 +150,11 @@ static BYTE array_print(parse_t * parse, WORD indent) {
         return true;
     }
     if (indent) {
+#if HEXDUMP_ANNOTATION
+        print(' '); print(' '); print('/'); print('/');
+        hexdump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
+        print(' '); print('.'); print('.'); print('.');
+#endif
         space(++indent);
     }
     parse_t item_parse = {
@@ -148,7 +170,18 @@ static BYTE array_print(parse_t * parse, WORD indent) {
         if (!parse_print(&item_parse, indent)) return false;  // print failed!
         if (item_parse.end < item_parse.size) {
             print(',');
+#if HEXDUMP_ANNOTATION
+            if (indent && ((item_parse.prefix < 0x02) || (item_parse.prefix > 0x07))) {  // not Arrays or Objects
+                print(' '); print(' '); print('/'); print('/');
+                hexdump(item_parse.base + item_parse.start, item_parse.end - item_parse.start);
+            }
+#endif
             space(indent);
+#if HEXDUMP_ANNOTATION
+        } else if (indent && ((item_parse.prefix < 0x02) || (item_parse.prefix > 0x07))) {  // not Arrays or Objects
+            print(' '); print(' '); print('/'); print('/');
+            hexdump(item_parse.base + item_parse.start, item_parse.end - item_parse.start);
+#endif
         }
         item_parse.start = item_parse.end;
     }
@@ -168,6 +201,11 @@ static BYTE object_print(parse_t * parse, WORD indent) {
         return true;
     }
     if (indent) {
+#if HEXDUMP_ANNOTATION
+        print(' '); print(' '); print('/'); print('/');
+        hexdump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
+        print(' '); print('.'); print('.'); print('.');
+#endif
         space(++indent);
     }
     parse_t prop_parse = {
@@ -195,7 +233,18 @@ static BYTE object_print(parse_t * parse, WORD indent) {
         if (!parse_print(&prop_parse, indent)) return false;  // print failed!
         if (prop_parse.end < prop_parse.size) {
             print(',');
+#if HEXDUMP_ANNOTATION
+            if (indent && ((prop_parse.prefix < 0x02) || (prop_parse.prefix > 0x07))) {  // not Arrays or Objects
+                print(' '); print(' '); print('/'); print('/');
+                hexdump(prop_parse.base + prop_parse.start, prop_parse.end - prop_parse.start);
+            }
+#endif
             space(indent);
+#if HEXDUMP_ANNOTATION
+        } else if (indent && ((prop_parse.prefix < 0x02) || (prop_parse.prefix > 0x07))) {  // not Arrays or Objects
+            print(' '); print(' '); print('/'); print('/');
+            hexdump(prop_parse.base + prop_parse.start, prop_parse.end - prop_parse.start);
+#endif
         }
         prop_parse.start = prop_parse.end;
     }
