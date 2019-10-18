@@ -15,19 +15,55 @@
 
 #include <stdio.h>
 // FIXME: implement non-stdio output primitives
+#define OUTPUT stdout
+
 void print(WORD unicode) {
     if ((unicode == '\t')
     ||  (unicode == '\n')
     ||  ((unicode >= 0x20) && (unicode < 0x7F))) {
-        fputc(unicode, stdout);
+        fputc(unicode, OUTPUT);
     } else if (unicode >= 0xA0) {
-        fputc('~', stdout);  // replacement character
+        fputc('~', OUTPUT);  // replacement character
     }
 }
 
 void newline() {
-    fputc('\n', stdout);
-    fflush(stdout);
+    fputc('\n', OUTPUT);
+    fflush(OUTPUT);
+}
+
+static BYTE int_print(parse_t * parse) {
+    int n = 0;
+    if (parse->type & T_Counted) {
+        LOG_WARN("number_print: no Unum support", parse->type);
+        return false;  // not an Integer type
+    }
+    if (parse->type & T_Sized) {
+        WORD end = parse->end;  // offset past end of number data
+        WORD start = end - parse->value;  // offset to start of number data
+        if (start == end) {
+            print('0');  // special case for zero bit-count
+            return true;
+        }
+        if ((end - start) > sizeof(int)) {
+            return false;  // number too big for `int` representation
+        }
+        BYTE sign = (parse->type & T_Negative) ? 0xFF : 0x00;
+        int shift = 0;
+        while (shift < (8 * sizeof(int))) {
+            BYTE b = (start < end) ? parse->base[start++] : sign;
+            n |= (b << shift);
+            shift += 8;
+        }
+        if ((sign == 0) && (n < 0)) {
+            return false;  // positive number exceeds signed range
+        }
+    } else {
+        // direct-coded (small) integer
+        n = (int)(parse->value);
+    }
+    fprintf(OUTPUT, "%d", n);
+    return true;  // success!
 }
 
 static void hex_print(BYTE b) {
@@ -88,24 +124,14 @@ static BYTE boolean_print(parse_t * parse) {
 
 static BYTE number_print(parse_t * parse) {
     // print parsed value known to be a Number
+    if (int_print(parse)) {
+        return true;  // base-10 works for int-sized values...
+    }
+    // FIXME: JSON requires base-10, but we generate base-16 for numbers that are bigger than `int`...
     print('0');
     print('x');
-    // FIXME: JSON requires base-10, but we only generate base-16 here...
-    if (!(parse->type & T_Sized)) {
-        // direct-coded (small) integer
-        hex_print(parse->value);
-        return true;  // success!
-    }
-    if (parse->type & T_Counted) {
-        LOG_WARN("number_print: no Unum support", parse->type);
-        return false;  // not an Integer type
-    }
     WORD end = parse->end;  // offset past end of number data
     WORD start = end - parse->value;  // offset to start of number data
-    if (start == end) {
-        hex_print(0);  // special case for zero bit-count
-        return true;
-    }
     while (start < end--) {
         hex_print(parse->base[end]);
 /* byte separator...
