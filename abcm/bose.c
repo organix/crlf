@@ -47,17 +47,22 @@ type_t prefix_type[1<<8] = {
     T_Small, T_Small, T_Small, T_Small, T_Small, T_Small, T_Small, T_Null
 };
 
-// NOTE: the '\0'-terminators are not required, but interoperate better with C
 BYTE s_type_name[][10] = {
-    { utf8, n_4, 'N', 'u', 'l', 'l', '\0' },
-    { utf8, n_7, 'B', 'o', 'o', 'l', 'e', 'a', 'n', '\0' },
-    { utf8, n_6, 'N', 'u', 'm', 'b', 'e', 'r', '\0' },
-    { utf8, n_6, 'S', 't', 'r', 'i', 'n', 'g', '\0' },
-    { utf8, n_5, 'A', 'r', 'r', 'a', 'y', '\0' },
-    { utf8, n_6, 'O', 'b', 'j', 'e', 'c', 't', '\0' }
+    { utf8, n_4, 'N', 'u', 'l', 'l' },
+    { utf8, n_7, 'B', 'o', 'o', 'l', 'e', 'a', 'n' },
+    { utf8, n_6, 'N', 'u', 'm', 'b', 'e', 'r' },
+    { utf8, n_6, 'S', 't', 'r', 'i', 'n', 'g' },
+    { utf8, n_5, 'A', 'r', 'r', 'a', 'y' },
+    { utf8, n_6, 'O', 'b', 'j', 'e', 'c', 't' }
 };
 
-BYTE s_[] = { utf8, n_0, '\0' };  // empty string (encoded)
+BYTE v_null[] = { null };  // null value (encoded)
+BYTE b_true[] = { true };  // true value (encoded)
+BYTE b_false[] = { false };  // false value (encoded)
+BYTE i_0[] = { n_0 };  // integer zero (encoded)
+BYTE s_[] = { string_0 };  // empty string (encoded)
+BYTE a_[] = { array_0 };  // empty array (encoded)
+BYTE o_[] = { object_0 };  // empty object (encoded)
 
 static DATA_PTR memo_table[1<<8] = {};
 static BYTE memo_index = 0;  // index of next memo slot to use

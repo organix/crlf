@@ -24,6 +24,8 @@ extern BYTE s_actor[];
 extern BYTE s_behavior[];
 extern BYTE s_name[];
 extern BYTE s_value[];
+extern BYTE s_type[];
+extern BYTE s_const[];
 extern BYTE s_level[];
 extern BYTE s_error[];
 
@@ -33,7 +35,9 @@ extern BYTE k_actor_become[];
 extern BYTE k_actor_ignore[];
 extern BYTE k_actor_assign[];
 extern BYTE k_actor_fail[];
-extern BYTE k_log_print[];
+extern BYTE k_log_print[];  // --DEPRECATED--
+extern BYTE k_expr_literal[];
+extern BYTE k_dict_empty[];
 
 int start_abcm();  // ok == 0, fail != 0
 

@@ -522,6 +522,8 @@ static int test_value_equiv() {
 static int test_C_language() {
     LOG_INFO("sizeof(WORD)", sizeof(WORD));
     assert(sizeof(WORD) >= 4);  // require at least 32-bit machine words
+    //LOG_INFO("sizeof(int)", sizeof(int));
+    //LOG_INFO("sizeof(long)", sizeof(long));
     BYTE b = 0;
     assert((BYTE)(b + 1) == 0x01);
     assert((BYTE)(b - 1) == 0xFF);

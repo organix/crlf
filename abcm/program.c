@@ -63,8 +63,35 @@ BYTE object_has_kind(parse_t * parse, DATA_PTR kind) {
 }
 
 BYTE actor_eval(parse_t * parse, DATA_PTR * value_out) {  // evaluate actor expressions (expression -> value)
-    // FIXME: this implementation just returns the unevaluated expression as the result value...
-    *value_out = parse->base + parse->start;
+    LOG_TRACE("actor_eval @", (WORD)parse);
+    assert((parse->type & T_Base) == T_Object);
+    parse_t prop_parse = {
+        .base = parse->base + (parse->end - parse->value),  // start of command properties
+        .size = parse->value,
+        .start = 0
+    };
+    if (!object_get_property(&prop_parse, s_kind)) {
+        LOG_DEBUG("actor_eval: missing 'kind' property @", (WORD)s_kind);
+        return false;  // missing property
+    }
+    LOG_TRACE("actor_eval: found 'kind' property", prop_parse.start);
+    DATA_PTR kind = prop_parse.base + prop_parse.start;
+    if (value_equiv(kind, k_expr_literal)) {
+        prop_parse.start = 0;  // search from beginning of properties
+        if (!object_get_property(&prop_parse, s_const)) {
+            LOG_DEBUG("actor_eval: missing 'const' property @", (WORD)s_const);
+            return false;  // missing property
+        }
+        *value_out = prop_parse.base + prop_parse.start;  // return constant value
+    } else if (value_equiv(kind, k_dict_empty)) {
+        *value_out = o_;  // return empty (dictionary) object
+    } else {
+        LOG_WARN("actor_eval: unknown 'kind' of expression", prop_parse.start);
+        //if (!value_print(kind, 0)) return false;  // print failed
+        if (!value_print(parse->base + parse->start, 0)) return false;  // print failed
+        // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
+        *value_out = v_null;
+    }
     return true;  // success!
 }
 
@@ -96,9 +123,28 @@ BYTE actor_exec(parse_t * parse) {  // execute actor commands (action -> effects
         DATA_PTR value;
         if (!actor_eval(&prop_parse, &value)) return false;  // evaluation failed!
         if (!value_print(value, 0)) return false;  // print failed
+    } else if (value_equiv(kind, k_actor_ignore)) {
+        LOG_DEBUG("actor_exec: ignore action @", (WORD)k_actor_ignore);
+    } else if (value_equiv(kind, k_actor_fail)) {
+        prop_parse.start = 0;  // search from beginning of properties
+        if (!object_get_property(&prop_parse, s_value)) {
+            LOG_DEBUG("actor_exec: missing 'value' property @", (WORD)s_value);
+            return false;  // missing property
+        }
+        DATA_PTR value;
+        if (!actor_eval(&prop_parse, &value)) {
+            LOG_INFO("actor_exec: DOUBLE-FAULT! @", (WORD)&prop_parse);
+            if (!value_print(prop_parse.base + prop_parse.start, 0)) return false;  // print failed
+            return false;  // evaluation failed!
+        }
+        // FIXME: probably want this to be a WARN, and not always print the error value...
+        LOG_INFO("actor_exec: FAIL!", (WORD)value);
+        if (!value_print(value, 0)) return false;  // print failed
+        return false;  // force failure!
     } else {
         LOG_WARN("actor_exec: unknown 'kind' of command", prop_parse.start);
-        if (!value_print(kind, 0)) return false;  // print failed
+        //if (!value_print(kind, 0)) return false;  // print failed
+        if (!value_print(parse->base + parse->start, 0)) return false;  // print failed
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
     }
     return true;  // success!

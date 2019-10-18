@@ -33,7 +33,7 @@ void newline() {
 }
 
 static BYTE int_print(parse_t * parse) {
-    int n = 0;
+    long n = 0;
     if (parse->type & T_Counted) {
         LOG_WARN("number_print: no Unum support", parse->type);
         return false;  // not an Integer type
@@ -45,12 +45,12 @@ static BYTE int_print(parse_t * parse) {
             print('0');  // special case for zero bit-count
             return true;
         }
-        if ((end - start) > sizeof(int)) {
-            return false;  // number too big for `int` representation
+        if ((end - start) > sizeof(long)) {
+            return false;  // number too big for `long` representation
         }
         BYTE sign = (parse->type & T_Negative) ? 0xFF : 0x00;
         int shift = 0;
-        while (shift < (8 * sizeof(int))) {
+        while (shift < (8 * sizeof(long))) {
             BYTE b = (start < end) ? parse->base[start++] : sign;
             n |= (b << shift);
             shift += 8;
@@ -60,9 +60,9 @@ static BYTE int_print(parse_t * parse) {
         }
     } else {
         // direct-coded (small) integer
-        n = (int)(parse->value);
+        n = (long)(parse->value);
     }
-    fprintf(OUTPUT, "%d", n);
+    fprintf(OUTPUT, "%ld", n);
     return true;  // success!
 }
 

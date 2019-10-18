@@ -77,7 +77,13 @@ extern type_t prefix_type[];  // translation from prefix_t to type_t
 
 extern BYTE s_type_name[][10];  // names for T_Base types (encoded)
 
+extern BYTE v_null[];  // null value (encoded)
+extern BYTE b_true[];  // true value (encoded)
+extern BYTE b_false[];  // false value (encoded)
+extern BYTE i_0[];  // integer zero (encoded)
 extern BYTE s_[];  // empty string (encoded)
+extern BYTE a_[];  // empty array (encoded)
+extern BYTE o_[];  // empty object (encoded)
 
 void memo_clear();  // reset memo table between top-level values
 

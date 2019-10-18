@@ -14,38 +14,60 @@
 
 char * _semver = "0.0.3";
 
-// NOTE: the '\0'-terminators are not required, but interoperate better with C
-BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd', '\0' };
-BYTE s_actors[] = { utf8, n_6, 'a', 'c', 't', 'o', 'r', 's', '\0' };
-BYTE s_events[] = { utf8, n_6, 'e', 'v', 'e', 'n', 't', 's', '\0' };
-BYTE s_script[] = { utf8, n_6, 's', 'c', 'r', 'i', 'p', 't', '\0' };
-BYTE s_message[] = { utf8, n_7, 'm', 'e', 's', 's', 'a', 'g', 'e', '\0' };
-BYTE s_actor[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r', '\0' };
-BYTE s_behavior[] = { utf8, n_8, 'b', 'e', 'h', 'a', 'v', 'i', 'o', 'r', '\0' };
-BYTE s_name[] = { utf8, n_4, 'n', 'a', 'm', 'e', '\0' };
-BYTE s_value[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e', '\0' };
-BYTE s_level[] = { utf8, n_5, 'l', 'e', 'v', 'e', 'l', '\0' };
-BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r', '\0' };
+BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
+BYTE s_actors[] = { utf8, n_6, 'a', 'c', 't', 'o', 'r', 's' };
+BYTE s_events[] = { utf8, n_6, 'e', 'v', 'e', 'n', 't', 's' };
+BYTE s_script[] = { utf8, n_6, 's', 'c', 'r', 'i', 'p', 't' };
+BYTE s_message[] = { utf8, n_7, 'm', 'e', 's', 's', 'a', 'g', 'e' };
+BYTE s_actor[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r' };
+BYTE s_behavior[] = { utf8, n_8, 'b', 'e', 'h', 'a', 'v', 'i', 'o', 'r' };
+BYTE s_name[] = { utf8, n_4, 'n', 'a', 'm', 'e' };
+BYTE s_value[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e' };
+BYTE s_type[] = { utf8, n_4, 't', 'y', 'p', 'e' };
+BYTE s_const[] = { utf8, n_5, 'c', 'o', 'n', 's', 't' };
+BYTE s_level[] = { utf8, n_5, 'l', 'e', 'v', 'e', 'l' };
+BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
 
 /*
 // Containers
     { "kind":"actor_sponsor", "actors":<number>, "events":<number>, "script":[<action>, ...] }
 // Actions
     { "kind":"actor_send", "message":<dictionary>, "actor":<address> }
+    { "kind":"actor_send_after", "delay":<number>, "message":<dictionary>, "actor":<address> }
     { "kind":"actor_become", "behavior":<behavior> }
     { "kind":"actor_ignore" }
     { "kind":"actor_assign", "name":<string>, "value":<expression> }
     { "kind":"actor_fail", "error":<expression> }
-// Device Interface
-    { "kind":"log_print", "level":<number>, "value":<expression> }
+    { "kind":"log_print", "level":<number>, "value":<expression> }  // --DEPRECATED--
+// Address Expressions
+    { "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
+    { "kind":"actor_self" }
+// Behavior Expressions
+    { "kind":"actor_behavior", "name":<string>, "script":[<action>, ...] }
+// Value Expressions
+    { "kind":"actor_state", "name":<string> }
+    { "kind":"dict_get", "name":<string>, "in":<dictionary> }
+    { "kind":"expr_literal", "const":<value> }
+    { "kind":"expr_operation", "name":<string>, "args":[<expression>, ...] }
+// Boolean Expressions
+    { "kind":"actor_has_state", "name":<string> }
+    { "kind":"dict_has", "name":<string>, "in":<dictionary> }
+// Dictionary Expressions
+    { "kind":"actor_message" }
+    { "kind":"dict_empty" }
+    { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
+// Number Expressions
+    { "kind":"device_now" }
 */
-BYTE k_actor_sponsor[] = { utf8, n_13, 'a', 'c', 't', 'o', 'r', '_', 's', 'p', 'o', 'n', 's', 'o', 'r', '\0' };
-BYTE k_actor_send[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 's', 'e', 'n', 'd', '\0' };
-BYTE k_actor_become[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'b', 'e', 'c', 'o', 'm', 'e', '\0' };
-BYTE k_actor_ignore[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'i', 'g', 'n', 'o', 'r', 'e', '\0' };
-BYTE k_actor_assign[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'a', 's', 's', 'i', 'g', 'n', '\0' };
-BYTE k_actor_fail[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 'f', 'a', 'i', 'l', '\0' };
-BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't', '\0' };
+BYTE k_actor_sponsor[] = { utf8, n_13, 'a', 'c', 't', 'o', 'r', '_', 's', 'p', 'o', 'n', 's', 'o', 'r' };
+BYTE k_actor_send[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 's', 'e', 'n', 'd' };
+BYTE k_actor_become[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'b', 'e', 'c', 'o', 'm', 'e' };
+BYTE k_actor_ignore[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'i', 'g', 'n', 'o', 'r', 'e' };
+BYTE k_actor_assign[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'a', 's', 's', 'i', 'g', 'n' };
+BYTE k_actor_fail[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 'f', 'a', 'i', 'l' };
+BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };
+BYTE k_expr_literal[] = { utf8, n_12, 'e', 'x', 'p', 'r', '_', 'l', 'i', 't', 'e', 'r', 'a', 'l' };
+BYTE k_dict_empty[] = { utf8, n_10, 'd', 'i', 'c', 't', '_', 'e', 'm', 'p', 't', 'y' };
 
 int start_abcm() {  // ok == 0, fail != 0
     int result = 0;
