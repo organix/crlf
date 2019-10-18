@@ -49,9 +49,9 @@ BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't', '
 
 int start_abcm() {  // ok == 0, fail != 0
     int result = 0;
-    //log_config.level = LOG_LEVEL_WARN;
+    log_config.level = LOG_LEVEL_WARN;
     //log_config.level = LOG_LEVEL_DEBUG;
-    log_config.level = LOG_LEVEL_TRACE+1;
+    //log_config.level = LOG_LEVEL_TRACE+1;
 
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
     LOG_INFO(_semver, (WORD)_semver);

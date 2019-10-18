@@ -62,25 +62,51 @@ BYTE object_has_kind(parse_t * parse, DATA_PTR kind) {
     return true;  // success!
 }
 
-BYTE actor_exec(parse_t * parse) {  // execute actor commands (actions -> effects)
+BYTE actor_eval(parse_t * parse, DATA_PTR * value_out) {  // evaluate actor expressions (expression -> value)
+    // FIXME: this implementation just returns the unevaluated expression as the result value...
+    *value_out = parse->base + parse->start;
+    return true;  // success!
+}
+
+BYTE actor_exec(parse_t * parse) {  // execute actor commands (action -> effects)
     LOG_TRACE("actor_exec @", (WORD)parse);
     assert((parse->type & T_Base) == T_Object);
+/*
     DUMP_PARSE("command", parse);
     if (!parse_print(parse, 0)) return false;  // print failed!
     newline();
-    parse_t kind_parse = {
+*/
+    parse_t prop_parse = {
         .base = parse->base + (parse->end - parse->value),  // start of command properties
         .size = parse->value,
         .start = 0
     };
-    if (!object_get_property(&kind_parse, s_kind)) {
+    if (!object_get_property(&prop_parse, s_kind)) {
         LOG_DEBUG("actor_exec: missing 'kind' property @", (WORD)s_kind);
         return false;  // missing property
     }
-    LOG_TRACE("actor_exec: found 'kind' property", kind_parse.start);
-    DUMP_PARSE("kind_parse", &kind_parse);
+    LOG_TRACE("actor_exec: found 'kind' property", prop_parse.start);
+    DATA_PTR kind = prop_parse.base + prop_parse.start;
+    if (value_equiv(kind, k_log_print)) {
+        prop_parse.start = 0;  // search from beginning of properties
+        if (!object_get_property(&prop_parse, s_value)) {
+            LOG_DEBUG("actor_exec: missing 'value' property @", (WORD)s_value);
+            return false;  // missing property
+        }
+        DATA_PTR value;
+        if (!actor_eval(&prop_parse, &value)) return false;  // evaluation failed!
+        if (!value_print(value, 0)) return false;  // print failed
+    } else {
+        LOG_WARN("actor_exec: unknown 'kind' of command", prop_parse.start);
+        if (!value_print(kind, 0)) return false;  // print failed
+        // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
+    }
     return true;  // success!
 }
+
+/*
+ * WARNING! All the `run_...` procedures return 0 on success, and 1 on failure. (not true/false)
+ */
 
 int run_actor_script(parse_t * parse) {
     LOG_TRACE("run_actor_script @", (WORD)parse);
@@ -102,12 +128,12 @@ int run_actor_script(parse_t * parse) {
         // get next command
         cmd_parse.start = cmd_parse.end;
     }
+    LOG_INFO("run_actor_script: completed successfully", cmd_parse.end);
     return 0;  // success!
 }
 
 int run_actor_config(parse_t * parse) {
     LOG_TRACE("run_actor_config @", (WORD)parse);
-    DUMP_PARSE("configuration", parse);
     if (!parse_print(parse, 1)) return 1;  // print failed!
     newline();
     assert((parse->type & T_Base) == T_Object);
