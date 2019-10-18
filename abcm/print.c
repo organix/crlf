@@ -28,12 +28,23 @@ void newline() {
     fflush(stdout);
 }
 
+static void space(WORD indent) {  // space between values
+    if (indent) {
+        newline();
+        while (--indent) {
+            print(' ');
+            print(' ');
+        }
+    } else {
+        print(' ');
+    }
+}
+
 static BYTE null_print(parse_t * parse) {
     print('n');
     print('u');
     print('l');
     print('l');
-    //newline();
     return true;  // success!
 }
 
@@ -50,7 +61,6 @@ static BYTE boolean_print(parse_t * parse) {
         print('s');
         print('e');
     }
-    //newline();
     return true;  // success!
 }
 
@@ -61,6 +71,9 @@ static void hex_print_byte(BYTE b) {
 }
 static BYTE number_print(parse_t * parse) {
     // print parsed value known to be a Number
+    print('0');
+    print('x');
+    // FIXME: JSON requires base-10, but we only generate base-16 here...
     if (!(parse->type & T_Sized)) {
         // direct-coded (small) integer
         hex_print_byte(parse->value);
@@ -72,11 +85,17 @@ static BYTE number_print(parse_t * parse) {
     }
     WORD end = parse->end;  // offset past end of number data
     WORD start = end - parse->value;  // offset to start of number data
+    if (start == end) {
+        hex_print_byte(0);  // special case for zero bit-count
+        return true;
+    }
     while (start < end--) {
         hex_print_byte(parse->base[end]);
+/* byte separator...
         if (start != end) {
             print('_');
         }
+*/
     }
     return true;  // success!
 }
@@ -105,10 +124,17 @@ static BYTE string_print(parse_t * parse) {
     return true;  // success!
 }
 
-static BYTE array_print(parse_t * parse) {
+static BYTE array_print(parse_t * parse, WORD indent) {
     // print parsed value known to be an Array
     assert(parse->start < (parse->end - parse->value));
     print('[');
+    if (parse->value == 0) {  // empty array short-cut
+        print(']');
+        return true;
+    }
+    if (indent) {
+        space(++indent);
+    }
     parse_t item_parse = {
         .base = parse->base + (parse->end - parse->value),  // start of element data
         .size = parse->value,
@@ -119,21 +145,31 @@ static BYTE array_print(parse_t * parse) {
             LOG_WARN("array_print: bad element value", item_parse.start);
             return false;  // bad element value
         }
-        if (!parse_print(&item_parse)) return false;  // print failed!
+        if (!parse_print(&item_parse, indent)) return false;  // print failed!
         if (item_parse.end < item_parse.size) {
             print(',');
-            print(' ');
+            space(indent);
         }
         item_parse.start = item_parse.end;
+    }
+    if (indent) {
+        space(--indent);
     }
     print(']');
     return true;  // success!
 }
 
-static BYTE object_print(parse_t * parse) {
+static BYTE object_print(parse_t * parse, WORD indent) {
     // print parsed value known to be an Object
     assert(parse->start < (parse->end - parse->value));
     print('{');
+    if (parse->value == 0) {  // empty object short-cut
+        print('}');
+        return true;
+    }
+    if (indent) {
+        space(++indent);
+    }
     parse_t prop_parse = {
         .base = parse->base + (parse->end - parse->value),  // start of property data
         .size = parse->value,
@@ -147,24 +183,30 @@ static BYTE object_print(parse_t * parse) {
         }
         if (!string_print(&prop_parse)) return false;  // print failed!
         print(':');
+        if (indent) {
+            print(' ');
+        }
         prop_parse.start = prop_parse.end;
         //WORD value_start = prop_parse.start;
         if (!parse_value(&prop_parse)) {
             LOG_WARN("object_print: bad property value", prop_parse.start);
             return false;  // bad property value
         }
-        if (!parse_print(&prop_parse)) return false;  // print failed!
+        if (!parse_print(&prop_parse, indent)) return false;  // print failed!
         if (prop_parse.end < prop_parse.size) {
             print(',');
-            print(' ');
+            space(indent);
         }
         prop_parse.start = prop_parse.end;
+    }
+    if (indent) {
+        space(--indent);
     }
     print('}');
     return true;  // success!
 }
 
-BYTE parse_print(parse_t * parse) {
+BYTE parse_print(parse_t * parse, WORD indent) {
     LOG_TRACE("parse_print @", (WORD)parse);
     //DUMP_PARSE("parse_print", parse);
     switch (parse->type & T_Base) {
@@ -181,10 +223,10 @@ BYTE parse_print(parse_t * parse) {
             return string_print(parse);
         }
         case T_Array: {
-            return array_print(parse);
+            return array_print(parse, indent);
         }
         case T_Object: {
-            return object_print(parse);
+            return object_print(parse, indent);
         }
         default: {
             LOG_WARN("parse_print: bad type", (parse->type & T_Base));
@@ -194,7 +236,7 @@ BYTE parse_print(parse_t * parse) {
     return true;  // success!
 }
 
-BYTE value_print(DATA_PTR value) {
+BYTE value_print(DATA_PTR value, WORD indent) {
     LOG_TRACE("value_print @", (WORD)value);
     parse_t parse = {
         .base = value,
@@ -205,5 +247,7 @@ BYTE value_print(DATA_PTR value) {
         LOG_WARN("value_print: bad value", (WORD)value);
         return false;  // bad value
     }
-    return parse_print(&parse);
+    BYTE ok = parse_print(&parse, indent);
+    newline();
+    return ok;
 };
