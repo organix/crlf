@@ -62,6 +62,24 @@ static int test_bytecode_types() {
     assert((n_64 - n_0) == 64);
     assert((n_m64 - n_0) == -64);
     assert((n_126 - n_0) == 126);
+
+    BYTE data[] = { null };
+    parse_t parse = {
+        .base = data,
+        .size = sizeof(data),
+        .start = 0
+    };
+    assert(parse_value(&parse));
+    LOG_TRACE("test_bytecode_types: null payload", parse.value);
+    assert((parse.end - parse.start) == 1);
+    assert(parse.value == 0);
+    parse_t cursor = parse;  // structure assignment makes a field-by-field copy
+    assert(cursor.base == parse.base);
+    assert(cursor.type == parse.type);
+    assert(cursor.end == parse.end);
+    cursor.start = (cursor.end - cursor.value);  // set cursor to start of variadic data (none, in this case)
+    assert(cursor.start > parse.start);
+
     return 0;
 }
 

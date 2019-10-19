@@ -1,16 +1,32 @@
 # ABCM - Actor Byte-Code Machine
 
-The **Actor Byte-Code Machine** is a byte-code interpreter for Actor programs.
+The **Actor Byte-Code Machine** is a byte-code interpreter for _Actor_ programs.
 Programs are stored and executed directly from Binary Octet-Stream Encoding representation (isomorphic to JSON).
 
-An actor program is a sequence of _Actions_:
+## Actor Assignment-Machine Model
+
+An Actor's behavior can be described using a sequential model of variable assignments. This is essentially the model of contemporary processor cores. However, in order to avoid the pitfalls of shared mutable state, we only allow assignment to actor-local (private) variables. All visible effects are captured in the asynchronous messages between actors.
+
+A _Sponsor_ plays the role of a processor core, mediating access to computational resources and executing the instructions in an Actor's behavior script (the _program_). Each message delivery event is handled as if it was an atomic transaction. No effects are visible outside the Actor until message handling is completed. Message handling may be aborted by an exception, in which case the message is effectively ignored.
+
+A _Dictionary_ mapping names to values is the primary conceptual data structure. Each Actor maintains a persistent Dictionary of local variables, representing it's private state. Each message is a read-only _Dictionary_ from which values may be retrieved by the Actor's behavior script. Information derived from the message may be assigned to the Actor's local persistent state.
+
+## BART Program Elements
+
+ABCM programs are represented in a _CRLF_-style _JSON_ vocabulary called _BART_ (for **Blockly Actor Run-Time**).
+[BART](https://github.com/dalnefre/blockly/tree/explicit-message-dictionary) is an implementation of an Actor Assignment Machine using the [Blockly](https://developers.google.com/blockly/) web-based visual programming editor. BART programs are encoded as BOSE representations of JSON values. The top-level value is expected to be an Array of Sponsors.
+
+An Actor program is a sequence of _Actions_ executing within the bounds of a _Sponsor_:
 ```javascript
+// Containers
+    { "kind":"actor_sponsor", "actors":<number>, "events":<number>, "script":[<action>, ...] }
 // Actions
     { "kind":"actor_send", "message":<dictionary>, "actor":<address> }
     { "kind":"actor_become", "behavior":<behavior> }
     { "kind":"actor_ignore" }
     { "kind":"actor_assign", "name":<string>, "value":<expression> }
     { "kind":"actor_fail", "error":<expression> }
+    { "kind":"log_print", "level":<number>, "value":<expression> }  // --DEPRECATED--
 ```
 
 Typed expressions include:
@@ -23,16 +39,53 @@ Typed expressions include:
 // Value Expressions
     { "kind":"actor_state", "name":<string> }
     { "kind":"dict_get", "name":<string>, "in":<dictionary> }
+    { "kind":"list_get", "at":<number>, "from":<list> }
     { "kind":"expr_literal", "const":<value> }
     { "kind":"expr_operation", "name":<string>, "args":[<expression>, ...] }
+// Number Expressions
+    { "kind":"list_length", "of":<list> }
 // Boolean Expressions
     { "kind":"actor_has_state", "name":<string> }
     { "kind":"dict_has", "name":<string>, "in":<dictionary> }
-// Dictionary Expressions
+// List (Array) Expressions
+    { "kind":"list_add", "value":<expression>, "at":<number>, "to":<list> }
+    { "kind":"list_remove", "value":<expression>, "at":<number>, "from":<list> }
+// Dictionary (Object) Expressions
     { "kind":"actor_message" }
-    { "kind":"dict_empty" }
     { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
 ```
+
+## Resource Management
+
+ABCM programs execute within a strictly confined context, controlled by a _Sponsor_.
+All resources available to a computation are provided by and mediated by the Sponsor.
+At a minimum, this appears in the form of limits on `actors` and `events`.
+If a computation attempts to create more `actors` than specified,
+or sends more than `events` messages, the computation will be halted.
+_A means for requesting more resources is needed, but not yet defined._
+
+### Memory
+
+During the execution of an ABCM program, additional working storage if often required.
+Various policies may apply to storage requests, based on their purpose and intent.
+
+When an _Actor_ is created, it is likely to persist beyond the end of a particular computation.
+Actors may hold references to other Actors, potentially forming circular reference graphs.
+Since Actor-state is mutable, the set of references it holds may change over time.
+Memory for an Actor can be reclaimed when it is no longer reachable,
+either through other Actors or from a pending message.
+
+When a _Message_ is created, it persist beyond the end of the computation, unless the computation throws.
+Asynchronous messages created (send, but not yet received) are a primary _effect_ of an Actor's behavior.
+Memory for a Message can be reclaimed once the message has been delivered and processed by the target Actor.
+
+Temporary working storage may be needed during Actor message processing.
+The amount of memory available is not directly specified, but is controlled by the Sponsor.
+Temporary memory can be reclaimed when an Actor finishes processing a message (or throws).
+
+An Actor's state persists between message deliveries.
+It can be reclaimed when the Actor is reclaimed.
+Updates to the Actor's persistent state may copy information from temporary working storage, allowing it to persist.
 
 ## Binary Octet-Stream Encoding
 

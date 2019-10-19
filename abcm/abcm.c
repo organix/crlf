@@ -33,7 +33,6 @@ BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
     { "kind":"actor_sponsor", "actors":<number>, "events":<number>, "script":[<action>, ...] }
 // Actions
     { "kind":"actor_send", "message":<dictionary>, "actor":<address> }
-    { "kind":"actor_send_after", "delay":<number>, "message":<dictionary>, "actor":<address> }
     { "kind":"actor_become", "behavior":<behavior> }
     { "kind":"actor_ignore" }
     { "kind":"actor_assign", "name":<string>, "value":<expression> }
@@ -47,17 +46,20 @@ BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
 // Value Expressions
     { "kind":"actor_state", "name":<string> }
     { "kind":"dict_get", "name":<string>, "in":<dictionary> }
+    { "kind":"list_get", "at":<number>, "from":<list> }
     { "kind":"expr_literal", "const":<value> }
     { "kind":"expr_operation", "name":<string>, "args":[<expression>, ...] }
+// Number Expressions
+    { "kind":"list_length", "of":<list> }
 // Boolean Expressions
     { "kind":"actor_has_state", "name":<string> }
     { "kind":"dict_has", "name":<string>, "in":<dictionary> }
-// Dictionary Expressions
+// List (Array) Expressions
+    { "kind":"list_add", "value":<expression>, "at":<number>, "to":<list> }
+    { "kind":"list_remove", "value":<expression>, "at":<number>, "from":<list> }
+// Dictionary (Object) Expressions
     { "kind":"actor_message" }
-    { "kind":"dict_empty" }
     { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
-// Number Expressions
-    { "kind":"device_now" }
 */
 BYTE k_actor_sponsor[] = { utf8, n_13, 'a', 'c', 't', 'o', 'r', '_', 's', 'p', 'o', 'n', 's', 'o', 'r' };
 BYTE k_actor_send[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 's', 'e', 'n', 'd' };
@@ -67,7 +69,7 @@ BYTE k_actor_assign[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'a', 's', 's
 BYTE k_actor_fail[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 'f', 'a', 'i', 'l' };
 BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };
 BYTE k_expr_literal[] = { utf8, n_12, 'e', 'x', 'p', 'r', '_', 'l', 'i', 't', 'e', 'r', 'a', 'l' };
-BYTE k_dict_empty[] = { utf8, n_10, 'd', 'i', 'c', 't', '_', 'e', 'm', 'p', 't', 'y' };
+//BYTE k_dict_empty[] = { utf8, n_10, 'd', 'i', 'c', 't', '_', 'e', 'm', 'p', 't', 'y' };
 
 int start_abcm() {  // ok == 0, fail != 0
     int result = 0;

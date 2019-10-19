@@ -83,8 +83,10 @@ BYTE actor_eval(parse_t * parse, DATA_PTR * value_out) {  // evaluate actor expr
             return false;  // missing property
         }
         *value_out = prop_parse.base + prop_parse.start;  // return constant value
+/* FIXME: --- an empty dictionary is just another `k_expr_literal` ---
     } else if (value_equiv(kind, k_dict_empty)) {
         *value_out = o_;  // return empty (dictionary) object
+*/
     } else {
         LOG_WARN("actor_eval: unknown 'kind' of expression", prop_parse.start);
         //if (!value_print(kind, 0)) return false;  // print failed
