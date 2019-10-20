@@ -53,7 +53,8 @@ BYTE s_type_name[][10] = {
     { utf8, n_6, 'N', 'u', 'm', 'b', 'e', 'r' },
     { utf8, n_6, 'S', 't', 'r', 'i', 'n', 'g' },
     { utf8, n_5, 'A', 'r', 'r', 'a', 'y' },
-    { utf8, n_6, 'O', 'b', 'j', 'e', 'c', 't' }
+    { utf8, n_6, 'O', 'b', 'j', 'e', 'c', 't' },
+    { utf8, n_2, '-', '-' }  // unused/invalid
 };
 
 BYTE v_null[] = { null };  // null value (encoded)

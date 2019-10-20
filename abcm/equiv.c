@@ -211,15 +211,6 @@ static BYTE object_equiv(parse_t * x_parse, parse_t * y_parse) {
 BYTE parse_equiv(parse_t * x_parse, parse_t * y_parse) {
     LOG_TRACE("parse_equiv: x @", (WORD)x_parse);
     LOG_TRACE("parse_equiv: y @", (WORD)y_parse);
-/*
-    if (x_parse == y_parse) {
-        LOG_WARN("parse_equiv: MATCH same (aliased)!?", true);
-        return parse_value(x_parse);  // advance "both" parsers (aliased)
-    }
-    if (!(parse_value(x_parse) && parse_value(y_parse))) {
-        return false;  // bad Value(s)
-    }
-*/
     if ((x_parse->type & T_Base) != (y_parse->type & T_Base)) {
         LOG_DEBUG("parse_equiv: mismatch x_type", x_parse->type);
         LOG_DEBUG("parse_equiv: mismatch y_type", y_parse->type);
