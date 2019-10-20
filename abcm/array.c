@@ -6,9 +6,9 @@
 #include "array.h"
 #include "bose.h"
 
-//#define LOG_ALL // enable all logging
-#define LOG_INFO
-#define LOG_WARN
+#define LOG_ALL // enable all logging
+//#define LOG_INFO
+//#define LOG_WARN
 #include "log.h"
 
 /*
@@ -29,25 +29,32 @@ BYTE array_length(DATA_PTR array, WORD * length) {
         LOG_WARN("array_length: bad array", (WORD)array);
         return false;  // bad array
     }
+    //DUMP_PARSE("array", &parse);
     if (parse.value == 0) {  // empty array short-cut
         *length = 0;
+        LOG_DEBUG("array_length: empty array", *length);
         return true;  // success!
     }
-    if (parse.type | T_Counted) {  // assume count is correct
+    if (parse.type & T_Counted) {  // assume count is correct
         *length = parse.count;
+        LOG_DEBUG("array_length: counted array", *length);
         return true;  // success!
     }
+    parse.size = parse.end;  // limit to array contents
     parse.start = parse.end - parse.value;  // reset to start of element data
     WORD n = 0;
     while (parse.start < parse.size) {
+        LOG_TRACE("array_length: element start =", parse.start);
         if (!parse_value(&parse)) {
             LOG_WARN("array_length: bad element", parse.start);
             return false;  // bad element
         }
+        //DUMP_PARSE("array element", &parse);
         ++n;  // increment item count
         parse.start = parse.end;
     }
     *length = n;
+    LOG_DEBUG("array_length: variadic array", *length);
     return true;  // success!
 };
 

@@ -9,10 +9,12 @@
 #include "abcm.h"
 #include "print.h"
 #include "sponsor.h"
+#include "array.h"
+#include "object.h"
 
-//#define LOG_ALL // enable all logging
-#define LOG_INFO
-#define LOG_WARN
+#define LOG_ALL // enable all logging
+//#define LOG_INFO
+//#define LOG_WARN
 #include "log.h"
 
 static int test_bytecode_types() {
@@ -558,6 +560,103 @@ static int test_sponsor() {
     return 0;
 }
 
+static int test_array() {
+    BYTE data_0[] = { array_0 };
+    BYTE data_1[] = { array_n, n_1, n_0 };
+    BYTE data_2[] = { array, n_0 };
+    BYTE data_3[] = { array, n_4, true, false, n_0, null };
+    BYTE data_4[] = { array_n, n_3, n_2, n_0, n_m1 };
+    BYTE data_5[] = { array, n_29,
+        utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd',
+        utf16, n_12, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0',
+        true, false, null };
+    WORD length;
+
+/*
+BYTE array_length(DATA_PTR array, WORD * length);
+*/
+    value_print(data_0, 0);
+    assert(array_length(data_0, &length));
+    assert(length == 0);
+
+    value_print(data_1, 0);
+    assert(array_length(data_1, &length));
+    assert(length == 0);
+
+    value_print(data_2, 0);
+    assert(array_length(data_2, &length));
+    assert(length == 0);
+
+    value_print(data_3, 0);
+    assert(array_length(data_3, &length));
+    LOG_DEBUG("data_3.length =", length);
+    assert(length == 4);
+
+    value_print(data_4, 0);
+    assert(array_length(data_4, &length));
+    LOG_DEBUG("data_4.length =", length);
+    assert(length == 2);
+
+    value_print(data_5, 1);
+    assert(array_length(data_5, &length));
+    LOG_DEBUG("data_5.length =", length);
+    assert(length == 5);
+
+    return 0;
+}
+
+static int test_object() {
+    BYTE data_0[] = { object_0 };
+    BYTE data_1[] = { object, n_8, utf8, n_5, 'v', 'a', 'l', 'u', 'e', n_42 };
+    BYTE data_2[] = { object_n, n_12, n_2, utf8, n_1, 'x', m_int_5, n_1, 0xFE, utf16, n_2, '\0', 'y', n_3 };
+    BYTE data_3[] = { object_n, n_1, n_0 };
+    BYTE data_4[] = { object, n_0 };
+    BYTE data_5[] = { object, n_31,
+        utf8, n_7, 'B', 'o', 'o', 'l', 'e', 'a', 'n', array, n_2,
+            true,
+            false,
+        utf16, n_8, '\0', 'z', '\0', 'e', '\0', 'r', '\0', 'o', n_0,
+        utf8, n_4, 'N', 'u', 'l', 'l', null
+    };
+    DATA_PTR value;
+    BYTE i_42[] = { n_42 };  // integer 42 (encoded)
+    BYTE s_zero[] = { utf8, n_4, 'z', 'e', 'r', 'o' };  // string "zero" (encoded)
+
+/*
+BYTE object_has(DATA_PTR object, DATA_PTR name);
+BYTE object_get(DATA_PTR object, DATA_PTR name, DATA_PTR * value);
+*/
+    value_print(data_0, 0);
+    assert(!object_has(data_0, s_kind));
+    assert(!object_get(data_0, s_kind, &value));
+
+    value_print(data_1, 0);
+    assert(!object_has(data_1, s_kind));
+    assert(!object_get(data_1, s_kind, &value));
+    assert(object_has(data_1, s_value));
+    assert(object_get(data_1, s_value, &value));
+    assert(value_equiv(value, i_42));
+
+    value_print(data_2, 0);
+    assert(!object_has(data_2, s_kind));
+    assert(!object_get(data_0, s_kind, &value));
+
+    value_print(data_3, 0);
+    assert(!object_has(data_3, s_kind));
+    assert(!object_get(data_0, s_kind, &value));
+
+    value_print(data_4, 0);
+    assert(!object_has(data_4, s_kind));
+    assert(!object_get(data_0, s_kind, &value));
+
+    value_print(data_5, 1);
+    assert(!object_has(data_5, s_kind));
+    assert(object_get(data_5, s_zero, &value));
+    assert(value_equiv(value, i_0));
+
+    return 0;
+}
+
 static int test_C_language() {
     LOG_INFO("sizeof(WORD)", sizeof(WORD));
     assert(sizeof(WORD) >= 4);  // require at least 32-bit machine words
@@ -593,5 +692,7 @@ int run_test_suite() {
         || test_object_property_count()
         || test_value_equiv()
         || test_sponsor()
+        || test_array()
+        || test_object()
         ;
 }
