@@ -14,8 +14,8 @@
 CFLAGS=	-DMAIN -Wall
 
 LIB=	libabc.a
-LOBJS=	bose.o equiv.o print.o log.o
-LHDRS=	bose.h equiv.h print.h log.h
+LOBJS=	bose.o equiv.o pool.o print.o log.o
+LHDRS=	bose.h equiv.h pool.h print.h log.h
 
 MAIN=	abcm
 MOBJS=	abcm.o program.o test.o
