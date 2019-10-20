@@ -58,32 +58,61 @@ BYTE array_length(DATA_PTR array, WORD * length) {
     return true;  // success!
 };
 
-/*
-static BYTE array_print(parse_t * parse) {
-    // print parsed value known to be an Array
-    assert(parse->start < (parse->end - parse->value));
-    print('[');
-    if (parse->value == 0) {  // empty array short-cut
-        print(']');
-        return true;
-    }
-    parse_t item_parse = {
-        .base = parse->base + (parse->end - parse->value),  // start of element data
-        .size = parse->value,
+BYTE array_get(DATA_PTR array, WORD index, DATA_PTR * value) {
+    LOG_TRACE("array_get @", (WORD)array);
+    LOG_DEBUG("array_get: index =", index);
+    parse_t parse = {
+        .base = array,
+        .size = MAX_WORD,  // don't know how big array will be
         .start = 0
     };
-    while (item_parse.start < item_parse.size) {
-        if (!parse_value(&item_parse)) {
-            LOG_WARN("array_print: bad element value", item_parse.start);
-            return false;  // bad element value
-        }
-        if (!parse_print(&item_parse)) return false;  // print failed!
-        if (item_parse.end < item_parse.size) {
-            print(',');
-        }
-        item_parse.start = item_parse.end;
+    if (!parse_array(&parse)) {
+        LOG_WARN("array_get: bad array", (WORD)array);
+        return false;  // bad array
     }
-    print(']');
-    return true;  // success!
-}
-*/
+    //DUMP_PARSE("array", &parse);
+    if (parse.value == 0) {  // empty array short-cut
+        LOG_WARN("array_get: empty array", (WORD)array);
+        return false;  // not found.
+    }
+    if (parse.type & T_Counted) {  // assume count is correct
+        LOG_DEBUG("array_get: counted array", parse.count);
+        if (index >= parse.count) {
+            LOG_WARN("array_get: index must be less than count", parse.count);
+            return false;  // not found.
+        }
+    }
+    parse.size = parse.end;  // limit to array contents
+    parse.start = parse.end - parse.value;  // reset to start of element data
+    WORD n = 0;
+    while (parse.start < parse.size) {
+        LOG_TRACE("array_get: element start =", parse.start);
+#if 1
+        if (n == index) {
+            *value = parse.base + parse.start;
+            LOG_DEBUG("array_get: found value @", (WORD)*value);
+            return true;  // FOUND!
+        }
+        if (!parse_value(&parse)) {
+            LOG_WARN("array_get: bad element", parse.start);
+            return false;  // bad element
+        }
+        //DUMP_PARSE("array element", &parse);
+#else
+        if (!parse_value(&parse)) {
+            LOG_WARN("array_get: bad element", parse.start);
+            return false;  // bad element
+        }
+        DUMP_PARSE("array element", &parse);
+        if (n == index) {
+            *value = parse.base + parse.start;
+            LOG_DEBUG("array_get: found value @", (WORD)*value);
+            return true;  // FOUND!
+        }
+#endif
+        ++n;  // increment item count
+        parse.start = parse.end;
+    }
+    LOG_WARN("array_get: index must be less than length", n);
+    return false;  // not found.
+};

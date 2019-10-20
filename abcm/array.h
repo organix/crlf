@@ -7,5 +7,6 @@
 #include "bose.h"
 
 BYTE array_length(DATA_PTR array, WORD * length);
+BYTE array_get(DATA_PTR object, WORD index, DATA_PTR * value);
 
 #endif // _ARRAY_H_

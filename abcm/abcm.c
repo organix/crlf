@@ -69,7 +69,6 @@ BYTE k_actor_assign[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'a', 's', 's
 BYTE k_actor_fail[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 'f', 'a', 'i', 'l' };
 BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };
 BYTE k_expr_literal[] = { utf8, n_12, 'e', 'x', 'p', 'r', '_', 'l', 'i', 't', 'e', 'r', 'a', 'l' };
-//BYTE k_dict_empty[] = { utf8, n_10, 'd', 'i', 'c', 't', '_', 'e', 'm', 'p', 't', 'y' };
 
 int start_abcm() {  // ok == 0, fail != 0
     int result = 0;

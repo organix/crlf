@@ -571,35 +571,50 @@ static int test_array() {
         utf16, n_12, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0',
         true, false, null };
     WORD length;
+    DATA_PTR value;
 
 /*
 BYTE array_length(DATA_PTR array, WORD * length);
+BYTE array_get(DATA_PTR object, WORD index, DATA_PTR * value);
 */
-    value_print(data_0, 0);
+    //value_print(data_0, 0);
     assert(array_length(data_0, &length));
     assert(length == 0);
 
-    value_print(data_1, 0);
+    //value_print(data_1, 0);
     assert(array_length(data_1, &length));
     assert(length == 0);
 
-    value_print(data_2, 0);
+    //value_print(data_2, 0);
     assert(array_length(data_2, &length));
     assert(length == 0);
 
-    value_print(data_3, 0);
+    //value_print(data_3, 1);
     assert(array_length(data_3, &length));
-    LOG_DEBUG("data_3.length =", length);
+    LOG_DEBUG("test_array: data_3.length =", length);
     assert(length == 4);
+    assert(array_get(data_3, 0, &value));
+    assert(value_equiv(value, b_true));
+    assert(array_get(data_3, 1, &value));
+    assert(value_equiv(value, b_false));
+    assert(array_get(data_3, 2, &value));
+    assert(value_equiv(value, i_0));
+    assert(array_get(data_3, 3, &value));
+    assert(value_equiv(value, v_null));
+    assert(!array_get(data_3, 4, &value));
 
-    value_print(data_4, 0);
+    //value_print(data_4, 1);
     assert(array_length(data_4, &length));
-    LOG_DEBUG("data_4.length =", length);
+    LOG_DEBUG("test_array: data_4.length =", length);
     assert(length == 2);
+    assert(array_get(data_4, 0, &value));
+    assert(value_equiv(value, i_0));
+    assert(array_get(data_4, 1, &value));
+    assert(!array_get(data_4, 2, &value));
 
-    value_print(data_5, 1);
+    //value_print(data_5, 1);
     assert(array_length(data_5, &length));
-    LOG_DEBUG("data_5.length =", length);
+    LOG_DEBUG("test_array: data_5.length =", length);
     assert(length == 5);
 
     return 0;
@@ -626,30 +641,30 @@ static int test_object() {
 BYTE object_has(DATA_PTR object, DATA_PTR name);
 BYTE object_get(DATA_PTR object, DATA_PTR name, DATA_PTR * value);
 */
-    value_print(data_0, 0);
+    //value_print(data_0, 0);
     assert(!object_has(data_0, s_kind));
     assert(!object_get(data_0, s_kind, &value));
 
-    value_print(data_1, 0);
+    //value_print(data_1, 0);
     assert(!object_has(data_1, s_kind));
     assert(!object_get(data_1, s_kind, &value));
     assert(object_has(data_1, s_value));
     assert(object_get(data_1, s_value, &value));
     assert(value_equiv(value, i_42));
 
-    value_print(data_2, 0);
+    //value_print(data_2, 0);
     assert(!object_has(data_2, s_kind));
     assert(!object_get(data_0, s_kind, &value));
 
-    value_print(data_3, 0);
+    //value_print(data_3, 0);
     assert(!object_has(data_3, s_kind));
     assert(!object_get(data_0, s_kind, &value));
 
-    value_print(data_4, 0);
+    //value_print(data_4, 0);
     assert(!object_has(data_4, s_kind));
     assert(!object_get(data_0, s_kind, &value));
 
-    value_print(data_5, 1);
+    //value_print(data_5, 1);
     assert(!object_has(data_5, s_kind));
     assert(object_get(data_5, s_zero, &value));
     assert(value_equiv(value, i_0));

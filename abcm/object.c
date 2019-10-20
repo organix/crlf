@@ -33,7 +33,7 @@ BYTE object_has(DATA_PTR object, DATA_PTR name) {
         return false;  // bad object
     }
     if (parse.value == 0) {  // empty object short-cut
-        LOG_DEBUG("object_has: empty object", false);
+        LOG_DEBUG("object_has: empty object", (WORD)object);
         return false;  // not found.
     }
     parse.size = parse.end;  // limit to object contents
@@ -81,7 +81,7 @@ BYTE object_get(DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
         return false;  // bad object
     }
     if (parse.value == 0) {  // empty object short-cut
-        LOG_DEBUG("object_get: empty object", false);
+        LOG_WARN("object_get: empty object", (WORD)object);
         return false;  // not found.
     }
     parse.size = parse.end;  // limit to object contents
@@ -122,42 +122,3 @@ BYTE object_get(DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
     LOG_DEBUG("object_get: not found.", (WORD)name);
     return false;  // not found.
 };
-
-/*
-static BYTE object_print(parse_t * parse) {
-    // print parsed value known to be an Object
-    assert(parse->start < (parse->end - parse->value));
-    print('{');
-    if (parse->value == 0) {  // empty object short-cut
-        print('}');
-        return true;
-    }
-    parse_t prop_parse = {
-        .base = parse->base + (parse->end - parse->value),  // start of property data
-        .size = parse->value,
-        .start = 0
-    };
-    while (prop_parse.start < prop_parse.size) {
-        //WORD key_start = prop_parse.start;
-        if (!parse_string(&prop_parse)) {
-            LOG_WARN("object_print: bad property key", prop_parse.start);
-            return false;  // bad property key
-        }
-        if (!string_print(&prop_parse)) return false;  // print failed!
-        print(':');
-        prop_parse.start = prop_parse.end;
-        //WORD value_start = prop_parse.start;
-        if (!parse_value(&prop_parse)) {
-            LOG_WARN("object_print: bad property value", prop_parse.start);
-            return false;  // bad property value
-        }
-        if (!parse_print(&prop_parse)) return false;  // print failed!
-        if (prop_parse.end < prop_parse.size) {
-            print(',');
-        }
-        prop_parse.start = prop_parse.end;
-    }
-    print('}');
-    return true;  // success!
-}
-*/
