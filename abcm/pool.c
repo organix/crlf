@@ -14,7 +14,10 @@
 /*
  * standard heap-memory allocator
  */
+#include <stddef.h>  // for NULL, size_t, et. al.
 #include <stdlib.h>  // for malloc, et. al.
+#include <string.h>  // for memcpy, et. al.
+//#include <assert.h>
 
 typedef struct {
     pool_t      pool;           // super-type member
@@ -32,6 +35,20 @@ static BYTE heap_pool_share(pool_t * pool, DATA_PTR * data) {
     return false;
 }
 
+static BYTE heap_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
+    //heap_pool_t * THIS = (heap_pool_t *)pool;
+    parse_t parse = {
+        .base = value,
+        .size = MAX_WORD,  // don't know how big value will be
+        .start = 0
+    };
+    if (!parse_value(&parse)) return false;  // bad parse!
+    WORD size = parse.end - parse.start;  // parse_value determines the span of the value
+    if (!heap_pool_reserve(pool, data, size)) return false;  // bad allocation!
+    memcpy(*data, parse.base, size);
+    return true;
+}
+
 static BYTE heap_pool_release(pool_t * pool, DATA_PTR * data) {
     //heap_pool_t * THIS = (heap_pool_t *)pool;
     VOID_PTR p = *data;
@@ -44,6 +61,7 @@ static BYTE heap_pool_release(pool_t * pool, DATA_PTR * data) {
 static heap_pool_t heap_pool_instance = {
     .pool.reserve = heap_pool_reserve,
     .pool.share = heap_pool_share,
+    .pool.copy = heap_pool_copy,
     .pool.release = heap_pool_release,
 };
 pool_t * heap_pool = (pool_t *)&heap_pool_instance;
@@ -57,6 +75,10 @@ inline BYTE pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
 
 inline BYTE pool_share(pool_t * pool, DATA_PTR * data) {
     return pool->share(pool, data);
+}
+
+inline BYTE pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
+    return pool->copy(pool, data, value);
 }
 
 inline BYTE pool_release(pool_t * pool, DATA_PTR * data) {

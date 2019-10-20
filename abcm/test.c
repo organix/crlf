@@ -7,6 +7,8 @@
 #include "bose.h"
 #include "equiv.h"
 #include "abcm.h"
+#include "print.h"
+#include "sponsor.h"
 
 //#define LOG_ALL // enable all logging
 #define LOG_INFO
@@ -537,6 +539,25 @@ static int test_value_equiv() {
     return 0;
 }
 
+static int test_sponsor() {
+    sponsor_t * sponsor = new_bounded_sponsor(i_0, i_0, heap_pool);
+    assert(sponsor);
+    LOG_DEBUG("test_sponsor: sponsor =", (WORD)sponsor);
+
+    DATA_PTR orig = s_actor;
+    DATA_PTR copy;
+    assert(sponsor_copy(sponsor, &copy, orig));
+    //assert(value_print(copy, 1));
+    assert(orig != copy);
+    assert(value_equiv(orig, copy));
+    //assert(sponsor_share(sponsor, &copy));
+    //assert(sponsor_release(sponsor, &copy));
+    assert(sponsor_release(sponsor, &copy));
+    assert(!copy);
+
+    return 0;
+}
+
 static int test_C_language() {
     LOG_INFO("sizeof(WORD)", sizeof(WORD));
     assert(sizeof(WORD) >= 4);  // require at least 32-bit machine words
@@ -571,5 +592,6 @@ int run_test_suite() {
         || test_parse_object()
         || test_object_property_count()
         || test_value_equiv()
+        || test_sponsor()
         ;
 }
