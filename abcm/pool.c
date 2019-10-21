@@ -25,8 +25,10 @@ typedef struct {
 
 static BYTE heap_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
     //heap_pool_t * THIS = (heap_pool_t *)pool;
+    LOG_TRACE("heap_pool_reserve: size =", size);
     VOID_PTR p = malloc(size);
     *data = p;  // stomp on data either way!
+    LOG_TRACE("heap_pool_reserve: data @", (WORD)(*data));
     return (p != NULL);
 }
 
@@ -37,6 +39,7 @@ static BYTE heap_pool_share(pool_t * pool, DATA_PTR * data) {
 
 static BYTE heap_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
     //heap_pool_t * THIS = (heap_pool_t *)pool;
+    LOG_TRACE("heap_pool_copy: value =", (WORD)value);
     parse_t parse = {
         .base = value,
         .size = MAX_WORD,  // don't know how big value will be
@@ -46,15 +49,18 @@ static BYTE heap_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
     WORD size = parse.end - parse.start;  // parse_value determines the span of the value
     if (!heap_pool_reserve(pool, data, size)) return false;  // bad allocation!
     memcpy(*data, parse.base, size);
+    LOG_TRACE("heap_pool_copy: data @", (WORD)(*data));
     return true;
 }
 
 static BYTE heap_pool_release(pool_t * pool, DATA_PTR * data) {
     //heap_pool_t * THIS = (heap_pool_t *)pool;
+    LOG_TRACE("heap_pool_release: data @", (WORD)(*data));
     VOID_PTR p = *data;
     if (p == NULL) return false;
     free(p);
     *data = NULL;  // destroy pointer to free'd memory
+    LOG_TRACE("heap_pool_release: data =", (WORD)(*data));
     return true;
 }
 

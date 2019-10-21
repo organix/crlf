@@ -33,4 +33,11 @@ BYTE sponsor_release(sponsor_t * sponsor, DATA_PTR * data);
 
 sponsor_t * new_bounded_sponsor(DATA_PTR actors, DATA_PTR events, pool_t * work_pool);
 
+/*
+ * The following convenience macros make it easy to inject auditing information to track/debug memory leaks
+ */
+#define	RESERVE(dpp,size) sponsor_reserve(sponsor, (dpp), (size))
+#define	COPY(to_dpp,from_dp) sponsor_copy(sponsor, (to_dpp), (from_dp))
+#define	RELEASE(dpp) sponsor_release(sponsor, (dpp))
+
 #endif // _SPONSOR_H_

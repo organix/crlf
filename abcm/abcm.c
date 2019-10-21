@@ -56,7 +56,7 @@ BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
     { "kind":"dict_has", "name":<string>, "in":<dictionary> }
 // List (Array) Expressions
     { "kind":"list_add", "value":<expression>, "at":<number>, "to":<list> }
-    { "kind":"list_remove", "value":<expression>, "at":<number>, "from":<list> }
+    { "kind":"list_remove", "at":<number>, "from":<list> }
 // Dictionary (Object) Expressions
     { "kind":"actor_message" }
     { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }

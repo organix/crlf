@@ -548,13 +548,13 @@ static int test_sponsor() {
 
     DATA_PTR orig = s_actor;
     DATA_PTR copy;
-    assert(sponsor_copy(sponsor, &copy, orig));
+    assert(COPY(&copy, orig));
     //assert(value_print(copy, 1));
     assert(orig != copy);
     assert(value_equiv(orig, copy));
     //assert(sponsor_share(sponsor, &copy));
     //assert(sponsor_release(sponsor, &copy));
-    assert(sponsor_release(sponsor, &copy));
+    assert(RELEASE(&copy));
     assert(!copy);
 
     return 0;
@@ -576,6 +576,7 @@ static int test_array() {
 /*
 BYTE array_length(DATA_PTR array, WORD * length);
 BYTE array_get(DATA_PTR object, WORD index, DATA_PTR * value);
+BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, DATA_PTR * value);
 */
     //value_print(data_0, 0);
     assert(array_length(data_0, &length));
@@ -616,6 +617,32 @@ BYTE array_get(DATA_PTR object, WORD index, DATA_PTR * value);
     assert(array_length(data_5, &length));
     LOG_DEBUG("test_array: data_5.length =", length);
     assert(length == 5);
+
+/*
+ADD x AT 0 TO [a, b, c] --> [x, a, b, c]
+ADD x AT 1 TO [a, b, c] --> [a, x, b, c]
+ADD x AT 2 TO [a, b, c] --> [a, b, x, c]
+ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
+*/
+    BYTE data_10[] = { array, n_3, n_1, n_2, n_3 };
+    BYTE data_11[] = { array, n_4, n_0, n_1, n_2, n_3 };
+    BYTE data_12[] = { array, n_4, n_1, n_0, n_2, n_3 };
+    BYTE data_13[] = { array, n_4, n_1, n_2, n_0, n_3 };
+    BYTE data_14[] = { array, n_4, n_1, n_2, n_3, n_0 };
+
+    sponsor_t * sponsor = new_bounded_sponsor(i_0, i_0, heap_pool);
+    assert(sponsor);
+    LOG_DEBUG("test_sponsor: sponsor =", (WORD)sponsor);
+
+    assert(array_add(sponsor, data_10, i_0, 0, &value));
+    assert(value_equiv(value, data_11));
+    assert(array_add(sponsor, data_10, i_0, 1, &value));
+    assert(value_equiv(value, data_12));
+    assert(array_add(sponsor, data_10, i_0, 2, &value));
+    assert(value_equiv(value, data_13));
+    assert(array_add(sponsor, data_10, i_0, 3, &value));
+    assert(value_equiv(value, data_14));
+    assert(!array_add(sponsor, data_10, i_0, 4, &value));
 
     return 0;
 }

@@ -12,15 +12,6 @@
 //#define LOG_WARN
 #include "log.h"
 
-/*
-    { "kind":"actor_state", "name":<string> }
-    { "kind":"dict_get", "name":<string>, "in":<dictionary> }
-    { "kind":"actor_has_state", "name":<string> }
-    { "kind":"dict_has", "name":<string>, "in":<dictionary> }
-    { "kind":"actor_message" }
-    { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
-*/
-
 BYTE object_has(DATA_PTR object, DATA_PTR name) {
     LOG_TRACE("object_has @", (WORD)object);
     parse_t parse = {
