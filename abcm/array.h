@@ -16,6 +16,6 @@
 
 BYTE array_length(DATA_PTR array, WORD * length);
 BYTE array_get(DATA_PTR array, WORD index, DATA_PTR * value);
-BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, DATA_PTR * value);
+BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, DATA_PTR * new);
 
 #endif // _ARRAY_H_

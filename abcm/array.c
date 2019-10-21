@@ -118,7 +118,7 @@ ADD x AT 1 TO [a, b, c] --> [a, x, b, c]
 ADD x AT 2 TO [a, b, c] --> [a, b, x, c]
 ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
 */
-BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, DATA_PTR * value) {
+BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, DATA_PTR * new) {
     LOG_TRACE("array_add @", (WORD)array);
     LOG_DEBUG("array_add: item @", (WORD)item);
     LOG_DEBUG("array_add: index =", index);
@@ -155,6 +155,7 @@ BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, D
     WORD size = 8;  // margin for size/count growth
     size += (parse.end - parse.start);  // plus size of array
     size += (item_parse.end - item_parse.start);  // plus size of item
+    LOG_TRACE("array_add: allocation size =", size);
     if (size > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but code below depends on it...
         LOG_WARN("array_add: array too large", size);
         return false;  // array too large!
@@ -229,7 +230,7 @@ BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, D
     data[4] = size >> 8;    // size (MSB)
     data[7] = n & 0xFF;     // count (LSB)
     data[8] = n >> 8;       // count (MSB)
-    *value = data;
+    *new = data;
     LOG_DEBUG("array_add: new array @", (WORD)data);
     return true;  // success!
 };

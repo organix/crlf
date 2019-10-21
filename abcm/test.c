@@ -632,17 +632,57 @@ ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
 
     sponsor_t * sponsor = new_bounded_sponsor(i_0, i_0, heap_pool);
     assert(sponsor);
-    LOG_DEBUG("test_sponsor: sponsor =", (WORD)sponsor);
+    LOG_DEBUG("test_array: sponsor =", (WORD)sponsor);
 
     assert(array_add(sponsor, data_10, i_0, 0, &value));
     assert(value_equiv(value, data_11));
+    assert(RELEASE(&value));
+
     assert(array_add(sponsor, data_10, i_0, 1, &value));
     assert(value_equiv(value, data_12));
+    assert(RELEASE(&value));
+
     assert(array_add(sponsor, data_10, i_0, 2, &value));
     assert(value_equiv(value, data_13));
+    assert(RELEASE(&value));
+
     assert(array_add(sponsor, data_10, i_0, 3, &value));
     assert(value_equiv(value, data_14));
+    assert(array_length(value, &length));
+    LOG_DEBUG("test_array: value.length =", length);
+    assert(length == 4);
+    assert(RELEASE(&value));
+
     assert(!array_add(sponsor, data_10, i_0, 4, &value));
+
+    // start with nothing
+    DATA_PTR array;
+    assert(COPY(&array, a_));
+    // append 1
+    assert(array_length(array, &length));
+    assert(array_get(data_10, 0, &value));
+    assert(array_add(sponsor, array, value, length, &value));
+    assert(RELEASE(&array));
+    array = value;
+    // append 2
+    assert(array_length(array, &length));
+    assert(array_get(data_10, 1, &value));
+    assert(array_add(sponsor, array, value, length, &value));
+    assert(RELEASE(&array));
+    array = value;
+    // append 3
+    assert(array_length(array, &length));
+    assert(array_get(data_10, 2, &value));
+    assert(array_add(sponsor, array, value, length, &value));
+    assert(RELEASE(&array));
+    array = value;
+    // verify result
+    //value_print(array, 1);
+    assert(value_equiv(array, data_10));
+    assert(array_length(array, &length));
+    LOG_DEBUG("test_array: array.length =", length);
+    assert(length == 3);
+    assert(RELEASE(&array));
 
     return 0;
 }
@@ -661,6 +701,7 @@ static int test_object() {
         utf8, n_4, 'N', 'u', 'l', 'l', null
     };
     DATA_PTR value;
+    DATA_PTR result;
     BYTE i_42[] = { n_42 };  // integer 42 (encoded)
     BYTE s_zero[] = { utf8, n_4, 'z', 'e', 'r', 'o' };  // string "zero" (encoded)
 
@@ -695,6 +736,58 @@ BYTE object_get(DATA_PTR object, DATA_PTR name, DATA_PTR * value);
     assert(!object_has(data_5, s_kind));
     assert(object_get(data_5, s_zero, &value));
     assert(value_equiv(value, i_0));
+
+/*
+BIND "kind" TO "actor_assign" WITH {}
+    --> {"kind":"actor_assign"}
+BIND "name" TO "actor" WITH {"kind":"actor_assign"}
+    --> {"name":"actor", "kind":"actor_assign"}
+BIND "name" TO null WITH {"name":"actor", "kind":"actor_assign"}
+    --> {"name":null, "kind":"actor_assign"}
+BIND "kind" TO 0 WITH {"name":null, "kind":"actor_assign"}
+    --> {"kind":0, "name":null}
+*/
+    BYTE data_10[] = { object, n_18,
+        utf8, n_4, 'n', 'a', 'm', 'e', null,
+        utf16, n_8, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd', n_0 };
+
+    sponsor_t * sponsor = new_bounded_sponsor(i_0, i_0, heap_pool);
+    assert(sponsor);
+    LOG_DEBUG("test_array: sponsor =", (WORD)sponsor);
+
+    // start with nothing
+    DATA_PTR object;
+    assert(COPY(&object, o_));
+    //value_print(object, 1);
+    // bind "kind"
+    assert(object_add(sponsor, object, s_kind, k_actor_assign, &result));
+    //value_print(result, 1);
+    assert(RELEASE(&object));
+    object = result;
+    // bind "name"
+    assert(object_add(sponsor, object, s_name, s_actor, &result));
+    ///value_print(result, 1);
+    assert(RELEASE(&object));
+    object = result;
+    // re-bind "name"
+    assert(object_add(sponsor, object, s_name, v_null, &result));
+    //value_print(result, 1);
+    assert(RELEASE(&object));
+    object = result;
+    // re-bind "kind"
+    assert(object_add(sponsor, object, s_kind, i_0, &result));
+    //value_print(result, 1);
+    assert(RELEASE(&object));
+    object = result;
+    // verify result
+    assert(COPY(&result, object));
+    //value_print(result, 1);
+    assert(object_get(object, s_name, &value));
+    assert(value_equiv(value, v_null));
+    assert(RELEASE(&object));
+    //value_print(data_10, 1);
+    assert(value_equiv(result, data_10));
+    assert(RELEASE(&result));
 
     return 0;
 }
