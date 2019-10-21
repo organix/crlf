@@ -127,6 +127,7 @@ inline BYTE sponsor_release(sponsor_t * sponsor, DATA_PTR * data) {
  */
 
 typedef struct {
+    sponsor_t * sponsor;        // sponsor for resources
     DATA_PTR    address;        // memory address
     WORD        size;           // allocation size
     struct {
@@ -143,6 +144,26 @@ typedef struct {
 static alloc_audit_t audit_history[MAX_AUDIT];
 static int audit_index = 0;
 
+static void record_allocation(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR address, WORD size) {
+    assert(audit_index < MAX_AUDIT);
+    alloc_audit_t * history = &audit_history[audit_index++];
+    history->sponsor = sponsor;
+    history->address = address;
+    history->size = size;
+    history->reserve._file_ = _file_;
+    history->reserve._line_ = _line_;
+    history->release._file_ = NULL;
+    history->release._line_ = 0;
+}
+
+BYTE audit_reserve(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, WORD size) {
+    BYTE ok = sponsor_reserve(sponsor, data, size);
+    if (ok) {
+        record_allocation(_file_, _line_, sponsor, *data, size);
+    }
+    return ok;
+}
+
 static WORD value_size(DATA_PTR value) {
     parse_t parse = {
         .base = value,
@@ -154,28 +175,11 @@ static WORD value_size(DATA_PTR value) {
     return size;
 }
 
-BYTE audit_reserve(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, WORD size) {
-    assert(audit_index < MAX_AUDIT);
-    BYTE ok = sponsor_reserve(sponsor, data, size);
-    if (ok) {
-        alloc_audit_t * history = &audit_history[audit_index++];
-        history->address = *data;
-        history->size = size;
-        history->reserve._file_ = _file_;
-        history->reserve._line_ = _line_;
-    }
-    return ok;
-}
-
 BYTE audit_copy(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value) {
-    assert(audit_index < MAX_AUDIT);
     BYTE ok = sponsor_copy(sponsor, data, value);
     if (ok) {
-        alloc_audit_t * history = &audit_history[audit_index++];
-        history->address = *data;
-        history->size = value_size(*data);
-        history->reserve._file_ = _file_;
-        history->reserve._line_ = _line_;
+        WORD size = value_size(*data);
+        record_allocation(_file_, _line_, sponsor, *data, size);
     }
     return ok;
 }
@@ -200,20 +204,44 @@ BYTE audit_release(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * da
     return ok;
 }
 
+DATA_PTR audit_track(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR address) {
+    /* find most-recent allocation of address */
+    int index = audit_index;
+    while (index > 0) {
+        alloc_audit_t * history = &audit_history[--index];
+        if (history->address == address) {
+            assert(history->sponsor == sponsor);  // make sure we have the same sponsor!
+            history->reserve._file_ = _file_;  // update source file name
+            history->reserve._line_ = _line_;  // update source line number
+            return address;  // found it!
+        }
+    }
+    //LOG_WARN("audit_track: no allocation @", (WORD)address);  // FIXME: we want to show where the TRACK was...
+    log_event(_file_, _line_, LOG_LEVEL_WARN, "audit_track: no allocation @", (WORD)address);
+    return address;
+}
+
+
 #include <stdio.h>  // FIXME!
 int audit_show_leaks() {
     int count = 0;
+    WORD total = 0;
 #if AUDIT_ALLOCATION
     LOG_INFO("audit_show_leaks: allocations", (WORD)audit_index);
     for (int index = 0; index < audit_index; ++index) {
         alloc_audit_t * history = &audit_history[index];
         if (history->release._file_ == NULL) {
-            fprintf(stdout, "LEAK! %p[%d] %s:%d\n",
-                history->address, (int)history->size, history->reserve._file_, history->reserve._line_);
+            fprintf(stdout, "LEAK! %p[%d] from %p %s:%d\n",
+                history->address, (int)history->size, history->sponsor, history->reserve._file_, history->reserve._line_);
             ++count;
         }
+        total += history->size;
     }
-    fprintf(stdout, "audit_show_leaks: %d leaks found.\n", count);
+    LOG_INFO("audit_show_leaks: total size", total);
+    if (count == 0) {  // if there were no leaks...
+        audit_index = 0;  // ...clear the audit history and start again.
+    }
+    fprintf(stdout, "audit_show_leaks: leaks found = %d\n", count);
     fflush(stdout);
 #else
     /* can't check for leaks if we're not auditing! */

@@ -13,13 +13,15 @@
 #define AUDIT_ALLOCATION 1 /* track reserve/release calls to check for leaks */
 
 #if AUDIT_ALLOCATION
-#define	RESERVE(dpp,size) audit_reserve(__FILE__, __LINE__, sponsor, (dpp), (size))
-#define	COPY(to_dpp,from_dp) audit_copy(__FILE__, __LINE__, sponsor, (to_dpp), (from_dp))
-#define	RELEASE(dpp) audit_release(__FILE__, __LINE__, sponsor, (dpp))
+#define	RESERVE(dpp,size) audit_reserve(__FILE__, __LINE__, (sponsor), (dpp), (size))
+#define	COPY(to_dpp,from_dp) audit_copy(__FILE__, __LINE__, (sponsor), (to_dpp), (from_dp))
+#define	RELEASE(dpp) audit_release(__FILE__, __LINE__, (sponsor), (dpp))
+#define TRACK(dp) audit_track(__FILE__, __LINE__, (sponsor), (dp))
 #else
 #define	RESERVE(dpp,size) sponsor_reserve(sponsor, (dpp), (size))
 #define	COPY(to_dpp,from_dp) sponsor_copy(sponsor, (to_dpp), (from_dp))
 #define	RELEASE(dpp) sponsor_release(sponsor, (dpp))
+#define TRACK(dp) (dp)
 #endif
 
 typedef struct sponsor_struct sponsor_t;
@@ -51,6 +53,7 @@ sponsor_t * new_bounded_sponsor(DATA_PTR actors, DATA_PTR events, pool_t * work_
 BYTE audit_reserve(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, WORD size);
 BYTE audit_copy(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
 BYTE audit_release(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data);
+DATA_PTR audit_track(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR address);
 int audit_show_leaks();
 
 #endif // _SPONSOR_H_

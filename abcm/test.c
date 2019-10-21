@@ -663,19 +663,19 @@ ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
     assert(array_get(data_10, 0, &value));
     assert(array_add(sponsor, array, value, length, &value));
     assert(RELEASE(&array));
-    array = value;
+    array = TRACK(value);
     // append 2
     assert(array_length(array, &length));
     assert(array_get(data_10, 1, &value));
     assert(array_add(sponsor, array, value, length, &value));
     assert(RELEASE(&array));
-    array = value;
+    array = TRACK(value);
     // append 3
     assert(array_length(array, &length));
     assert(array_get(data_10, 2, &value));
     assert(array_add(sponsor, array, value, length, &value));
     assert(RELEASE(&array));
-    array = value;
+    array = TRACK(value);
     // verify result
     //value_print(array, 1);
     assert(value_equiv(array, data_10));
