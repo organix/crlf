@@ -6,6 +6,7 @@
 #include "abcm.h"
 #include "bose.h"
 #include "test.h"
+#include "sponsor.h"
 #include "program.h"
 
 #define LOG_ALL // enable all logging
@@ -81,9 +82,11 @@ int start_abcm() {  // ok == 0, fail != 0
 
     result = run_test_suite();  // pass == 0, fail != 0
     if (result) return result;
+    assert(audit_show_leaks() == 0);
 
     result = run_program(bootstrap);  // pass == 0, fail != 0
     if (result) return result;
+    assert(audit_show_leaks() == 0);
 
     return result;
 }

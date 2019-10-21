@@ -7,6 +7,21 @@
 #include "bose.h"
 #include "pool.h"
 
+/*
+ * The following convenience macros make it easy to inject auditing information to track/debug memory leaks
+ */
+#define AUDIT_ALLOCATION 1 /* track reserve/release calls to check for leaks */
+
+#if AUDIT_ALLOCATION
+#define	RESERVE(dpp,size) audit_reserve(__FILE__, __LINE__, sponsor, (dpp), (size))
+#define	COPY(to_dpp,from_dp) audit_copy(__FILE__, __LINE__, sponsor, (to_dpp), (from_dp))
+#define	RELEASE(dpp) audit_release(__FILE__, __LINE__, sponsor, (dpp))
+#else
+#define	RESERVE(dpp,size) sponsor_reserve(sponsor, (dpp), (size))
+#define	COPY(to_dpp,from_dp) sponsor_copy(sponsor, (to_dpp), (from_dp))
+#define	RELEASE(dpp) sponsor_release(sponsor, (dpp))
+#endif
+
 typedef struct sponsor_struct sponsor_t;
 typedef struct sponsor_struct {
 	// actor primitives
@@ -33,11 +48,9 @@ BYTE sponsor_release(sponsor_t * sponsor, DATA_PTR * data);
 
 sponsor_t * new_bounded_sponsor(DATA_PTR actors, DATA_PTR events, pool_t * work_pool);
 
-/*
- * The following convenience macros make it easy to inject auditing information to track/debug memory leaks
- */
-#define	RESERVE(dpp,size) sponsor_reserve(sponsor, (dpp), (size))
-#define	COPY(to_dpp,from_dp) sponsor_copy(sponsor, (to_dpp), (from_dp))
-#define	RELEASE(dpp) sponsor_release(sponsor, (dpp))
+BYTE audit_reserve(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, WORD size);
+BYTE audit_copy(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
+BYTE audit_release(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data);
+int audit_show_leaks();
 
 #endif // _SPONSOR_H_

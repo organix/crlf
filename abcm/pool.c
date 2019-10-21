@@ -14,6 +14,7 @@
 /*
  * standard heap-memory allocator
  */
+
 #include <stddef.h>  // for NULL, size_t, et. al.
 #include <stdlib.h>  // for malloc, et. al.
 #include <string.h>  // for memcpy, et. al.
@@ -75,6 +76,7 @@ pool_t * heap_pool = (pool_t *)&heap_pool_instance;
 /*
  * polymorphic dispatch functions
  */
+
 inline BYTE pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
     return pool->reserve(pool, data, size);
 }
