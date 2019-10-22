@@ -619,3 +619,42 @@ BYTE object_get_property(parse_t * parse, DATA_PTR key) {
     parse->start = origin;  // restore original starting point
     return false;  // property not found
 }
+
+BYTE value_parse(DATA_PTR value, parse_t * parse) {
+    LOG_TRACE("value_parse @", (WORD)value);
+    parse->base = value;
+    parse->size = MAX_WORD;  // don't know how big value will be
+    parse->start = 0;  // start at the beginning
+    if (!parse_value(parse)) {
+        LOG_WARN("parse_value: bad value", (WORD)value);
+        return false;  // bad value
+    }
+    // warning: data already written through `parse` pointer, even on failure!
+    return true;
+}
+
+BYTE value_type(DATA_PTR value, BYTE * type) {
+    LOG_TRACE("value_type @", (WORD)value);
+    parse_t parse;
+    if (!value_parse(value, &parse)) {
+        LOG_WARN("value_type: bad value", (WORD)value);
+        return false;  // bad value
+    }
+    *type = parse.type;  // "return" type field
+    return true;
+}
+
+BYTE value_integer(DATA_PTR value, WORD * number) {
+    LOG_TRACE("value_integer @", (WORD)value);
+    parse_t parse = {
+        .base = value,
+        .size = MAX_WORD,  // don't know how big value will be
+        .start = 0
+    };
+    if (!parse_integer(&parse)) {
+        LOG_WARN("value_integer: bad value", (WORD)value);
+        return false;  // bad value
+    }
+    *number = parse.value;  // "return" integer value
+    return true;
+};

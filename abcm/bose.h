@@ -227,4 +227,8 @@ BYTE parse_object(parse_t * parse);
 BYTE object_property_count(parse_t * parse, WORD * count_ptr);
 BYTE object_get_property(parse_t * parse, DATA_PTR key);
 
+BYTE value_parse(DATA_PTR value, parse_t * parse);
+BYTE value_type(DATA_PTR value, BYTE * type);
+BYTE value_integer(DATA_PTR value, WORD * number);
+
 #endif // _BOSE_H_

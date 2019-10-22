@@ -11,7 +11,7 @@
 #define LOG_WARN
 #include "log.h"
 
-#define HEXDUMP_ANNOTATION 0 /* dump bose-encoded bytes for collection values */
+#define HEXDUMP_ANNOTATION 1 /* dump bose-encoded bytes for collection values */
 
 #include <stdio.h>
 // FIXME: implement non-stdio output primitives
@@ -323,6 +323,12 @@ BYTE value_print(DATA_PTR value, WORD indent) {
         return false;  // bad value
     }
     BYTE ok = parse_print(&parse, indent);
+#if HEXDUMP_ANNOTATION
+    if (indent && ((parse.prefix < 0x02) || (parse.prefix > 0x07))) {  // not Arrays or Objects
+        print(' '); print(' '); print('/'); print('/');
+        hexdump(parse.base + parse.start, parse.end - parse.start);
+    }
+#endif
     newline();
     return ok;
 };
