@@ -9,9 +9,9 @@
 #include "equiv.h"
 #include "sponsor.h"
 
-#define LOG_ALL // enable all logging
-//#define LOG_INFO
-//#define LOG_WARN
+//#define LOG_ALL // enable all logging
+#define LOG_INFO
+#define LOG_WARN
 #include "log.h"
 
 BYTE object_has(DATA_PTR object, DATA_PTR name) {

@@ -5,6 +5,7 @@
 
 #include "program.h"
 #include "bose.h"
+#include "actor.h"
 #include "equiv.h"
 #include "print.h"
 #include "abcm.h"
@@ -84,8 +85,9 @@ BYTE actor_eval(parse_t * parse, DATA_PTR * value_out) {  // evaluate actor expr
 }
 #else
 BYTE actor_eval(DATA_PTR expression, DATA_PTR * value) {  // evaluate actor expressions (expression -> value)
-    LOG_TRACE("actor_eval @", (WORD)actor_eval);
-    //if (!value_print(expression, 0)) return false;  // print failed!
+    LOG_TRACE("actor_eval: expression", (WORD)expression);
+    prints("  ");
+    if (!value_print(expression, 0)) return false;  // print failed!
     DATA_PTR kind;
     if (!object_get(expression, s_kind, &kind)) {
         LOG_WARN("actor_eval: missing 'kind' property", (WORD)expression);
@@ -98,11 +100,16 @@ BYTE actor_eval(DATA_PTR expression, DATA_PTR * value) {  // evaluate actor expr
             return false;  // missing property
         }
         *value = constant;
+    } else if (value_equiv(kind, k_actor_behavior)) {
+        *value = expression;  // self-evaluating expression
     } else {
         LOG_WARN("actor_eval: unknown 'kind' of expression", (WORD)kind);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
         *value = v_null;
     }
+    LOG_TRACE("actor_eval: value", (WORD)(*value));
+    prints("  -> ");
+    if (!value_print(*value, 0)) return false;  // print failed!
     return true;  // success!
 }
 #endif
@@ -165,13 +172,14 @@ BYTE actor_exec(parse_t * parse) {  // execute actor commands (action -> effects
 #else
 BYTE actor_exec(DATA_PTR command) {  // execute actor commands (action -> effects)
     LOG_TRACE("actor_exec @", (WORD)command);
-    if (!value_print(command, 0)) return false;  // print failed!
+    if (!value_print(command, 1)) return false;  // print failed!
     DATA_PTR kind;
     if (!object_get(command, s_kind, &kind)) {
         LOG_WARN("actor_exec: missing 'kind' property", (WORD)command);
         return false;  // missing property
     }
     if (value_equiv(kind, k_log_print)) {
+        // { "kind":"log_print", "level":<number>, "value":<expression> }  // --DEPRECATED--
         DATA_PTR expression;
         if (!object_get(command, s_value, &expression)) {
             LOG_DEBUG("actor_exec: missing 'value' property", (WORD)command);
@@ -180,6 +188,53 @@ BYTE actor_exec(DATA_PTR command) {  // execute actor commands (action -> effect
         DATA_PTR value;
         if (!actor_eval(expression, &value)) return false;  // evaluation failed!
         if (!value_print(value, 0)) return false;  // print failed
+    } else if (value_equiv(kind, k_actor_send)) {
+        // { "kind":"actor_send", "message":<dictionary>, "actor":<address> }
+        LOG_TRACE("actor_exec: send action", (WORD)kind);
+        DATA_PTR message;
+        if (!object_get(command, s_message, &message)) {
+            LOG_DEBUG("actor_exec: missing 'message' property", (WORD)command);
+            return false;  // missing property
+        }
+        DATA_PTR value;
+        if (!actor_eval(message, &value)) {
+            LOG_INFO("actor_exec: bad message!", (WORD)message);
+            return false;  // evaluation failed!
+        }
+        DATA_PTR actor;
+        if (!object_get(command, s_actor, &actor)) {
+            LOG_DEBUG("actor_exec: missing 'actor' property", (WORD)command);
+            return false;  // missing property
+        }
+        DATA_PTR target;
+        if (!actor_eval(actor, &target)) {
+            LOG_INFO("actor_exec: bad actor!", (WORD)actor);
+            return false;  // evaluation failed!
+        }
+        if (!actor_send(target, value)) {
+            LOG_INFO("actor_exec: send failed!", (WORD)command);
+            return false;  // evaluation failed!
+        }
+    } else if (value_equiv(kind, k_actor_ignore)) {
+        // { "kind":"actor_ignore" }
+        LOG_DEBUG("actor_exec: ignore action", (WORD)kind);
+    } else if (value_equiv(kind, k_actor_fail)) {
+        // { "kind":"actor_fail", "error":<expression> }
+        DATA_PTR expression;
+        if (!object_get(command, s_error, &expression)) {
+            LOG_DEBUG("actor_exec: missing 'error' property", (WORD)command);
+            return false;  // missing property
+        }
+        DATA_PTR value;
+        if (!actor_eval(expression, &value)) {
+            LOG_INFO("actor_exec: DOUBLE-FAULT!", (WORD)expression);
+            if (!value_print(expression, 0)) return false;  // print failed
+            return false;  // evaluation failed!
+        }
+        // FIXME: probably want this to be a WARN, and not always print the error value...
+        LOG_INFO("actor_exec: FAIL!", (WORD)value);
+        if (!value_print(value, 0)) return false;  // print failed
+        return false;  // force failure!
     } else {
         LOG_WARN("actor_exec: unknown 'kind' of command", (WORD)kind);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...

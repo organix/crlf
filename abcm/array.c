@@ -8,9 +8,9 @@
 #include "bose.h"
 #include "sponsor.h"
 
-#define LOG_ALL // enable all logging
-//#define LOG_INFO
-//#define LOG_WARN
+//#define LOG_ALL // enable all logging
+#define LOG_INFO
+#define LOG_WARN
 #include "log.h"
 
 BYTE array_length(DATA_PTR array, WORD * length) {

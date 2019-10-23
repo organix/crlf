@@ -69,13 +69,16 @@ BYTE k_actor_ignore[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'i', 'g', 'n
 BYTE k_actor_assign[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'a', 's', 's', 'i', 'g', 'n' };
 BYTE k_actor_fail[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 'f', 'a', 'i', 'l' };
 BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };
+BYTE k_actor_behavior[] = { utf8, n_14, 'a', 'c', 't', 'o', 'r', '_', 'b', 'e', 'h', 'a', 'v', 'i', 'o', 'r' };
+BYTE k_actor_create[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'c', 'r', 'e', 'a', 't', 'e' };
+BYTE k_actor_self[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 's', 'e', 'l', 'f' };
 BYTE k_expr_literal[] = { utf8, n_12, 'e', 'x', 'p', 'r', '_', 'l', 'i', 't', 'e', 'r', 'a', 'l' };
 
 int start_abcm() {  // ok == 0, fail != 0
     int result = 0;
-    log_config.level = LOG_LEVEL_WARN;
+    //log_config.level = LOG_LEVEL_WARN;
     //log_config.level = LOG_LEVEL_DEBUG;
-    //log_config.level = LOG_LEVEL_TRACE+1;
+    log_config.level = LOG_LEVEL_TRACE+1;
 
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
     LOG_INFO(_semver, (WORD)_semver);

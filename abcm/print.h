@@ -7,6 +7,7 @@
 #include "bose.h"
 
 void print(WORD unicode);
+void prints(char * cstring);
 void newline();
 
 BYTE parse_print(parse_t * parse, WORD indent);

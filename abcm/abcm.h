@@ -36,6 +36,9 @@ extern BYTE k_actor_ignore[];
 extern BYTE k_actor_assign[];
 extern BYTE k_actor_fail[];
 extern BYTE k_log_print[];  // --DEPRECATED--
+extern BYTE k_actor_behavior[];
+extern BYTE k_actor_create[];
+extern BYTE k_actor_self[];
 extern BYTE k_expr_literal[];
 
 int start_abcm();  // ok == 0, fail != 0
