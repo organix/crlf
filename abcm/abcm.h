@@ -21,6 +21,7 @@ extern BYTE s_events[];
 extern BYTE s_script[];
 extern BYTE s_message[];
 extern BYTE s_actor[];
+extern BYTE s_state[];
 extern BYTE s_behavior[];
 extern BYTE s_name[];
 extern BYTE s_value[];

@@ -13,8 +13,6 @@
 #define LOG_ALL // enable all logging
 #include "log.h"
 
-#define USE_PARSE_CURSOR 0 /* maintain `parse_t *` navigation through program structure */
-
 #if !USE_PARSE_CURSOR
 #include "array.h"
 #include "object.h"
@@ -84,6 +82,19 @@ BYTE actor_eval(parse_t * parse, DATA_PTR * value_out) {  // evaluate actor expr
     return true;  // success!
 }
 #else
+static BYTE property_eval(DATA_PTR object, DATA_PTR name, DATA_PTR * value) {  // evaluate a expression found in the named object property
+    LOG_TRACE("property_eval: object =", (WORD)object);
+    DATA_PTR expression;
+    if (!object_get(object, name, &expression)) {
+        LOG_DEBUG("property_eval: missing property", (WORD)name);
+        return false;  // missing property
+    }
+    if (!actor_eval(expression, value)) {
+        LOG_WARN("property_eval: bad expression!", (WORD)expression);
+        return false;  // evaluation failed!
+    }
+    return true;  // success!
+}
 BYTE actor_eval(DATA_PTR expression, DATA_PTR * value) {  // evaluate actor expressions (expression -> value)
     LOG_TRACE("actor_eval: expression", (WORD)expression);
     prints("  ");
@@ -94,13 +105,30 @@ BYTE actor_eval(DATA_PTR expression, DATA_PTR * value) {  // evaluate actor expr
         return false;  // missing property
     }
     if (value_equiv(kind, k_expr_literal)) {
+        // { "kind":"expr_literal", "const":<value> }
+        LOG_DEBUG("actor_eval: literal expression", (WORD)kind);
         DATA_PTR constant;
         if (!object_get(expression, s_const, &constant)) {
             LOG_DEBUG("actor_eval: missing 'const' property", (WORD)expression);
             return false;  // missing property
         }
         *value = constant;
+    } else if (value_equiv(kind, k_actor_create)) {
+        // { "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
+        LOG_DEBUG("actor_eval: create expression", (WORD)kind);
+        DATA_PTR state;
+        if (!property_eval(expression, s_state, &state)) return false;  // evaluation failed!
+        DATA_PTR behavior;
+        if (!property_eval(expression, s_behavior, &behavior)) return false;  // evaluation failed!
+        DATA_PTR actor;
+        if (!actor_create(state, behavior, &actor)) {
+            LOG_WARN("actor_eval: create failed!", (WORD)expression);
+            return false;  // create failed!
+        }
+        *value = actor;
     } else if (value_equiv(kind, k_actor_behavior)) {
+        // { "kind":"actor_behavior", "name":<string>, "script":[<action>, ...] }
+        LOG_DEBUG("actor_eval: behavior expression", (WORD)kind);
         *value = expression;  // self-evaluating expression
     } else {
         LOG_WARN("actor_eval: unknown 'kind' of expression", (WORD)kind);
@@ -135,6 +163,7 @@ BYTE actor_exec(parse_t * parse) {  // execute actor commands (action -> effects
     LOG_TRACE("actor_exec: found 'kind' property", prop_parse.start);
     DATA_PTR kind = prop_parse.base + prop_parse.start;
     if (value_equiv(kind, k_log_print)) {
+        LOG_DEBUG("actor_exec: print action", (WORD)kind);
         prop_parse.start = 0;  // search from beginning of properties
         if (!object_get_property(&prop_parse, s_value)) {
             LOG_DEBUG("actor_exec: missing 'value' property @", (WORD)s_value);
@@ -144,8 +173,9 @@ BYTE actor_exec(parse_t * parse) {  // execute actor commands (action -> effects
         if (!actor_eval(&prop_parse, &value)) return false;  // evaluation failed!
         if (!value_print(value, 0)) return false;  // print failed
     } else if (value_equiv(kind, k_actor_ignore)) {
-        LOG_DEBUG("actor_exec: ignore action @", (WORD)k_actor_ignore);
+        LOG_DEBUG("actor_exec: ignore action", (WORD)kind);
     } else if (value_equiv(kind, k_actor_fail)) {
+        LOG_DEBUG("actor_exec: fail action", (WORD)kind);
         prop_parse.start = 0;  // search from beginning of properties
         if (!object_get_property(&prop_parse, s_value)) {
             LOG_DEBUG("actor_exec: missing 'value' property @", (WORD)s_value);
@@ -171,7 +201,7 @@ BYTE actor_exec(parse_t * parse) {  // execute actor commands (action -> effects
 }
 #else
 BYTE actor_exec(DATA_PTR command) {  // execute actor commands (action -> effects)
-    LOG_TRACE("actor_exec @", (WORD)command);
+    LOG_TRACE("actor_exec: command", (WORD)command);
     if (!value_print(command, 1)) return false;  // print failed!
     DATA_PTR kind;
     if (!object_get(command, s_kind, &kind)) {
@@ -180,60 +210,42 @@ BYTE actor_exec(DATA_PTR command) {  // execute actor commands (action -> effect
     }
     if (value_equiv(kind, k_log_print)) {
         // { "kind":"log_print", "level":<number>, "value":<expression> }  // --DEPRECATED--
-        DATA_PTR expression;
-        if (!object_get(command, s_value, &expression)) {
-            LOG_DEBUG("actor_exec: missing 'value' property", (WORD)command);
-            return false;  // missing property
-        }
+        LOG_DEBUG("actor_exec: print action", (WORD)kind);
         DATA_PTR value;
-        if (!actor_eval(expression, &value)) return false;  // evaluation failed!
+        if (!property_eval(command, s_value, &value)) return false;  // evaluation failed!
         if (!value_print(value, 0)) return false;  // print failed
     } else if (value_equiv(kind, k_actor_send)) {
         // { "kind":"actor_send", "message":<dictionary>, "actor":<address> }
-        LOG_TRACE("actor_exec: send action", (WORD)kind);
-        DATA_PTR message;
-        if (!object_get(command, s_message, &message)) {
-            LOG_DEBUG("actor_exec: missing 'message' property", (WORD)command);
-            return false;  // missing property
-        }
-        DATA_PTR value;
-        if (!actor_eval(message, &value)) {
-            LOG_INFO("actor_exec: bad message!", (WORD)message);
-            return false;  // evaluation failed!
-        }
+        LOG_DEBUG("actor_exec: send action", (WORD)kind);
         DATA_PTR actor;
-        if (!object_get(command, s_actor, &actor)) {
-            LOG_DEBUG("actor_exec: missing 'actor' property", (WORD)command);
-            return false;  // missing property
+        if (!property_eval(command, s_actor, &actor)) return false;  // evaluation failed!
+/*
+        if (value_equiv(actor, v_null)) {  // shortcut -- if actor is null, don't even evaluate message...
+            LOG_INFO("actor_exec: ignoring message to null.", null);
+            return true;  // success!
         }
-        DATA_PTR target;
-        if (!actor_eval(actor, &target)) {
-            LOG_INFO("actor_exec: bad actor!", (WORD)actor);
-            return false;  // evaluation failed!
-        }
-        if (!actor_send(target, value)) {
-            LOG_INFO("actor_exec: send failed!", (WORD)command);
-            return false;  // evaluation failed!
+*/
+        DATA_PTR message;
+        if (!property_eval(command, s_message, &message)) return false;  // evaluation failed!
+        if (!actor_send(actor, message)) {
+            LOG_WARN("actor_exec: send failed!", (WORD)command);
+            return false;  // send failed!
         }
     } else if (value_equiv(kind, k_actor_ignore)) {
         // { "kind":"actor_ignore" }
         LOG_DEBUG("actor_exec: ignore action", (WORD)kind);
     } else if (value_equiv(kind, k_actor_fail)) {
         // { "kind":"actor_fail", "error":<expression> }
-        DATA_PTR expression;
-        if (!object_get(command, s_error, &expression)) {
-            LOG_DEBUG("actor_exec: missing 'error' property", (WORD)command);
-            return false;  // missing property
-        }
-        DATA_PTR value;
-        if (!actor_eval(expression, &value)) {
-            LOG_INFO("actor_exec: DOUBLE-FAULT!", (WORD)expression);
-            if (!value_print(expression, 0)) return false;  // print failed
+        LOG_DEBUG("actor_exec: fail action", (WORD)kind);
+        DATA_PTR error;
+        if (!property_eval(command, s_error, &error)) {
+            LOG_INFO("actor_exec: DOUBLE-FAULT!", (WORD)command);
+            if (!value_print(command, 0)) return false;  // print failed
             return false;  // evaluation failed!
         }
         // FIXME: probably want this to be a WARN, and not always print the error value...
-        LOG_INFO("actor_exec: FAIL!", (WORD)value);
-        if (!value_print(value, 0)) return false;  // print failed
+        LOG_INFO("actor_exec: FAIL!", (WORD)error);
+        if (!value_print(error, 0)) return false;  // print failed
         return false;  // force failure!
     } else {
         LOG_WARN("actor_exec: unknown 'kind' of command", (WORD)kind);

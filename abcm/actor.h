@@ -21,6 +21,7 @@
     { "kind":"actor_message" }
 */
 
+BYTE actor_create(DATA_PTR state, DATA_PTR behavior, DATA_PTR * actor);
 BYTE actor_send(DATA_PTR actor, DATA_PTR message);
 
 #endif // _ACTOR_H_

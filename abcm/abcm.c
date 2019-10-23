@@ -21,6 +21,7 @@ BYTE s_events[] = { utf8, n_6, 'e', 'v', 'e', 'n', 't', 's' };
 BYTE s_script[] = { utf8, n_6, 's', 'c', 'r', 'i', 'p', 't' };
 BYTE s_message[] = { utf8, n_7, 'm', 'e', 's', 's', 'a', 'g', 'e' };
 BYTE s_actor[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r' };
+BYTE s_state[] = { utf8, n_5, 's', 't', 'a', 't', 'e' };
 BYTE s_behavior[] = { utf8, n_8, 'b', 'e', 'h', 'a', 'v', 'i', 'o', 'r' };
 BYTE s_name[] = { utf8, n_4, 'n', 'a', 'm', 'e' };
 BYTE s_value[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e' };
