@@ -77,9 +77,9 @@ BYTE k_expr_literal[] = { utf8, n_12, 'e', 'x', 'p', 'r', '_', 'l', 'i', 't', 'e
 
 int start_abcm() {  // ok == 0, fail != 0
     int result = 0;
-    //log_config.level = LOG_LEVEL_WARN;
+    log_config.level = LOG_LEVEL_WARN;
     //log_config.level = LOG_LEVEL_DEBUG;
-    log_config.level = LOG_LEVEL_TRACE+1;
+    //log_config.level = LOG_LEVEL_TRACE+1;
 
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
     LOG_INFO(_semver, (WORD)_semver);
