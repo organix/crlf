@@ -129,12 +129,10 @@ BYTE actor_exec(sponsor_t * sponsor, DATA_PTR command) {
         LOG_DEBUG("actor_exec: send action", (WORD)kind);
         DATA_PTR address;
         if (!property_eval(sponsor, command, s_actor, &address)) return false;  // evaluation failed!
-/*
         if (value_equiv(address, v_null)) {  // shortcut -- if address is null, don't even evaluate message...
             LOG_INFO("actor_exec: ignoring message to null.", null);
             return true;  // success!
         }
-*/
         DATA_PTR message;
         if (!property_eval(sponsor, command, s_message, &message)) return false;  // evaluation failed!
         if (!sponsor_send(sponsor, address, message)) {

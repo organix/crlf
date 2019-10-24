@@ -7,8 +7,10 @@
 #include "sponsor.h"
 #include "bose.h"
 #include "pool.h"
+#include "object.h"
 #include "equiv.h"
 #include "print.h"
+#include "abcm.h"
 
 #define LOG_ALL // enable all logging
 //#define LOG_INFO
@@ -20,10 +22,24 @@
  */
 
 typedef struct {
+    BYTE        capability[5];
+    DATA_PTR    state;
+    DATA_PTR    behavior;
+} actor_t;
+
+typedef struct {
+    DATA_PTR    address;
+    DATA_PTR    message;
+} event_t;
+
+typedef struct {
     sponsor_t   sponsor;        // super-type member
     WORD        actors;         // actor creation limit
     WORD        events;         // message-send event limit
     pool_t *    work_pool;      // temporary working-memory pool
+    actor_t *   actor;          // actor roster
+    event_t *   event;          // event queue
+    WORD        current;        // current-event index
     DATA_PTR    error;          // error value, or NULL if none
 } bounded_sponsor_t;
 
@@ -37,8 +53,40 @@ static BYTE bounded_sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR
     if (!value_print(state, 0)) return false;  // print failed!
     LOG_TRACE("bounded_sponsor_create: behavior =", (WORD)behavior);
     if (!value_print(behavior, 0)) return false;  // print failed!
-    *address = v_null;  // FIXME: FINISH IMPLEMENTATION!
-    LOG_WARN("bounded_sponsor_create: not implemented!", true);
+    WORD ocap = --THIS->actors;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_send: ocap =", ocap);
+    actor_t * actor = &THIS->actor[ocap];
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_create: actor =", (WORD)actor);
+    actor->capability[0] = octets;      // binary octet data
+    actor->capability[1] = n_3;         // size field (3 bytes)
+    actor->capability[2] = 0x10;        // capability marker (DLE)
+    actor->capability[3] = ocap & 0xFF; // capability (LSB)
+    actor->capability[4] = ocap >> 8;   // capability (MSB)
+    COPY(&actor->state, state);
+    COPY(&actor->behavior, behavior);
+    *address = actor->capability;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_create: address =", (WORD)*address);
+    if (!value_print(*address, 0)) return false;  // print failed!
+#if 0
+    // start with nothing
+    DATA_PTR object;
+    DATA_PTR result;
+    assert(COPY(&object, o_));
+    // bind "behavior"
+    assert(object_add(sponsor, object, s_behavior, actor->behavior, &result));
+    assert(RELEASE(&object));
+    object = result;
+    // bind "state"
+    assert(object_add(sponsor, object, s_state, actor->state, &result));
+    assert(RELEASE(&object));
+    object = result;
+    // bind "actor"
+    assert(object_add(sponsor, object, s_actor, actor->capability, &result));
+    assert(RELEASE(&object));
+    object = result;
+    if (!value_print(object, 1)) return false;  // print failed!
+    assert(RELEASE(&object));
+#endif
     return true;  // success!
 }
 
@@ -49,6 +97,7 @@ static BYTE bounded_sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR
         return false;  // no more message-send events!
     }
     LOG_TRACE("bounded_sponsor_send: address =", (WORD)address);
+    if (!value_print(address, 0)) return false;  // print failed!
     LOG_TRACE("bounded_sponsor_send: message =", (WORD)message);
     if (!value_print(message, 0)) return false;  // print failed!
     if (value_equiv(address, v_null)) {
@@ -56,9 +105,19 @@ static BYTE bounded_sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR
         // FIXME: we may want to catch this case earlier, and avoid evaluating the message expression...
         return true;  // success!
     }
+#if 0
     // FIXME: FINISH IMPLEMENTATION!
     LOG_WARN("bounded_sponsor_send: not implemented!", false);
     return false;  // failed!
+#else
+    WORD current = --THIS->events;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_send: current =", current);
+    event_t * event = &THIS->event[current];
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_send: event =", (WORD)event);
+    COPY(&event->address, address);
+    COPY(&event->message, message);
+    return true;  // success!
+#endif
 }
 
 static BYTE bounded_sponsor_become(sponsor_t * sponsor, DATA_PTR behavior) {
@@ -96,12 +155,25 @@ static BYTE bounded_sponsor_release(sponsor_t * sponsor, DATA_PTR * data) {
 }
 
 sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * work_pool) {
+    LOG_TRACE("new_bounded_sponsor: actors =", actors);
+    if (actors > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but this code depends on it.
+        LOG_WARN("new_bounded_sponsor: too many actors!", 0xFFFF);
+        return NULL;  // too many actors!
+    }
+    LOG_TRACE("new_bounded_sponsor: events =", events);
+    if (events > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but this code depends on it.
+        LOG_WARN("new_bounded_sponsor: too many events!", 0xFFFF);
+        return NULL;  // too many events!
+    }
     DATA_PTR data = NULL;
     if (!pool_reserve(heap_pool, &data, sizeof(bounded_sponsor_t))) return NULL;  // allocation failure!
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)data;
     THIS->actors = actors;
     THIS->events = events;
     THIS->work_pool = work_pool;
+    if (actors && !pool_reserve(heap_pool, (DATA_PTR *)&THIS->actor, sizeof(actor_t) * actors)) return NULL;  // allocation failure!
+    if (events && !pool_reserve(heap_pool, (DATA_PTR *)&THIS->event, sizeof(event_t) * events)) return NULL;  // allocation failure!
+    THIS->current = events;
     THIS->error = NULL;
     THIS->sponsor.create = bounded_sponsor_create;
     THIS->sponsor.send = bounded_sponsor_send;

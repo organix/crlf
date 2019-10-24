@@ -140,6 +140,12 @@ static BYTE number_print(parse_t * parse) {
 static BYTE string_print(parse_t * parse) {
     // print parsed value known to be a String
     assert(parse->start < (parse->end - parse->value));
+    if (parse->type & T_Capability) {
+        print('<');
+        hexdump(parse->base + (parse->end - parse->value), parse->value);
+        prints(" >");
+        return true;  // success!
+    }
     print('"');
     parse_t code_parse = {
         .base = parse->base + (parse->end - parse->value),  // start of codepoint data
