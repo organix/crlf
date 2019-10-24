@@ -7,6 +7,8 @@
 #include "sponsor.h"
 #include "bose.h"
 #include "pool.h"
+#include "equiv.h"
+#include "print.h"
 
 #define LOG_ALL // enable all logging
 //#define LOG_INFO
@@ -19,33 +21,58 @@
 
 typedef struct {
     sponsor_t   sponsor;        // super-type member
-    DATA_PTR    actors;         // actor creation limit
-    DATA_PTR    events;         // message-send event limit
+    WORD        actors;         // actor creation limit
+    WORD        events;         // message-send event limit
     pool_t *    work_pool;      // temporary working-memory pool
+    DATA_PTR    error;          // error value, or NULL if none
 } bounded_sponsor_t;
 
-static BYTE bounded_sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior) {
+static BYTE bounded_sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
-    if (THIS) return false;  // unimplemented failure
-    return true;
+    if (THIS->actors < 1) {
+        LOG_WARN("bounded_sponsor_create: no more actors!", (WORD)THIS);
+        return false;  // no more actors!
+    }
+    LOG_TRACE("bounded_sponsor_create: state =", (WORD)state);
+    if (!value_print(state, 0)) return false;  // print failed!
+    LOG_TRACE("bounded_sponsor_create: behavior =", (WORD)behavior);
+    if (!value_print(behavior, 0)) return false;  // print failed!
+    *address = v_null;  // FIXME: FINISH IMPLEMENTATION!
+    LOG_WARN("bounded_sponsor_create: not implemented!", true);
+    return true;  // success!
 }
 
 static BYTE bounded_sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
-    if (THIS) return false;  // unimplemented failure
-    return true;
+    if (THIS->events < 1) {
+        LOG_WARN("bounded_sponsor_create: no more message-send events!", (WORD)THIS);
+        return false;  // no more message-send events!
+    }
+    LOG_TRACE("bounded_sponsor_send: address =", (WORD)address);
+    LOG_TRACE("bounded_sponsor_send: message =", (WORD)message);
+    if (!value_print(message, 0)) return false;  // print failed!
+    if (value_equiv(address, v_null)) {
+        LOG_INFO("bounded_sponsor_send: ignoring message to null.", (WORD)message);
+        // FIXME: we may want to catch this case earlier, and avoid evaluating the message expression...
+        return true;  // success!
+    }
+    // FIXME: FINISH IMPLEMENTATION!
+    LOG_WARN("bounded_sponsor_send: not implemented!", false);
+    return false;  // failed!
 }
 
 static BYTE bounded_sponsor_become(sponsor_t * sponsor, DATA_PTR behavior) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
     if (THIS) return false;  // unimplemented failure
-    return true;
+    return true;  // success!
 }
 
 static BYTE bounded_sponsor_fail(sponsor_t * sponsor, DATA_PTR error) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
-    if (THIS) return false;  // unimplemented failure
-    return true;
+    LOG_TRACE("bounded_sponsor_fail: error =", (WORD)error);
+    THIS->error = error;
+    if (!value_print(error, 0)) return false;  // print failed
+    return true;  // success!
 }
 
 static BYTE bounded_sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD size) {
@@ -68,13 +95,14 @@ static BYTE bounded_sponsor_release(sponsor_t * sponsor, DATA_PTR * data) {
     return pool_release(THIS->work_pool, data);
 }
 
-sponsor_t * new_bounded_sponsor(DATA_PTR actors, DATA_PTR events, pool_t * work_pool) {
+sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * work_pool) {
     DATA_PTR data = NULL;
     if (!pool_reserve(heap_pool, &data, sizeof(bounded_sponsor_t))) return NULL;  // allocation failure!
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)data;
-    if(!pool_copy(heap_pool, &THIS->actors, actors)) return NULL;  // copy failure!
-    if(!pool_copy(heap_pool, &THIS->events, events)) return NULL;  // copy failure!
+    THIS->actors = actors;
+    THIS->events = events;
     THIS->work_pool = work_pool;
+    THIS->error = NULL;
     THIS->sponsor.create = bounded_sponsor_create;
     THIS->sponsor.send = bounded_sponsor_send;
     THIS->sponsor.become = bounded_sponsor_become;
@@ -90,8 +118,8 @@ sponsor_t * new_bounded_sponsor(DATA_PTR actors, DATA_PTR events, pool_t * work_
  * polymorphic dispatch functions
  */
 
-inline BYTE sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior) {
-    return sponsor->create(sponsor, state, behavior);
+inline BYTE sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
+    return sponsor->create(sponsor, state, behavior, address);
 }
 
 inline BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message) {

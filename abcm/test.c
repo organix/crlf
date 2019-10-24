@@ -542,7 +542,7 @@ static int test_value_equiv() {
 }
 
 static int test_sponsor() {
-    sponsor_t * sponsor = new_bounded_sponsor(i_0, i_0, heap_pool);
+    sponsor_t * sponsor = new_bounded_sponsor(0, 0, heap_pool);
     assert(sponsor);
     LOG_DEBUG("test_sponsor: sponsor =", (WORD)sponsor);
 
@@ -630,7 +630,7 @@ ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
     BYTE data_13[] = { array, n_4, n_1, n_2, n_0, n_3 };
     BYTE data_14[] = { array, n_4, n_1, n_2, n_3, n_0 };
 
-    sponsor_t * sponsor = new_bounded_sponsor(i_0, i_0, heap_pool);
+    sponsor_t * sponsor = new_bounded_sponsor(0, 0, heap_pool);
     assert(sponsor);
     LOG_DEBUG("test_array: sponsor =", (WORD)sponsor);
 
@@ -751,7 +751,7 @@ BIND "kind" TO 0 WITH {"name":null, "kind":"actor_assign"}
         utf8, n_4, 'n', 'a', 'm', 'e', null,
         utf16, n_8, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd', n_0 };
 
-    sponsor_t * sponsor = new_bounded_sponsor(i_0, i_0, heap_pool);
+    sponsor_t * sponsor = new_bounded_sponsor(0, 0, heap_pool);
     assert(sponsor);
     LOG_DEBUG("test_array: sponsor =", (WORD)sponsor);
 

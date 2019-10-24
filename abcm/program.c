@@ -5,7 +5,6 @@
 
 #include "program.h"
 #include "bose.h"
-#include "actor.h"
 #include "array.h"
 #include "object.h"
 #include "equiv.h"
@@ -49,14 +48,14 @@ BYTE bootstrap[] = {
 };
 
 // evaluate expression found in named object property
-static BYTE property_eval(DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
+static BYTE property_eval(sponsor_t * sponsor, DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
     LOG_TRACE("property_eval: object =", (WORD)object);
     DATA_PTR expression;
     if (!object_get(object, name, &expression)) {
         LOG_DEBUG("property_eval: missing property", (WORD)name);
         return false;  // missing property
     }
-    if (!actor_eval(expression, value)) {
+    if (!actor_eval(sponsor, expression, value)) {
         LOG_WARN("property_eval: bad expression!", (WORD)expression);
         return false;  // evaluation failed!
     }
@@ -64,7 +63,7 @@ static BYTE property_eval(DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
 }
 
 // evaluate actor expression (expression -> value)
-BYTE actor_eval(DATA_PTR expression, DATA_PTR * value) {
+BYTE actor_eval(sponsor_t * sponsor, DATA_PTR expression, DATA_PTR * value) {
     LOG_TRACE("actor_eval: expression", (WORD)expression);
     prints("  ");
     if (!value_print(expression, 0)) return false;  // print failed!
@@ -86,15 +85,15 @@ BYTE actor_eval(DATA_PTR expression, DATA_PTR * value) {
         // { "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
         LOG_DEBUG("actor_eval: create expression", (WORD)kind);
         DATA_PTR state;
-        if (!property_eval(expression, s_state, &state)) return false;  // evaluation failed!
+        if (!property_eval(sponsor, expression, s_state, &state)) return false;  // evaluation failed!
         DATA_PTR behavior;
-        if (!property_eval(expression, s_behavior, &behavior)) return false;  // evaluation failed!
-        DATA_PTR actor;
-        if (!actor_create(state, behavior, &actor)) {
+        if (!property_eval(sponsor, expression, s_behavior, &behavior)) return false;  // evaluation failed!
+        DATA_PTR address;
+        if (!sponsor_create(sponsor, state, behavior, &address)) {
             LOG_WARN("actor_eval: create failed!", (WORD)expression);
             return false;  // create failed!
         }
-        *value = actor;
+        *value = address;
     } else if (value_equiv(kind, k_actor_behavior)) {
         // { "kind":"actor_behavior", "name":<string>, "script":[<action>, ...] }
         LOG_DEBUG("actor_eval: behavior expression", (WORD)kind);
@@ -111,7 +110,7 @@ BYTE actor_eval(DATA_PTR expression, DATA_PTR * value) {
 }
 
 // execute actor command (action -> effects)
-BYTE actor_exec(DATA_PTR command) {
+BYTE actor_exec(sponsor_t * sponsor, DATA_PTR command) {
     LOG_TRACE("actor_exec: command", (WORD)command);
     if (!value_print(command, 1)) return false;  // print failed!
     DATA_PTR kind;
@@ -123,22 +122,22 @@ BYTE actor_exec(DATA_PTR command) {
         // { "kind":"log_print", "level":<number>, "value":<expression> }  // --DEPRECATED--
         LOG_DEBUG("actor_exec: print action", (WORD)kind);
         DATA_PTR value;
-        if (!property_eval(command, s_value, &value)) return false;  // evaluation failed!
+        if (!property_eval(sponsor, command, s_value, &value)) return false;  // evaluation failed!
         if (!value_print(value, 0)) return false;  // print failed
     } else if (value_equiv(kind, k_actor_send)) {
         // { "kind":"actor_send", "message":<dictionary>, "actor":<address> }
         LOG_DEBUG("actor_exec: send action", (WORD)kind);
-        DATA_PTR actor;
-        if (!property_eval(command, s_actor, &actor)) return false;  // evaluation failed!
+        DATA_PTR address;
+        if (!property_eval(sponsor, command, s_actor, &address)) return false;  // evaluation failed!
 /*
-        if (value_equiv(actor, v_null)) {  // shortcut -- if actor is null, don't even evaluate message...
+        if (value_equiv(address, v_null)) {  // shortcut -- if address is null, don't even evaluate message...
             LOG_INFO("actor_exec: ignoring message to null.", null);
             return true;  // success!
         }
 */
         DATA_PTR message;
-        if (!property_eval(command, s_message, &message)) return false;  // evaluation failed!
-        if (!actor_send(actor, message)) {
+        if (!property_eval(sponsor, command, s_message, &message)) return false;  // evaluation failed!
+        if (!sponsor_send(sponsor, address, message)) {
             LOG_WARN("actor_exec: send failed!", (WORD)command);
             return false;  // send failed!
         }
@@ -149,14 +148,14 @@ BYTE actor_exec(DATA_PTR command) {
         // { "kind":"actor_fail", "error":<expression> }
         LOG_DEBUG("actor_exec: fail action", (WORD)kind);
         DATA_PTR error;
-        if (!property_eval(command, s_error, &error)) {
+        if (!property_eval(sponsor, command, s_error, &error)) {
             LOG_INFO("actor_exec: DOUBLE-FAULT!", (WORD)command);
             if (!value_print(command, 0)) return false;  // print failed
             return false;  // evaluation failed!
         }
         // FIXME: probably want this to be a WARN, and not always print the error value...
         LOG_INFO("actor_exec: FAIL!", (WORD)error);
-        if (!value_print(error, 0)) return false;  // print failed
+        sponsor_fail(sponsor, error);
         return false;  // force failure!
     } else {
         LOG_WARN("actor_exec: unknown 'kind' of command", (WORD)kind);
@@ -169,7 +168,7 @@ BYTE actor_exec(DATA_PTR command) {
  * WARNING! All the `run_...` procedures return 0 on success, and 1 on failure. (not true/false)
  */
 
-int run_actor_script(DATA_PTR script) {
+int run_actor_script(sponsor_t * sponsor, DATA_PTR script) {
     LOG_TRACE("run_actor_script @", (WORD)script);
     //if (!value_print(script, 1)) return 1;  // print failed!
     WORD length;
@@ -186,7 +185,7 @@ int run_actor_script(DATA_PTR script) {
             LOG_WARN("run_actor_script: command object required!", (WORD)command);
             return 1;  // command object required!
         }
-        if (!actor_exec(command)) {
+        if (!actor_exec(sponsor, command)) {
             LOG_WARN("run_actor_script: failed executing command!", (WORD)command);
             return 1;  // failed executing command!
         }
@@ -212,7 +211,10 @@ int run_actor_config(DATA_PTR item) {
     DATA_PTR script;
     if (object_get(item, s_script, &script)) {
         LOG_INFO("run_actor_config: script =", (WORD)script);
-        return run_actor_script(script);
+        sponsor_t * sponsor = new_bounded_sponsor(actors, events, heap_pool);
+        assert(sponsor);
+        LOG_DEBUG("run_actor_config: sponsor =", (WORD)sponsor);
+        return run_actor_script(sponsor, script);
     }
     return 1;  // failed!
 }

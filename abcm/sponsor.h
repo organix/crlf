@@ -27,7 +27,7 @@
 typedef struct sponsor_struct sponsor_t;
 typedef struct sponsor_struct {
 	// actor primitives
-	BYTE 		(*create)(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior);
+	BYTE 		(*create)(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
 	BYTE 		(*send)(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
 	BYTE 		(*become)(sponsor_t * sponsor, DATA_PTR behavior);
 	BYTE 		(*fail)(sponsor_t * sponsor, DATA_PTR error);
@@ -38,7 +38,7 @@ typedef struct sponsor_struct {
 	BYTE 		(*release)(sponsor_t * sponsor, DATA_PTR * data);
 } sponsor_t;
 
-BYTE sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior);
+BYTE sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
 BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
 BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior);
 BYTE sponsor_fail(sponsor_t * sponsor, DATA_PTR error);
@@ -48,7 +48,7 @@ BYTE sponsor_share(sponsor_t * sponsor, DATA_PTR * data);
 BYTE sponsor_copy(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
 BYTE sponsor_release(sponsor_t * sponsor, DATA_PTR * data);
 
-sponsor_t * new_bounded_sponsor(DATA_PTR actors, DATA_PTR events, pool_t * work_pool);
+sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * work_pool);
 
 BYTE audit_reserve(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, WORD size);
 BYTE audit_copy(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
