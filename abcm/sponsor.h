@@ -24,6 +24,17 @@
 #define TRACK(dp) (dp)
 #endif
 
+typedef struct {
+    BYTE        capability[8];
+    DATA_PTR    state;
+    DATA_PTR    behavior;
+} actor_t;
+
+typedef struct {
+    DATA_PTR    address;
+    DATA_PTR    message;
+} event_t;
+
 typedef struct sponsor_struct sponsor_t;
 typedef struct sponsor_struct {
 	BYTE 		(*dispatch)(sponsor_t * sponsor);

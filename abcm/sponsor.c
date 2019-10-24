@@ -23,17 +23,6 @@
  */
 
 typedef struct {
-    BYTE        capability[5];
-    DATA_PTR    state;
-    DATA_PTR    behavior;
-} actor_t;
-
-typedef struct {
-    DATA_PTR    address;
-    DATA_PTR    message;
-} event_t;
-
-typedef struct {
     sponsor_t   sponsor;        // super-type member
     WORD        actors;         // actor creation limit
     WORD        events;         // message-send event limit
@@ -82,14 +71,16 @@ static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
         LOG_WARN("bounded_sponsor_dispatch: bad actor!", (WORD)actor);
         return false;  // bad actor!
     }
+/*
     DATA_PTR script;
     if (!object_get(actor->behavior, s_script, &script)) {
         LOG_WARN("bounded_sponsor_dispatch: script required!", (WORD)actor->behavior);
         return false;  // script required!
     }
     LOG_DEBUG("bounded_sponsor_dispatch: script =", (WORD)script);
-    if (run_actor_script(sponsor, script) != 0) {
-        LOG_WARN("bounded_sponsor_dispatch: actor-script execution failed!", (WORD)script);
+*/
+    if (run_actor_script(sponsor, actor) != 0) {
+        LOG_WARN("bounded_sponsor_dispatch: actor-script execution failed!", (WORD)actor);
         return false;  // actor-script execution failed!
     }
 
