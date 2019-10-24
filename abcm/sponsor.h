@@ -26,6 +26,7 @@
 
 typedef struct sponsor_struct sponsor_t;
 typedef struct sponsor_struct {
+	BYTE 		(*dispatch)(sponsor_t * sponsor);
 	// actor primitives
 	BYTE 		(*create)(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
 	BYTE 		(*send)(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
@@ -38,6 +39,7 @@ typedef struct sponsor_struct {
 	BYTE 		(*release)(sponsor_t * sponsor, DATA_PTR * data);
 } sponsor_t;
 
+BYTE sponsor_dispatch(sponsor_t * sponsor);
 BYTE sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
 BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
 BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior);

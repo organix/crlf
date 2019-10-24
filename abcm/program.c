@@ -207,14 +207,21 @@ int run_actor_config(DATA_PTR item) {
         LOG_INFO("run_actor_config: events =", events);
     }
     DATA_PTR script;
-    if (object_get(item, s_script, &script)) {
-        LOG_INFO("run_actor_config: script =", (WORD)script);
-        sponsor_t * sponsor = new_bounded_sponsor(actors, events, heap_pool);
-        assert(sponsor);
-        LOG_DEBUG("run_actor_config: sponsor =", (WORD)sponsor);
-        return run_actor_script(sponsor, script);
+    if (!object_get(item, s_script, &script)) {
+        LOG_WARN("run_actor_config: script required!", (WORD)item);
+        return 1;  // script required!
     }
-    return 1;  // failed!
+    LOG_INFO("run_actor_config: script =", (WORD)script);
+    sponsor_t * sponsor = new_bounded_sponsor(actors, events, heap_pool);
+    assert(sponsor);
+    LOG_DEBUG("run_actor_config: sponsor =", (WORD)sponsor);
+    if (run_actor_script(sponsor, script) != 0) {
+        LOG_WARN("run_program: boot-script execution failed!", (WORD)item);
+        return 1;  // boot-script execution failed!
+    }
+    while (sponsor_dispatch(sponsor))  // dispatch message-events
+        ;
+    return 0;  // success!
 }
 
 int run_program(DATA_PTR program) {

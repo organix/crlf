@@ -7,6 +7,7 @@
 #include "sponsor.h"
 #include "bose.h"
 #include "pool.h"
+#include "program.h"
 #include "object.h"
 #include "equiv.h"
 #include "print.h"
@@ -43,6 +44,60 @@ typedef struct {
     DATA_PTR    error;          // error value, or NULL if none
 } bounded_sponsor_t;
 
+static actor_t * find_actor(sponsor_t * sponsor, DATA_PTR address) {
+    bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "find_actor: address =", (WORD)address);
+    if (!value_print(address, 1)) return NULL;  // print failed!
+    parse_t parse;
+    if (!value_parse(address, &parse)
+    ||  !(parse.type & T_Capability)) {
+        LOG_WARN("find_actor: bad address!", (WORD)address);
+        return NULL;  // bad address!
+    }
+    //DUMP_PARSE("find_actor: address", &parse);
+    WORD ocap = 0;
+    while (parse.value--) {
+        ocap <<= 8;
+        ocap |= parse.base[--parse.end];
+    }
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "find_actor: ocap =", ocap);
+    actor_t * actor = &THIS->actor[ocap];
+    LOG_LEVEL(LOG_LEVEL_TRACE, "find_actor: actor =", (WORD)actor);
+    return actor;
+}
+
+static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
+    bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
+    if (THIS->events == THIS->current) {
+        LOG_INFO("bounded_sponsor_dispatch: work completed.", (WORD)THIS);
+        return false;  // work completed.
+    }
+    WORD current = --THIS->current;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_dispatch: current =", current);
+    event_t * event = &THIS->event[current];
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_dispatch: event =", (WORD)event);
+
+    actor_t * actor = find_actor(sponsor, event->address);
+    if (!actor) {
+        LOG_WARN("bounded_sponsor_dispatch: bad actor!", (WORD)actor);
+        return false;  // bad actor!
+    }
+    DATA_PTR script;
+    if (!object_get(actor->behavior, s_script, &script)) {
+        LOG_WARN("bounded_sponsor_dispatch: script required!", (WORD)actor->behavior);
+        return false;  // script required!
+    }
+    LOG_DEBUG("bounded_sponsor_dispatch: script =", (WORD)script);
+    if (run_actor_script(sponsor, script) != 0) {
+        LOG_WARN("bounded_sponsor_dispatch: actor-script execution failed!", (WORD)script);
+        return false;  // actor-script execution failed!
+    }
+
+    if (!RELEASE(&event->address)) return false;  // reclamation failure!
+    if (!RELEASE(&event->message)) return false;  // reclamation failure!
+    return true;  // success!
+}
+
 static BYTE bounded_sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
     if (THIS->actors < 1) {
@@ -54,7 +109,7 @@ static BYTE bounded_sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR
     LOG_TRACE("bounded_sponsor_create: behavior =", (WORD)behavior);
     if (!value_print(behavior, 0)) return false;  // print failed!
     WORD ocap = --THIS->actors;
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_send: ocap =", ocap);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_create: ocap =", ocap);
     actor_t * actor = &THIS->actor[ocap];
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_create: actor =", (WORD)actor);
     actor->capability[0] = octets;      // binary octet data
@@ -62,8 +117,8 @@ static BYTE bounded_sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR
     actor->capability[2] = 0x10;        // capability marker (DLE)
     actor->capability[3] = ocap & 0xFF; // capability (LSB)
     actor->capability[4] = ocap >> 8;   // capability (MSB)
-    COPY(&actor->state, state);
-    COPY(&actor->behavior, behavior);
+    if (!COPY(&actor->state, state)) return false;  // allocation failure!
+    if (!COPY(&actor->behavior, behavior)) return false;  // allocation failure!
     *address = actor->capability;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_create: address =", (WORD)*address);
     if (!value_print(*address, 0)) return false;  // print failed!
@@ -93,23 +148,18 @@ static BYTE bounded_sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR
 static BYTE bounded_sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
     if (THIS->events < 1) {
-        LOG_WARN("bounded_sponsor_create: no more message-send events!", (WORD)THIS);
+        LOG_WARN("bounded_sponsor_send: no more message-send events!", (WORD)THIS);
         return false;  // no more message-send events!
     }
     LOG_TRACE("bounded_sponsor_send: address =", (WORD)address);
-    if (!value_print(address, 0)) return false;  // print failed!
+    if (!value_print(address, 1)) return false;  // print failed!
     LOG_TRACE("bounded_sponsor_send: message =", (WORD)message);
-    if (!value_print(message, 0)) return false;  // print failed!
+    if (!value_print(message, 1)) return false;  // print failed!
     if (value_equiv(address, v_null)) {
         LOG_INFO("bounded_sponsor_send: ignoring message to null.", (WORD)message);
         // FIXME: we may want to catch this case earlier, and avoid evaluating the message expression...
         return true;  // success!
     }
-#if 0
-    // FIXME: FINISH IMPLEMENTATION!
-    LOG_WARN("bounded_sponsor_send: not implemented!", false);
-    return false;  // failed!
-#else
     WORD current = --THIS->events;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_send: current =", current);
     event_t * event = &THIS->event[current];
@@ -117,7 +167,6 @@ static BYTE bounded_sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR
     COPY(&event->address, address);
     COPY(&event->message, message);
     return true;  // success!
-#endif
 }
 
 static BYTE bounded_sponsor_become(sponsor_t * sponsor, DATA_PTR behavior) {
@@ -175,6 +224,7 @@ sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * work_pool) {
     if (events && !pool_reserve(heap_pool, (DATA_PTR *)&THIS->event, sizeof(event_t) * events)) return NULL;  // allocation failure!
     THIS->current = events;
     THIS->error = NULL;
+    THIS->sponsor.dispatch = bounded_sponsor_dispatch;
     THIS->sponsor.create = bounded_sponsor_create;
     THIS->sponsor.send = bounded_sponsor_send;
     THIS->sponsor.become = bounded_sponsor_become;
@@ -189,6 +239,10 @@ sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * work_pool) {
 /*
  * polymorphic dispatch functions
  */
+
+inline BYTE sponsor_dispatch(sponsor_t * sponsor) {
+    return sponsor->dispatch(sponsor);
+}
 
 inline BYTE sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
     return sponsor->create(sponsor, state, behavior, address);

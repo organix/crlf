@@ -13,7 +13,7 @@
 #include "log.h"
 
 
-char * _semver = "0.0.3";
+char * _semver = "0.0.4";
 
 BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
 BYTE s_actors[] = { utf8, n_6, 'a', 'c', 't', 'o', 'r', 's' };

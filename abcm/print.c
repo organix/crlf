@@ -140,9 +140,14 @@ static BYTE number_print(parse_t * parse) {
 static BYTE string_print(parse_t * parse) {
     // print parsed value known to be a String
     assert(parse->start < (parse->end - parse->value));
-    if (parse->type & T_Capability) {
+    if (parse->prefix == octets) {  // was: (parse->type & T_Capability)
+        // special case: raw octets or capability data
         print('<');
-        hexdump(parse->base + (parse->end - parse->value), parse->value);
+        DATA_PTR data = parse->base + (parse->end - parse->value);
+        for (WORD i = 0; i < parse->value; ++i) {
+            print(' ');
+            hex_print(data[i]);
+        }
         prints(" >");
         return true;  // success!
     }
@@ -173,6 +178,12 @@ static BYTE array_print(parse_t * parse, WORD indent) {
     print('[');
     if (parse->value == 0) {  // empty array short-cut
         print(']');
+#if HEXDUMP_ANNOTATION
+        if (indent) {
+            prints("  //");
+            hexdump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
+        }
+#endif
         return true;
     }
     if (indent) {
@@ -224,6 +235,12 @@ static BYTE object_print(parse_t * parse, WORD indent) {
     print('{');
     if (parse->value == 0) {  // empty object short-cut
         print('}');
+#if HEXDUMP_ANNOTATION
+        if (indent) {
+            prints("  //");
+            hexdump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
+        }
+#endif
         return true;
     }
     if (indent) {

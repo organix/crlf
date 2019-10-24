@@ -50,7 +50,7 @@ static BYTE heap_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
     WORD size = parse.end - parse.start;  // parse_value determines the span of the value
     if (!heap_pool_reserve(pool, data, size)) return false;  // bad allocation!
     memcpy(*data, parse.base, size);
-    LOG_TRACE("heap_pool_copy: data @", (WORD)(*data));
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "heap_pool_copy: data @", (WORD)(*data));
     return true;
 }
 
@@ -61,7 +61,7 @@ static BYTE heap_pool_release(pool_t * pool, DATA_PTR * data) {
     if (p == NULL) return false;
     free(p);
     *data = NULL;  // destroy pointer to free'd memory
-    LOG_TRACE("heap_pool_release: data =", (WORD)(*data));
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "heap_pool_release: data =", (WORD)(*data));
     return true;
 }
 
