@@ -37,21 +37,37 @@ For now we'll make these all responsibilities of the event, with help from the s
 
 **/
 
+BYTE event_init_scope(sponsor_t * sponsor, event_t * event, actor_t * actor, DATA_PTR state) {
+    actor->scope.parent = &event->actor->scope;
+    if (!COPY(&actor->scope.state, state)) return false;  // allocation failure!
+    return true;  // success
+}
+
 BYTE event_has_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name) {
     actor_t * actor = event->actor;
-    WORD has = object_has(actor->state, name);
+    scope_t * scope = &actor->scope;
+    WORD has = object_has(scope->state, name);
+    while (!has) {
+        scope = scope->parent;
+        if (!scope) break;
+        has = object_has(scope->state, name);
+    }
     LOG_TRACE("event_has_binding", has);
     return has;
 }
 
 BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR * value) {
     actor_t * actor = event->actor;
+    scope_t * scope = &actor->scope;
     *value = v_null;  // default value is `null`
-    if (!object_get(actor->state, name, value)) {
-        LOG_WARN("event_lookup_binding: undefined variable!", (WORD)name);
-        // FIXME: we may want to "throw" an exception here...
+    while (!object_get(scope->state, name, value)) {
+        scope = scope->parent;
+        if (!scope) {
+            LOG_WARN("event_lookup_binding: undefined variable!", (WORD)name);
+            // FIXME: we may want to "throw" an exception here...
+            break;
+        }
     }
-    // FIXME: binding are currently only found in the actor's immediate local state, we need to search parent scopes too...
     LOG_TRACE("event_lookup_binding: value =", (WORD)*value);
     return true;  // success
 }
@@ -59,9 +75,9 @@ BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, D
 BYTE event_update_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR value) {
     actor_t * actor = event->actor;
     DATA_PTR state;
-    if (!object_add(sponsor, actor->state, name, value, &state)) return false;  // allocation failure!
-    if (!RELEASE(&actor->state)) return false;  // reclamation failure!
-    actor->state = TRACK(state);
+    if (!object_add(sponsor, actor->scope.state, name, value, &state)) return false;  // allocation failure!
+    if (!RELEASE(&actor->scope.state)) return false;  // reclamation failure!
+    actor->scope.state = TRACK(state);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "event_update_binding: state' =", (WORD)state);
     if (!value_print(state, 1)) return false;  // print failed
     LOG_TRACE("event_update_binding: value =", (WORD)value);
@@ -148,7 +164,7 @@ static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
     return true;  // success!
 }
 
-static BYTE bounded_sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
+static BYTE bounded_sponsor_create(sponsor_t * sponsor, event_t * event, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
     if (THIS->actors < 1) {
         LOG_WARN("bounded_sponsor_create: no more actors!", (WORD)THIS);
@@ -167,7 +183,10 @@ static BYTE bounded_sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR
     actor->capability[2] = 0x10;        // capability marker (DLE)
     actor->capability[3] = ocap & 0xFF; // capability (LSB)
     actor->capability[4] = ocap >> 8;   // capability (MSB)
-    if (!COPY(&actor->state, state)) return false;  // allocation failure!
+    actor->capability[5] = null;        // --unused--
+    actor->capability[6] = null;        // --unused--
+    actor->capability[7] = null;        // --unused--
+    if (!event_init_scope(sponsor, event, actor, state)) return false;  // allocation failure!
     if (!COPY(&actor->behavior, behavior)) return false;  // allocation failure!
     *address = actor->capability;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_create: address =", (WORD)*address);
@@ -296,8 +315,8 @@ inline BYTE sponsor_dispatch(sponsor_t * sponsor) {
     return sponsor->dispatch(sponsor);
 }
 
-inline BYTE sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
-    return sponsor->create(sponsor, state, behavior, address);
+inline BYTE sponsor_create(sponsor_t * sponsor, event_t * event, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
+    return sponsor->create(sponsor, event, state, behavior, address);
 }
 
 inline BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message) {

@@ -100,7 +100,7 @@ BYTE parse_from_data(parse_t * parse, DATA_PTR data) {
     parse->type = prefix_type[parse->prefix];
     parse_t size_parse = {
         .base = data + 1,
-        .size = 16,  // WARNING! we don't really know how big the `size` field is, but this should be plenty...
+        .size = sizeof(WORD),
         .start = 0
     };
     // find out how big it is

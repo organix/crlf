@@ -24,13 +24,19 @@
 #define TRACK(dp) (dp)
 #endif
 
+typedef struct scope_struct scope_t;
 typedef struct actor_struct actor_t;
 typedef struct event_struct event_t;
 typedef struct sponsor_struct sponsor_t;
 
+typedef struct scope_struct {
+    scope_t *   parent;
+    DATA_PTR    state;
+} scope_t;
+
 typedef struct actor_struct {
     BYTE        capability[8];
-    DATA_PTR    state;
+    scope_t     scope;
     DATA_PTR    behavior;
 } actor_t;
 
@@ -39,6 +45,7 @@ typedef struct event_struct {
     DATA_PTR    message;
 } event_t;
 
+BYTE event_init_scope(sponsor_t * sponsor, event_t * event, actor_t * actor, DATA_PTR state);
 BYTE event_has_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name);
 BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR * value);
 BYTE event_update_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR value);
@@ -50,7 +57,7 @@ BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * messa
 typedef struct sponsor_struct {
     BYTE        (*dispatch)(sponsor_t * sponsor);
     // actor primitives
-    BYTE        (*create)(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
+    BYTE        (*create)(sponsor_t * sponsor, event_t * event, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
     BYTE        (*send)(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
     BYTE        (*become)(sponsor_t * sponsor, DATA_PTR behavior);
     BYTE        (*fail)(sponsor_t * sponsor, DATA_PTR error);
@@ -63,7 +70,7 @@ typedef struct sponsor_struct {
 
 BYTE sponsor_dispatch(sponsor_t * sponsor);
 
-BYTE sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
+BYTE sponsor_create(sponsor_t * sponsor, event_t * event, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
 BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
 BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior);
 BYTE sponsor_fail(sponsor_t * sponsor, DATA_PTR error);

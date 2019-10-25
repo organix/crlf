@@ -1,6 +1,7 @@
 /*
  * test.c -- unit test suite
  */
+#include <stddef.h>  // for NULL, size_t, et. al.
 #include <assert.h>
 
 #include "test.h"
@@ -558,7 +559,7 @@ static int test_sponsor() {
     assert(!copy);
 
     DATA_PTR actor;
-    assert(!sponsor_create(sponsor, o_, v_null, &actor));  // no budget for actors
+    assert(!sponsor_create(sponsor, NULL, o_, v_null, &actor));  // no budget for actors
     assert(!sponsor_send(sponsor, actor, o_));  // no budget for message-events
     assert(!sponsor_dispatch(sponsor));  // no message-events to deliver
 
