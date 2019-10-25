@@ -10,11 +10,11 @@
 extern BYTE bootstrap[];
 
 // evaluate actor expressions (expression -> value)
-BYTE actor_eval(sponsor_t * sponsor, actor_t * actor, DATA_PTR expression, DATA_PTR * value);
+BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_PTR * value);
 // execute actor commands (action -> effects)
-BYTE actor_exec(sponsor_t * sponsor, actor_t * actor, DATA_PTR command);
+BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command);
 
-int run_actor_script(sponsor_t * sponsor, actor_t * actor);
+int run_actor_script(sponsor_t * sponsor, event_t * event);
 int run_actor_config(DATA_PTR item);
 int run_program(DATA_PTR program);  // [ { "kind":"sponsor", ... }, ... ]
 

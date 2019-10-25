@@ -18,6 +18,81 @@
 //#define LOG_WARN
 #include "log.h"
 
+/**  --FIXME--
+
+Translating from a (capability) address to actual actor-reference is a sponsor-specific operation.
+I am uncomfortable with the implied exposure of the actor's implementation structure.
+How can we avoid that exposure? Does the sponsor become responsible for all the actor and event state?
+
+These responsibilities include:
+  * check for binding of actor-scope variables
+  * lookup bindings for actor-scope variables
+  * update bindings for actor-scope variables
+  * lookup an actor's behavior script
+  * update an actor's behavior script (become)
+  * lookup an actor's address (self)
+  * lookup bindings in message contents
+
+For now we'll make these all responsibilities of the event, with help from the sponsor.
+
+**/
+
+BYTE event_has_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name) {
+    actor_t * actor = event->actor;
+    WORD has = object_has(actor->state, name);
+    LOG_TRACE("event_has_binding", has);
+    return has;
+}
+
+BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR * value) {
+    actor_t * actor = event->actor;
+    *value = v_null;  // default value is `null`
+    if (!object_get(actor->state, name, value)) {
+        LOG_WARN("event_lookup_binding: undefined variable!", (WORD)name);
+        // FIXME: we may want to "throw" an exception here...
+    }
+    // FIXME: binding are currently only found in the actor's immediate local state, we need to search parent scopes too...
+    LOG_TRACE("event_lookup_binding: value =", (WORD)*value);
+    return true;  // success
+}
+
+BYTE event_update_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR value) {
+    actor_t * actor = event->actor;
+    DATA_PTR state;
+    if (!object_add(sponsor, actor->state, name, value, &state)) return false;  // allocation failure!
+    if (!RELEASE(&actor->state)) return false;  // reclamation failure!
+    actor->state = TRACK(state);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "event_update_binding: state' =", (WORD)state);
+    if (!value_print(state, 1)) return false;  // print failed
+    LOG_TRACE("event_update_binding: value =", (WORD)value);
+    return true;  // success
+}
+
+BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * behavior) {
+    actor_t * actor = event->actor;
+    *behavior = actor->behavior;
+    LOG_TRACE("event_lookup_behavior: behavior =", (WORD)*behavior);
+    return true;  // success
+}
+
+BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior) {
+    LOG_WARN("event_update_behavior: BECOME NOT IMPLEMENTED!", (WORD)behavior);
+    return false;  // failure!
+}
+
+BYTE event_lookup_actor(sponsor_t * sponsor, event_t * event, DATA_PTR * self) {
+    actor_t * actor = event->actor;
+    *self = actor->capability;
+    LOG_TRACE("event_lookup_actor: self =", (WORD)*self);
+    return true;  // success
+}
+
+BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * message) {
+    *message = event->message;
+    LOG_TRACE("event_lookup_message: message =", (WORD)*message);
+    return true;  // success
+}
+
 /*
  * resource-bounded sponsor
  */
@@ -33,25 +108,25 @@ typedef struct {
     DATA_PTR    error;          // error value, or NULL if none
 } bounded_sponsor_t;
 
-static actor_t * find_actor(sponsor_t * sponsor, DATA_PTR address) {
+static actor_t * bounded_sponsor_find_actor(sponsor_t * sponsor, DATA_PTR address) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "find_actor: address =", (WORD)address);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_find_actor: address =", (WORD)address);
     if (!value_print(address, 1)) return NULL;  // print failed!
     parse_t parse;
     if (!value_parse(address, &parse)
     ||  !(parse.type & T_Capability)) {
-        LOG_WARN("find_actor: bad address!", (WORD)address);
+        LOG_WARN("bounded_sponsor_find_actor: bad address!", (WORD)address);
         return NULL;  // bad address!
     }
-    //DUMP_PARSE("find_actor: address", &parse);
+    //DUMP_PARSE("bounded_sponsor_find_actor: address", &parse);
     WORD ocap = 0;
     while (parse.value--) {
         ocap <<= 8;
         ocap |= parse.base[--parse.end];
     }
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "find_actor: ocap =", ocap);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_find_actor: ocap =", ocap);
     actor_t * actor = &THIS->actor[ocap];
-    LOG_LEVEL(LOG_LEVEL_TRACE, "find_actor: actor =", (WORD)actor);
+    LOG_LEVEL(LOG_LEVEL_TRACE, "bounded_sponsor_find_actor: actor =", (WORD)actor);
     return actor;
 }
 
@@ -65,26 +140,10 @@ static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_dispatch: current =", current);
     event_t * event = &THIS->event[current];
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_dispatch: event =", (WORD)event);
-
-    actor_t * actor = find_actor(sponsor, event->address);
-    if (!actor) {
-        LOG_WARN("bounded_sponsor_dispatch: bad actor!", (WORD)actor);
-        return false;  // bad actor!
-    }
-/*
-    DATA_PTR script;
-    if (!object_get(actor->behavior, s_script, &script)) {
-        LOG_WARN("bounded_sponsor_dispatch: script required!", (WORD)actor->behavior);
-        return false;  // script required!
-    }
-    LOG_DEBUG("bounded_sponsor_dispatch: script =", (WORD)script);
-*/
-    if (run_actor_script(sponsor, actor) != 0) {
-        LOG_WARN("bounded_sponsor_dispatch: actor-script execution failed!", (WORD)actor);
+    if (run_actor_script(sponsor, event) != 0) {
+        LOG_WARN("bounded_sponsor_dispatch: actor-script execution failed!", (WORD)event);
         return false;  // actor-script execution failed!
     }
-
-    if (!RELEASE(&event->address)) return false;  // reclamation failure!
     if (!RELEASE(&event->message)) return false;  // reclamation failure!
     return true;  // success!
 }
@@ -144,6 +203,8 @@ static BYTE bounded_sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR
     }
     LOG_TRACE("bounded_sponsor_send: address =", (WORD)address);
     if (!value_print(address, 1)) return false;  // print failed!
+    actor_t * actor = bounded_sponsor_find_actor(sponsor, address);
+    if (!actor) return false;  // bad actor!
     LOG_TRACE("bounded_sponsor_send: message =", (WORD)message);
     if (!value_print(message, 1)) return false;  // print failed!
     if (value_equiv(address, v_null)) {
@@ -155,7 +216,7 @@ static BYTE bounded_sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_send: current =", current);
     event_t * event = &THIS->event[current];
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_send: event =", (WORD)event);
-    COPY(&event->address, address);
+    event->actor = actor;
     COPY(&event->message, message);
     return true;  // success!
 }

@@ -13,44 +13,56 @@
 #define AUDIT_ALLOCATION 1 /* track reserve/release calls to check for leaks */
 
 #if AUDIT_ALLOCATION
-#define	RESERVE(dpp,size) audit_reserve(__FILE__, __LINE__, (sponsor), (dpp), (size))
-#define	COPY(to_dpp,from_dp) audit_copy(__FILE__, __LINE__, (sponsor), (to_dpp), (from_dp))
-#define	RELEASE(dpp) audit_release(__FILE__, __LINE__, (sponsor), (dpp))
+#define RESERVE(dpp,size) audit_reserve(__FILE__, __LINE__, (sponsor), (dpp), (size))
+#define COPY(to_dpp,from_dp) audit_copy(__FILE__, __LINE__, (sponsor), (to_dpp), (from_dp))
+#define RELEASE(dpp) audit_release(__FILE__, __LINE__, (sponsor), (dpp))
 #define TRACK(dp) audit_track(__FILE__, __LINE__, (sponsor), (dp))
 #else
-#define	RESERVE(dpp,size) sponsor_reserve(sponsor, (dpp), (size))
-#define	COPY(to_dpp,from_dp) sponsor_copy(sponsor, (to_dpp), (from_dp))
-#define	RELEASE(dpp) sponsor_release(sponsor, (dpp))
+#define RESERVE(dpp,size) sponsor_reserve(sponsor, (dpp), (size))
+#define COPY(to_dpp,from_dp) sponsor_copy(sponsor, (to_dpp), (from_dp))
+#define RELEASE(dpp) sponsor_release(sponsor, (dpp))
 #define TRACK(dp) (dp)
 #endif
 
-typedef struct {
+typedef struct actor_struct actor_t;
+typedef struct event_struct event_t;
+typedef struct sponsor_struct sponsor_t;
+
+typedef struct actor_struct {
     BYTE        capability[8];
     DATA_PTR    state;
     DATA_PTR    behavior;
 } actor_t;
 
-typedef struct {
-    DATA_PTR    address;
+typedef struct event_struct {
+    actor_t *   actor;
     DATA_PTR    message;
 } event_t;
 
-typedef struct sponsor_struct sponsor_t;
+BYTE event_has_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name);
+BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR * value);
+BYTE event_update_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR value);
+BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * behavior);
+BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior);
+BYTE event_lookup_actor(sponsor_t * sponsor, event_t * event, DATA_PTR * self);
+BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * message);
+
 typedef struct sponsor_struct {
-	BYTE 		(*dispatch)(sponsor_t * sponsor);
-	// actor primitives
-	BYTE 		(*create)(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
-	BYTE 		(*send)(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
-	BYTE 		(*become)(sponsor_t * sponsor, DATA_PTR behavior);
-	BYTE 		(*fail)(sponsor_t * sponsor, DATA_PTR error);
-	// memory management
-	BYTE 		(*reserve)(sponsor_t * sponsor, DATA_PTR * data, WORD size);
-	BYTE 		(*share)(sponsor_t * sponsor, DATA_PTR * data);
-	BYTE 		(*copy)(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
-	BYTE 		(*release)(sponsor_t * sponsor, DATA_PTR * data);
+    BYTE        (*dispatch)(sponsor_t * sponsor);
+    // actor primitives
+    BYTE        (*create)(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
+    BYTE        (*send)(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
+    BYTE        (*become)(sponsor_t * sponsor, DATA_PTR behavior);
+    BYTE        (*fail)(sponsor_t * sponsor, DATA_PTR error);
+    // memory management
+    BYTE        (*reserve)(sponsor_t * sponsor, DATA_PTR * data, WORD size);
+    BYTE        (*share)(sponsor_t * sponsor, DATA_PTR * data);
+    BYTE        (*copy)(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
+    BYTE        (*release)(sponsor_t * sponsor, DATA_PTR * data);
 } sponsor_t;
 
 BYTE sponsor_dispatch(sponsor_t * sponsor);
+
 BYTE sponsor_create(sponsor_t * sponsor, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
 BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
 BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior);
