@@ -26,6 +26,7 @@ BYTE s_behavior[] = { utf8, n_8, 'b', 'e', 'h', 'a', 'v', 'i', 'o', 'r' };
 BYTE s_name[] = { utf8, n_4, 'n', 'a', 'm', 'e' };
 BYTE s_value[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e' };
 BYTE s_type[] = { utf8, n_4, 't', 'y', 'p', 'e' };
+BYTE s_args[] = { utf8, n_4, 'a', 'r', 'g', 's' };
 BYTE s_in[] = { utf8, n_2, 'i', 'n' };
 BYTE s_with[] = { utf8, n_4, 'w', 'i', 't', 'h' };
 BYTE s_const[] = { utf8, n_5, 'c', 'o', 'n', 's', 't' };
@@ -81,13 +82,14 @@ BYTE k_dict_has[] = { utf8, n_8, 'd', 'i', 'c', 't', '_', 'h', 'a', 's' };
 BYTE k_dict_get[] = { utf8, n_8, 'd', 'i', 'c', 't', '_', 'g', 'e', 't' };
 BYTE k_dict_bind[] = { utf8, n_9, 'd', 'i', 'c', 't', '_', 'b', 'i', 'n', 'd' };
 BYTE k_expr_literal[] = { utf8, n_12, 'e', 'x', 'p', 'r', '_', 'l', 'i', 't', 'e', 'r', 'a', 'l' };
+BYTE k_expr_operation[] = { utf8, n_14, 'e', 'x', 'p', 'r', '_', 'o', 'p', 'e', 'r', 'a', 't', 'i', 'o', 'n' };
 BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };
 
 int start_abcm() {  // ok == 0, fail != 0
     int result = 0;
-    //log_config.level = LOG_LEVEL_WARN;
+    log_config.level = LOG_LEVEL_WARN;
     //log_config.level = LOG_LEVEL_DEBUG;
-    log_config.level = LOG_LEVEL_TRACE+1;
+    //log_config.level = LOG_LEVEL_TRACE+1;
 
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
     LOG_INFO(_semver, (WORD)_semver);
@@ -98,7 +100,11 @@ int start_abcm() {  // ok == 0, fail != 0
 
     result = run_program(bootstrap);  // pass == 0, fail != 0
     if (result) return result;
-    //assert(audit_show_leaks() == 0);  // FIXME: the runtime has systemic leaks which may require a new strategy...
+#if 0
+    assert(audit_show_leaks() == 0);  // FIXME: the runtime has systemic leaks which may require a new strategy...
+#else
+    audit_show_leaks();
+#endif
 
     return result;
 }

@@ -26,6 +26,7 @@ extern BYTE s_behavior[];
 extern BYTE s_name[];
 extern BYTE s_value[];
 extern BYTE s_type[];
+extern BYTE s_args[];
 extern BYTE s_in[];
 extern BYTE s_with[];
 extern BYTE s_const[];
@@ -48,6 +49,7 @@ extern BYTE k_dict_has[];
 extern BYTE k_dict_get[];
 extern BYTE k_dict_bind[];
 extern BYTE k_expr_literal[];
+extern BYTE k_expr_operation[];
 extern BYTE k_log_print[];  // --DEPRECATED--
 
 int start_abcm();  // ok == 0, fail != 0

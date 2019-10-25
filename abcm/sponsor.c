@@ -111,7 +111,7 @@ typedef struct {
 static actor_t * bounded_sponsor_find_actor(sponsor_t * sponsor, DATA_PTR address) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_find_actor: address =", (WORD)address);
-    if (!value_print(address, 1)) return NULL;  // print failed!
+    //if (!value_print(address, 1)) return NULL;  // print failed!
     parse_t parse;
     if (!value_parse(address, &parse)
     ||  !(parse.type & T_Capability)) {
