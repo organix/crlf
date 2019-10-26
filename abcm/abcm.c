@@ -13,7 +13,7 @@
 #include "log.h"
 
 
-char * _semver = "0.0.4";
+char * _semver = "0.0.5";
 
 BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
 BYTE s_actors[] = { utf8, n_6, 'a', 'c', 't', 'o', 'r', 's' };
@@ -87,8 +87,8 @@ BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };
 
 int start_abcm() {  // ok == 0, fail != 0
     int result = 0;
-    log_config.level = LOG_LEVEL_WARN;
-    //log_config.level = LOG_LEVEL_DEBUG;
+    //log_config.level = LOG_LEVEL_WARN;
+    log_config.level = LOG_LEVEL_DEBUG;
     //log_config.level = LOG_LEVEL_TRACE+1;
 
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...

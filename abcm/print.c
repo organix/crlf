@@ -73,14 +73,13 @@ static BYTE int_print(parse_t * parse) {
     return true;  // success!
 }
 
-static void hex_print(BYTE b) {
+void hex_print(BYTE b) {
     static char * hex = "0123456789ABCDEF";
     print(hex[(b >> 4) & 0xF]);
     print(hex[b & 0xF]);
 }
 
-#if HEXDUMP_ANNOTATION
-static void hexdump(DATA_PTR data, WORD size) {
+void hex_dump(DATA_PTR data, WORD size) {
     for (WORD i = 0; i < size; ++i) {
         print(' ');
         hex_print(data[i]);
@@ -90,7 +89,22 @@ static void hexdump(DATA_PTR data, WORD size) {
         }
     }
 }
-#endif
+
+void data_dump(DATA_PTR data, WORD size) {
+    for (WORD i = 0; i < size; ++i) {
+        print(' ');
+        BYTE b = data[i];
+        if ((b >= 0x20) && (b < 0x7F)) {
+            print(b);
+        } else {
+            hex_print(b);
+        }
+        if (i > 12) {
+            prints(" ~~");
+            break;  // size-limited dump cut-off
+        }
+    }
+}
 
 static void space(WORD indent) {  // space between values
     if (indent) {
@@ -139,10 +153,23 @@ static BYTE number_print(parse_t * parse) {
 
 static BYTE string_print(parse_t * parse) {
     // print parsed value known to be a String
+    if (parse->prefix == mem_ref) {
+#if HEXDUMP_ANNOTATION
+        print('(');
+        hex_print(parse->value);
+        print(')');
+#endif
+        parse_t mem_parse;
+        if (!value_parse((DATA_PTR)parse->count, &mem_parse)) return false;
+        parse_print(&mem_parse, 0);
+        return true;  // success!
+    }
     assert(parse->start < (parse->end - parse->value));
-    if (parse->prefix == octets) {  // was: (parse->type & T_Capability)
-        // special case: raw octets or capability data
+    if (parse->prefix == octets) {  // special case: raw octets or capability data
         print('<');
+        if (parse->type & T_Capability) {
+            print('@');
+        }
         DATA_PTR data = parse->base + (parse->end - parse->value);
         for (WORD i = 0; i < parse->value; ++i) {
             print(' ');
@@ -181,7 +208,7 @@ static BYTE array_print(parse_t * parse, WORD indent) {
 #if HEXDUMP_ANNOTATION
         if (indent) {
             prints("  //");
-            hexdump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
+            hex_dump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
         }
 #endif
         return true;
@@ -189,7 +216,7 @@ static BYTE array_print(parse_t * parse, WORD indent) {
     if (indent) {
 #if HEXDUMP_ANNOTATION
         prints("  //");
-        hexdump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
+        hex_dump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
         prints(" ...");
 #endif
         space(++indent);
@@ -210,14 +237,14 @@ static BYTE array_print(parse_t * parse, WORD indent) {
 #if HEXDUMP_ANNOTATION
             if (indent && ((item_parse.prefix < 0x02) || (item_parse.prefix > 0x07))) {  // not Arrays or Objects
                 prints("  //");
-                hexdump(item_parse.base + item_parse.start, item_parse.end - item_parse.start);
+                hex_dump(item_parse.base + item_parse.start, item_parse.end - item_parse.start);
             }
 #endif
             space(indent);
 #if HEXDUMP_ANNOTATION
         } else if (indent && ((item_parse.prefix < 0x02) || (item_parse.prefix > 0x07))) {  // not Arrays or Objects
             prints("  //");
-            hexdump(item_parse.base + item_parse.start, item_parse.end - item_parse.start);
+            hex_dump(item_parse.base + item_parse.start, item_parse.end - item_parse.start);
 #endif
         }
         item_parse.start = item_parse.end;
@@ -238,7 +265,7 @@ static BYTE object_print(parse_t * parse, WORD indent) {
 #if HEXDUMP_ANNOTATION
         if (indent) {
             prints("  //");
-            hexdump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
+            hex_dump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
         }
 #endif
         return true;
@@ -246,7 +273,7 @@ static BYTE object_print(parse_t * parse, WORD indent) {
     if (indent) {
 #if HEXDUMP_ANNOTATION
         prints("  //");
-        hexdump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
+        hex_dump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
         prints(" ...");
 #endif
         space(++indent);
@@ -279,14 +306,14 @@ static BYTE object_print(parse_t * parse, WORD indent) {
 #if HEXDUMP_ANNOTATION
             if (indent && ((prop_parse.prefix < 0x02) || (prop_parse.prefix > 0x07))) {  // not Arrays or Objects
                 prints("  //");
-                hexdump(prop_parse.base + prop_parse.start, prop_parse.end - prop_parse.start);
+                hex_dump(prop_parse.base + prop_parse.start, prop_parse.end - prop_parse.start);
             }
 #endif
             space(indent);
 #if HEXDUMP_ANNOTATION
         } else if (indent && ((prop_parse.prefix < 0x02) || (prop_parse.prefix > 0x07))) {  // not Arrays or Objects
             prints("  //");
-            hexdump(prop_parse.base + prop_parse.start, prop_parse.end - prop_parse.start);
+            hex_dump(prop_parse.base + prop_parse.start, prop_parse.end - prop_parse.start);
 #endif
         }
         prop_parse.start = prop_parse.end;
@@ -343,7 +370,7 @@ BYTE value_print(DATA_PTR value, WORD indent) {
 #if HEXDUMP_ANNOTATION
     if (indent && ((parse.prefix < 0x02) || (parse.prefix > 0x07))) {  // not Arrays or Objects
         prints("  //");
-        hexdump(parse.base + parse.start, parse.end - parse.start);
+        hex_dump(parse.base + parse.start, parse.end - parse.start);
     }
 #endif
     newline();

@@ -3,8 +3,8 @@
  */
 #include <assert.h>
 
-#include "pool.h"
 #include "bose.h"
+#include "pool.h"
 
 #define LOG_ALL // enable all logging
 //#define LOG_INFO
@@ -49,7 +49,7 @@ static BYTE heap_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
     if (!parse_value(&parse)) return false;  // bad parse!
     WORD size = parse.end - parse.start;  // parse_value determines the span of the value
     if (!heap_pool_reserve(pool, data, size)) return false;  // bad allocation!
-    memcpy(*data, parse.base, size);
+    memcpy(*data, parse.base + parse.start, size);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "heap_pool_copy: data @", (WORD)(*data));
     return true;
 }

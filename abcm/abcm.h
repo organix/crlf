@@ -8,13 +8,6 @@
 
 extern char * _semver;  // semantic version number (C-string)
 
-#if 0  // FIXME: these types are currently unused, do we really need them?
-typedef uint8_t NAT8;           // 8-bit natural ring
-typedef uint16_t NAT16;         // 16-bit natural ring
-typedef uint32_t NAT32;         // 32-bit natural ring
-typedef uint64_t NAT64;         // 64-bit natural ring
-#endif
-
 extern BYTE s_kind[];
 extern BYTE s_actors[];
 extern BYTE s_events[];

@@ -85,8 +85,6 @@ extern BYTE s_[];  // empty string (encoded)
 extern BYTE a_[];  // empty array (encoded)
 extern BYTE o_[];  // empty object (encoded)
 
-void memo_clear();  // reset memo table between top-level values
-
 typedef struct {
     DATA_PTR    base;           // base address of source buffer
     WORD        size;           // size (in bytes) of valid source data [0, size-1]
@@ -97,6 +95,10 @@ typedef struct {
     WORD        value;          // parsed data value/size (accumulator or pointer)
     WORD        count;          // parsed data count (for T_Counted)
 } parse_t;
+
+#include "sponsor.h"
+BYTE memo_reset(sponsor_t * sponsor);  // reset memo table between top-level values
+BYTE memo_add(parse_t * parse);  // add parsed String to memo table
 
 /**
 Input:
@@ -167,30 +169,15 @@ Output:
 BYTE parse_string(parse_t * parse);
 
 /**
-Usage:
-    BYTE data[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e' };
-    parse_t string_parse = {
-        .base = data,
-        .size = sizeof(data),
-        .start = 0
-    };
-    if (parse_string(&string_parse)) {
-        WORD code_start = (string_parse.end - string_parse.value);  // start of codepoint data
-        parse_t code_parse = {
-            .base = string_parse.base + code_start,
-            .size = string_parse.value,
-            .prefix = string_parse.prefix,
-            .type = string_parse.type,
-            .start = 0
-        };
-        while (code_parse.start < code_parse.size) {
-            if (!parse_codepoint(&code_parse)) {
-                break;  // or `return false;`
-            }
-            output(code_parse.value);
-            code_parse.start = code_parse.end;
-        }
-    }
+Input:
+    parse->base   = <pointer to codepoint byte(s)>           = (string_parse.base + (string_parse.end - string_parse.value))
+    parse->size   = <size of codepoint data in bytes>        = (string_parse.value)
+    parse->start  = <offset from base to start of codepoint> = (0)
+    parse->prefix = <value of prefix byte>                   = (string_parse.prefix)
+    parse->type   = <value type info>                        = (string_parse.type)
+Output:
+    parse->end    = <offset past end of codepoint> (next `parse->start`)
+    parse->value  = <codepoint value [0..MAX_UNICODE]>
 **/
 BYTE parse_codepoint(parse_t * parse);
 

@@ -251,6 +251,14 @@ static int test_parse_codepoint() {
     string_parse.size = sizeof(data);
     string_parse.start = 0;
     if (!parse_string(&string_parse)) return 1;  // bad String
+    if (string_parse.prefix == mem_ref) {  // redirect to memo table entry
+        /*
+         * NOTE: There are no memo entries during testing because there is no sponsor,
+         *       but this is a good example of how to redirect to the memo table for String values.
+         */
+        LOG_DEBUG("test_parse_codepoint: memo index =", string_parse.value);
+        if (!value_parse((DATA_PTR)string_parse.count, &string_parse)) return 1;  // bad memo!
+    }
     code_parse.base = string_parse.base + (string_parse.end - string_parse.value);  // start of codepoint data
     code_parse.size = string_parse.value;
     code_parse.prefix = string_parse.prefix;
@@ -272,6 +280,14 @@ static int test_parse_codepoint() {
     string_parse.size = sizeof(data16);
     string_parse.start = 0;
     if (!parse_string(&string_parse)) return 1;  // bad String
+    if (string_parse.prefix == mem_ref) {  // redirect to memo table entry
+        /*
+         * NOTE: There are no memo entries during testing because there is no sponsor,
+         *       but this is a good example of how to redirect to the memo table for String values.
+         */
+        LOG_DEBUG("test_parse_codepoint: memo index =", string_parse.value);
+        if (!value_parse((DATA_PTR)string_parse.count, &string_parse)) return 1;  // bad memo!
+    }
     code_parse.base = string_parse.base + (string_parse.end - string_parse.value);  // start of codepoint data
     code_parse.size = string_parse.value;
     code_parse.prefix = string_parse.prefix;
@@ -822,7 +838,7 @@ static int test_C_language() {
 }
 
 int run_test_suite() {
-    memo_clear();
+    if (!memo_reset(NULL)) return 1;  // memo reset failed!
     return test_C_language()
         || test_bytecode_types()
         || test_parse_integer()

@@ -4,8 +4,8 @@
 #include <stddef.h>  // for NULL, size_t, et. al.
 #include <assert.h>
 
-#include "sponsor.h"
 #include "bose.h"
+#include "sponsor.h"
 #include "pool.h"
 #include "program.h"
 #include "object.h"
@@ -411,22 +411,23 @@ BYTE audit_copy(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data,
 
 BYTE audit_release(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data) {
     DATA_PTR address = *data;
-    BYTE ok = sponsor_release(sponsor, data);  // (*data == NULL) on return from sponsor_release!
-    if (ok) {
-        /* find most-recent allocation of address */
-        int index = audit_index;
-        while (index > 0) {
-            alloc_audit_t * history = &audit_history[--index];
-            if (history->address == address) {
-                history->release._file_ = _file_;
-                history->release._line_ = _line_;
-                return true;  // found it!
+    /* find most-recent allocation of address */
+    int index = audit_index;
+    while (index > 0) {
+        alloc_audit_t * history = &audit_history[--index];
+        if (history->address == address) {
+            if (history->sponsor != sponsor) {
+                LOG_WARN("audit_release: wrong sponsor!", (WORD)history->sponsor);
+                return false;
             }
+            history->release._file_ = _file_;
+            history->release._line_ = _line_;
+            BYTE ok = sponsor_release(sponsor, data);  // (*data == NULL) on return from sponsor_release!
+            return ok;  // found it!
         }
-        LOG_WARN("audit_release: no allocation @", (WORD)address);
-        return false;
     }
-    return ok;
+    LOG_WARN("audit_release: no allocation @", (WORD)address);
+    return false;
 }
 
 DATA_PTR audit_track(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR address) {

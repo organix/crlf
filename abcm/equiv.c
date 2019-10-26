@@ -64,6 +64,18 @@ static BYTE number_equiv(parse_t * x_parse, parse_t * y_parse) {
 
 static BYTE string_equiv(parse_t * x_parse, parse_t * y_parse) {
     // compare parsed values known to be Strings
+    if (x_parse->prefix == mem_ref) {  // redirect x_parse to memo table entry
+        LOG_DEBUG("string_equiv: redirect x to memo", x_parse->value);
+        parse_t x_memo;
+        if (!value_parse((DATA_PTR)x_parse->count, &x_memo)) return false;  // bad memo table entry!
+        x_parse = &x_memo;
+    }
+    if (y_parse->prefix == mem_ref) {  // redirect y_parse to memo table entry
+        LOG_DEBUG("string_equiv: redirect y to memo", y_parse->value);
+        parse_t y_memo;
+        if (!value_parse((DATA_PTR)y_parse->count, &y_memo)) return false;  // bad memo table entry!
+        y_parse = &y_memo;
+    }
     assert(x_parse->start < (x_parse->end - x_parse->value));
     assert(y_parse->start < (y_parse->end - y_parse->value));
     parse_t x_code = {

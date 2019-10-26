@@ -2,10 +2,13 @@
  * bose.c -- Binary Octet-Stream Encoding
  */
 //#include <stdlib.h>
+#include <string.h>  // for memcpy, et. al.
 #include <assert.h>
 
 #include "bose.h"
 #include "equiv.h"
+#include "sponsor.h"
+#include "print.h"
 
 //#define LOG_ALL // enable all logging
 #define LOG_INFO
@@ -67,14 +70,41 @@ BYTE o_[] = { object_0 };  // empty object (encoded)
 
 static DATA_PTR memo_table[1<<8] = {};
 static BYTE memo_index = 0;  // index of next memo slot to use
-static BYTE memo_full = false;  // all memo table entries are filled
+static BYTE memo_freeze = false;  // stop accepting memo table additions
+static sponsor_t * memo_sponsor;  // sponsor for memo table data
 
-void memo_clear() {  // reset memo table between top-level values
-    memo_full = false;
+BYTE memo_reset(sponsor_t * sponsor) {  // reset memo table between top-level values
+    LOG_INFO("memo_reset", (WORD)sponsor);
+    memo_sponsor = sponsor;
+    memo_freeze = false;
     memo_index = 0;
     do {
+        if (memo_table[memo_index] && (memo_table[memo_index] != s_)) {  // release previously-allocated memo
+            if (!RELEASE(&memo_table[memo_index])) return false;  // reclamation failure!
+        }
         memo_table[memo_index] = s_;  // initialize with safe empty-string
     } while (++memo_index);  // stop when we wrap-around to 0
+    return true;  // success!
+};
+
+BYTE memo_add(parse_t * parse) {
+    LOG_INFO("memo_add: index", memo_index);
+    if (memo_freeze) return false;  // don't call memo_add if memo_freeze is in effect...
+    sponsor_t * sponsor = memo_sponsor;
+    if (memo_table[memo_index] != s_) {
+        if (!RELEASE(&memo_table[memo_index])) return false;  // reclamation failure!
+    }
+    WORD size = parse->end - parse->start;
+    if (!RESERVE(&memo_table[memo_index], size)) return false;  // allocation failure!
+    parse->base[parse->start] &= 0x0E;  // WARNING: THIS CLEARS THE MEMOIZE FLAG IN-PLACE BEFORE THE COPY!
+    memcpy(memo_table[memo_index], parse->base + parse->start, size);
+    print('<');
+    data_dump(memo_table[memo_index], size);
+    prints(" >\n");
+    if (++memo_index == 0) {  // index wrap-around
+        memo_freeze = true;
+    }
+    return true;  // success!
 };
 
 /**
@@ -127,9 +157,9 @@ Output:
     parse->type = <value type info>
 **/
 BYTE parse_prefix(parse_t * parse) {
-    LOG_TRACE("parse_prefix: base", (WORD)parse->base);
-    LOG_TRACE("parse_prefix: start", parse->start);
-    LOG_TRACE("parse_prefix: size", parse->size);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_prefix: base", (WORD)parse->base);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_prefix: start", parse->start);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_prefix: size", parse->size);
     if (parse->start >= parse->size) {
         LOG_WARN("parse_prefix: out-of-bounds", parse->size);
         return false;  // out of bounds
@@ -159,7 +189,6 @@ BYTE parse_value(parse_t * parse) {
     parse->count = 0;  // default count
     if (!parse_prefix(parse)) return false;  // bad prefix!
     if (parse->prefix == mem_ref) {
-        // FIXME: handle memo references better...
         if (parse->end >= parse->size) {
             LOG_WARN("parse_value: out-of-bounds", parse->size);
             return false;  // out of bounds
@@ -229,9 +258,11 @@ BYTE parse_value(parse_t * parse) {
                 }
             }
             if (parse->type & T_Exact) {
-                // FIXME: add String to memo table
-                LOG_WARN("parse_string: memo not implemented", parse->value);
-                return false;  // memo not implemented
+                if (memo_freeze) {
+                    LOG_WARN("parse_value: attempt to memoize after freeze", memo_index);
+                } else {
+                    if (!memo_add(parse)) return false;  // memo failed!
+                }
             }
         } else if ((parse->prefix == utf16) || (parse->prefix == utf16_mem)) {
             LOG_TRACE("parse_value: utf16", parse->value);
@@ -251,9 +282,11 @@ BYTE parse_value(parse_t * parse) {
                 }
             }
             if (parse->type & T_Exact) {
-                // FIXME: add String to memo table
-                LOG_WARN("parse_string: memo not implemented", parse->value);
-                return false;  // memo not implemented
+                if (memo_freeze) {
+                    LOG_WARN("parse_value: attempt to memoize after freeze", memo_index);
+                } else {
+                    if (!memo_add(parse)) return false;  // memo failed!
+                }
             }
         }
         LOG_DEBUG("parse_value: extended data size", parse->value);
@@ -344,21 +377,9 @@ BYTE parse_string(parse_t * parse) {
         LOG_WARN("parse_string: encoding not supported", parse->type);
         return false;  // encoding not supported
     }
-    if (parse->prefix == mem_ref) {
-        LOG_WARN("parse_string: memo not implemented", parse->value);
-        return false;  // memo not implemented
-    }
     if (parse->prefix == string_0) {
         // empty String
         assert(parse->value == 0);
-    }
-    if (parse->type & T_Sized) {
-        // extended (variable sized) String
-        if (parse->type & T_Exact) {
-            // FIXME: add String to memo table
-            LOG_WARN("parse_string: memo not implemented", parse->value);
-            return false;  // memo not implemented
-        }
     }
     LOG_DEBUG("parse_string: value/size", parse->value);
     return true;  // success
@@ -373,6 +394,9 @@ Usage:
         .start = 0
     };
     if (parse_string(&string_parse)) {
+        if (string_parse.prefix == mem_ref) {  // redirect to memo table entry
+            if (!value_parse((DATA_PTR)string_parse.count, &string_parse)) return false;  // bad memo!
+        }
         WORD code_start = (string_parse.end - string_parse.value);  // start of codepoint data
         parse_t code_parse = {
             .base = string_parse.base + code_start,
@@ -393,12 +417,15 @@ Usage:
 BYTE parse_codepoint(parse_t * parse) {
     // parse a single codepoint value from a String parsed by `parse_string`
     LOG_TRACE("parse_codepoint @", (WORD)parse);
+    if (parse->prefix == mem_ref)  {
+        LOG_WARN("parse_codepoint: must parse table entry for memo!", parse->value);
+        return false;  // resolve memo reference first...
+    }
     if (parse->start >= parse->size) {
         LOG_WARN("parse_codepoint: out-of-bounds", parse->size);
         return false;  // out of bounds
     }
     LOG_TRACE("parse_codepoint: prefix", parse->prefix);
-    if (parse->prefix == mem_ref) return false;  // FIXME: MEMO GET NOT SUPPORTED!
     parse->end = parse->start;
     parse->value = parse->base[parse->end++];
     LOG_TRACE("parse_codepoint: value", parse->value);

@@ -4,7 +4,7 @@
 #ifndef _SPONSOR_H_
 #define _SPONSOR_H_
 
-#include "bose.h"
+//#include "bose.h"
 #include "pool.h"
 
 /*
