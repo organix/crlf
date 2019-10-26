@@ -96,10 +96,6 @@ typedef struct {
     WORD        count;          // parsed data count (for T_Counted)
 } parse_t;
 
-#include "sponsor.h"
-BYTE memo_reset(sponsor_t * sponsor);  // reset memo table between top-level values
-BYTE memo_add(parse_t * parse);  // add parsed String to memo table
-
 /**
 Input:
     parse = <parse structure to populate>

@@ -413,6 +413,13 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
     return true;  // success!
 }
 
+BYTE validate_value(DATA_PTR value) {
+    LOG_DEBUG("validate_value @", (WORD)value);
+    // FIXME: IMPLEMENT SINGLE-PASS PARSE/VALIDATE TO ENSURE SANITY AND CAPTURE MEMOIZED STRINGS...
+    if (!value_print(value, 1)) return false;  // print failed!
+    return true;  // success!
+}
+
 /*
  * WARNING! All the `run_...` procedures return 0 on success, and 1 on failure. (not true/false)
  */
@@ -454,7 +461,7 @@ int run_actor_script(sponsor_t * sponsor, event_t * event) {
 
 int run_actor_config(DATA_PTR item) {
     LOG_TRACE("run_actor_config @", (WORD)item);
-    if (!value_print(item, 1)) return 1;  // print failed!
+    if (!validate_value(item)) return 1;  // validate failed!
     DATA_PTR value;
     WORD actors = 0;
     if (object_get(item, s_actors, &value)

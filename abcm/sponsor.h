@@ -4,7 +4,7 @@
 #ifndef _SPONSOR_H_
 #define _SPONSOR_H_
 
-//#include "bose.h"
+#include "bose.h"
 #include "pool.h"
 
 /*
@@ -24,10 +24,15 @@
 #define TRACK(dp) (dp)
 #endif
 
+typedef struct sponsor_struct sponsor_t;
+
+BYTE memo_reset(sponsor_t * sponsor);  // reset memo table between top-level values
+DATA_PTR memo_get(BYTE index);  // get memo table entry at index
+BYTE memo_add(parse_t * parse);  // add parsed String to memo table
+
 typedef struct scope_struct scope_t;
 typedef struct actor_struct actor_t;
 typedef struct event_struct event_t;
-typedef struct sponsor_struct sponsor_t;
 
 typedef struct scope_struct {
     scope_t *   parent;

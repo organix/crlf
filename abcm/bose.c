@@ -2,7 +2,6 @@
  * bose.c -- Binary Octet-Stream Encoding
  */
 //#include <stdlib.h>
-#include <string.h>  // for memcpy, et. al.
 #include <assert.h>
 
 #include "bose.h"
@@ -67,45 +66,6 @@ BYTE i_0[] = { n_0 };  // integer zero (encoded)
 BYTE s_[] = { string_0 };  // empty string (encoded)
 BYTE a_[] = { array_0 };  // empty array (encoded)
 BYTE o_[] = { object_0 };  // empty object (encoded)
-
-static DATA_PTR memo_table[1<<8] = {};
-static BYTE memo_index = 0;  // index of next memo slot to use
-static BYTE memo_freeze = false;  // stop accepting memo table additions
-static sponsor_t * memo_sponsor;  // sponsor for memo table data
-
-BYTE memo_reset(sponsor_t * sponsor) {  // reset memo table between top-level values
-    LOG_INFO("memo_reset", (WORD)sponsor);
-    memo_sponsor = sponsor;
-    memo_freeze = false;
-    memo_index = 0;
-    do {
-        if (memo_table[memo_index] && (memo_table[memo_index] != s_)) {  // release previously-allocated memo
-            if (!RELEASE(&memo_table[memo_index])) return false;  // reclamation failure!
-        }
-        memo_table[memo_index] = s_;  // initialize with safe empty-string
-    } while (++memo_index);  // stop when we wrap-around to 0
-    return true;  // success!
-};
-
-BYTE memo_add(parse_t * parse) {
-    LOG_INFO("memo_add: index", memo_index);
-    if (memo_freeze) return false;  // don't call memo_add if memo_freeze is in effect...
-    sponsor_t * sponsor = memo_sponsor;
-    if (memo_table[memo_index] != s_) {
-        if (!RELEASE(&memo_table[memo_index])) return false;  // reclamation failure!
-    }
-    WORD size = parse->end - parse->start;
-    if (!RESERVE(&memo_table[memo_index], size)) return false;  // allocation failure!
-    parse->base[parse->start] &= 0x0E;  // WARNING: THIS CLEARS THE MEMOIZE FLAG IN-PLACE BEFORE THE COPY!
-    memcpy(memo_table[memo_index], parse->base + parse->start, size);
-    print('<');
-    data_dump(memo_table[memo_index], size);
-    prints(" >\n");
-    if (++memo_index == 0) {  // index wrap-around
-        memo_freeze = true;
-    }
-    return true;  // success!
-};
 
 /**
 Input:
@@ -195,7 +155,7 @@ BYTE parse_value(parse_t * parse) {
         }
         BYTE index = parse->base[parse->end++];
         parse->value = index;
-        parse->count = (WORD)(memo_table[index]);
+        parse->count = (WORD)memo_get(index);
         LOG_DEBUG("parse_value: memoized String", parse->value);
     } else if (parse->type & T_Sized) {
         // extended Value
@@ -258,11 +218,7 @@ BYTE parse_value(parse_t * parse) {
                 }
             }
             if (parse->type & T_Exact) {
-                if (memo_freeze) {
-                    LOG_WARN("parse_value: attempt to memoize after freeze", memo_index);
-                } else {
-                    if (!memo_add(parse)) return false;  // memo failed!
-                }
+                if (!memo_add(parse)) return false;  // memo failed!
             }
         } else if ((parse->prefix == utf16) || (parse->prefix == utf16_mem)) {
             LOG_TRACE("parse_value: utf16", parse->value);
@@ -282,11 +238,7 @@ BYTE parse_value(parse_t * parse) {
                 }
             }
             if (parse->type & T_Exact) {
-                if (memo_freeze) {
-                    LOG_WARN("parse_value: attempt to memoize after freeze", memo_index);
-                } else {
-                    if (!memo_add(parse)) return false;  // memo failed!
-                }
+                if (!memo_add(parse)) return false;  // memo failed!
             }
         }
         LOG_DEBUG("parse_value: extended data size", parse->value);
