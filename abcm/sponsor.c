@@ -87,6 +87,7 @@ These responsibilities include:
   * update an actor's behavior script (become)
   * lookup an actor's address (self)
   * lookup bindings in message contents
+  * manage message-dispatch effects
 
 For now we'll make these all responsibilities of the event, with help from the sponsor.
 
@@ -147,8 +148,10 @@ BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * beha
 }
 
 BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior) {
-    LOG_WARN("event_update_behavior: BECOME NOT IMPLEMENTED!", (WORD)behavior);
-    return false;  // failure!
+    LOG_TRACE("event_update_behavior: behavior =", (WORD)behavior);
+    event->effect.behavior = behavior;
+    //if (!value_print(behavior, 0)) return false;  // print failed
+    return true;  // success
 }
 
 BYTE event_lookup_actor(sponsor_t * sponsor, event_t * event, DATA_PTR * self) {
@@ -164,6 +167,26 @@ BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * messa
     return true;  // success
 }
 
+BYTE event_init_effects(sponsor_t * sponsor, event_t * event) {
+    event->effect.behavior = NULL;
+    event->effect.error = NULL;
+    return true;  // success
+}
+
+BYTE event_apply_effects(sponsor_t * sponsor, event_t * event) {
+    if (event->effect.error) {
+        LOG_WARN("event_apply_effects: can't apply error effect!", (WORD)event->effect.error);
+        return false;  // apply failed!
+    }
+    actor_t * actor = event->actor;
+    if (event->effect.behavior) {
+        LOG_DEBUG("event_apply_effects: becoming", (WORD)event->effect.behavior);
+        if (!RELEASE(&actor->behavior)) return false;  // reclamation failure!
+        if (!COPY(&actor->behavior, event->effect.behavior)) return false;  // allocation failure!
+    }
+    return true;  // success
+}
+
 /*
  * resource-bounded sponsor
  */
@@ -176,7 +199,6 @@ typedef struct {
     actor_t *   actor;          // actor roster
     event_t *   event;          // event queue
     WORD        current;        // current-event index
-    DATA_PTR    error;          // error value, or NULL if none
 } bounded_sponsor_t;
 
 static actor_t * bounded_sponsor_find_actor(sponsor_t * sponsor, DATA_PTR address) {
@@ -211,9 +233,16 @@ static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_dispatch: current =", current);
     event_t * event = &THIS->event[current];
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_dispatch: event =", (WORD)event);
-    if (run_actor_script(sponsor, event) != 0) {
+    if (!event_init_effects(sponsor, event)) return false;  // init failed!
+    if (run_actor_script(sponsor, event) == 0) {
+        // FIXME: should `event_apply_effects` be called inside `run_actor_script`?
+        if (!event_apply_effects(sponsor, event)) return false;  // effects failed!
+    } else if (event->effect.error) {
+        LOG_WARN("bounded_sponsor_dispatch: caught actor FAIL!", (WORD)event->effect.error);
+        if (!value_print(event->effect.error, 1)) return false;  // print failed!
+    } else {
         LOG_WARN("bounded_sponsor_dispatch: actor-script execution failed!", (WORD)event);
-        return false;  // actor-script execution failed!
+        return false;  // execution failed!
     }
     if (!RELEASE(&event->message)) return false;  // reclamation failure!
     return true;  // success!
@@ -301,11 +330,11 @@ static BYTE bounded_sponsor_become(sponsor_t * sponsor, DATA_PTR behavior) {
     return true;  // success!
 }
 
-static BYTE bounded_sponsor_fail(sponsor_t * sponsor, DATA_PTR error) {
-    bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
+static BYTE bounded_sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error) {
+    //bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
     LOG_TRACE("bounded_sponsor_fail: error =", (WORD)error);
-    THIS->error = error;
-    if (!value_print(error, 0)) return false;  // print failed
+    event->effect.error = error;
+    //if (!value_print(error, 0)) return false;  // print failed
     return true;  // success!
 }
 
@@ -349,7 +378,6 @@ sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * work_pool) {
     if (actors && !pool_reserve(heap_pool, (DATA_PTR *)&THIS->actor, sizeof(actor_t) * actors)) return NULL;  // allocation failure!
     if (events && !pool_reserve(heap_pool, (DATA_PTR *)&THIS->event, sizeof(event_t) * events)) return NULL;  // allocation failure!
     THIS->current = events;
-    THIS->error = NULL;
     THIS->sponsor.dispatch = bounded_sponsor_dispatch;
     THIS->sponsor.create = bounded_sponsor_create;
     THIS->sponsor.send = bounded_sponsor_send;
@@ -382,8 +410,8 @@ inline BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior) {
     return sponsor->become(sponsor, behavior);
 }
 
-inline BYTE sponsor_fail(sponsor_t * sponsor, DATA_PTR error) {
-    return sponsor->fail(sponsor, error);
+inline BYTE sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error) {
+    return sponsor->fail(sponsor, event, error);
 }
 
 inline BYTE sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD size) {

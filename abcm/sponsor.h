@@ -45,9 +45,15 @@ typedef struct actor_struct {
     DATA_PTR    behavior;
 } actor_t;
 
+typedef struct effect_struct {
+    DATA_PTR    behavior;       // behavior for subsequent messages
+    DATA_PTR    error;          // error value, or NULL if none
+} effect_t;
+
 typedef struct event_struct {
     actor_t *   actor;
     DATA_PTR    message;
+    effect_t    effect;         // actor-command effects
 } event_t;
 
 BYTE event_init_scope(sponsor_t * sponsor, event_t * event, actor_t * actor, DATA_PTR state);
@@ -58,6 +64,8 @@ BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * beha
 BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior);
 BYTE event_lookup_actor(sponsor_t * sponsor, event_t * event, DATA_PTR * self);
 BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * message);
+BYTE event_init_effects(sponsor_t * sponsor, event_t * event);
+BYTE event_apply_effects(sponsor_t * sponsor, event_t * event);
 
 typedef struct sponsor_struct {
     BYTE        (*dispatch)(sponsor_t * sponsor);
@@ -65,7 +73,7 @@ typedef struct sponsor_struct {
     BYTE        (*create)(sponsor_t * sponsor, event_t * event, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
     BYTE        (*send)(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
     BYTE        (*become)(sponsor_t * sponsor, DATA_PTR behavior);
-    BYTE        (*fail)(sponsor_t * sponsor, DATA_PTR error);
+    BYTE        (*fail)(sponsor_t * sponsor, event_t * event, DATA_PTR error);
     // memory management
     BYTE        (*reserve)(sponsor_t * sponsor, DATA_PTR * data, WORD size);
     BYTE        (*share)(sponsor_t * sponsor, DATA_PTR * data);
@@ -78,7 +86,7 @@ BYTE sponsor_dispatch(sponsor_t * sponsor);
 BYTE sponsor_create(sponsor_t * sponsor, event_t * event, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
 BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
 BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior);
-BYTE sponsor_fail(sponsor_t * sponsor, DATA_PTR error);
+BYTE sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error);
 
 BYTE sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD size);
 BYTE sponsor_share(sponsor_t * sponsor, DATA_PTR * data);
