@@ -120,6 +120,11 @@ BYTE parse_prefix(parse_t * parse) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_prefix: base", (WORD)parse->base);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_prefix: start", parse->start);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_prefix: size", parse->size);
+/*
+    print('^');
+    hex_dump(parse->base + parse->start, 8);
+    print('\n');
+*/
     if (parse->start >= parse->size) {
         LOG_WARN("parse_prefix: out-of-bounds", parse->size);
         return false;  // out of bounds
