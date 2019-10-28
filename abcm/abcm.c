@@ -27,6 +27,8 @@ BYTE s_name[] = { utf8, n_4, 'n', 'a', 'm', 'e' };
 BYTE s_value[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e' };
 BYTE s_type[] = { utf8, n_4, 't', 'y', 'p', 'e' };
 BYTE s_args[] = { utf8, n_4, 'a', 'r', 'g', 's' };
+BYTE s_if[] = { utf8, n_2, 'i', 'f' };
+BYTE s_do[] = { utf8, n_2, 'd', 'o' };
 BYTE s_in[] = { utf8, n_2, 'i', 'n' };
 BYTE s_with[] = { utf8, n_4, 'w', 'i', 't', 'h' };
 BYTE s_const[] = { utf8, n_5, 'c', 'o', 'n', 's', 't' };
@@ -42,6 +44,7 @@ BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
     { "kind":"actor_ignore" }
     { "kind":"actor_assign", "name":<string>, "value":<expression> }
     { "kind":"actor_fail", "error":<expression> }
+    { "kind":"conditional", "args":[{ "if":<expression>, "do":[<action>, ...] }, ...] }
     { "kind":"log_print", "level":<number>, "value":<expression> }  // --DEPRECATED--
 // Address Expressions
     { "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
@@ -72,6 +75,7 @@ BYTE k_actor_become[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'b', 'e', 'c
 BYTE k_actor_ignore[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'i', 'g', 'n', 'o', 'r', 'e' };
 BYTE k_actor_assign[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'a', 's', 's', 'i', 'g', 'n' };
 BYTE k_actor_fail[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 'f', 'a', 'i', 'l' };
+BYTE k_conditional[] = { utf8, n_11, 'c', 'o', 'n', 'd', 'i', 't', 'i', 'o', 'n', 'a', 'l' };
 BYTE k_actor_behavior[] = { utf8, n_14, 'a', 'c', 't', 'o', 'r', '_', 'b', 'e', 'h', 'a', 'v', 'i', 'o', 'r' };
 BYTE k_actor_create[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'c', 'r', 'e', 'a', 't', 'e' };
 BYTE k_actor_message[] = { utf8, n_13, 'a', 'c', 't', 'o', 'r', '_', 'm', 'e', 's', 's', 'a', 'g', 'e' };
@@ -87,8 +91,8 @@ BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };
 
 int start_abcm() {  // ok == 0, fail != 0
     int result = 0;
-    //log_config.level = LOG_LEVEL_WARN;
-    log_config.level = LOG_LEVEL_DEBUG;
+    log_config.level = LOG_LEVEL_WARN;
+    //log_config.level = LOG_LEVEL_DEBUG;
     //log_config.level = LOG_LEVEL_TRACE;
     //log_config.level = LOG_LEVEL_TRACE+1;
 

@@ -26,6 +26,7 @@ An Actor program is a sequence of _Actions_ executing within the bounds of a _Sp
     { "kind":"actor_ignore" }
     { "kind":"actor_assign", "name":<string>, "value":<expression> }
     { "kind":"actor_fail", "error":<expression> }
+    { "kind":"conditional", "args":[{ "if":<expression>, "do":[<action>, ...] }, ...] }
     { "kind":"log_print", "level":<number>, "value":<expression> }  // --DEPRECATED--
 ```
 
