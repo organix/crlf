@@ -74,7 +74,7 @@ BYTE object_get(DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
         return false;  // bad object
     }
     if (parse.value == 0) {  // empty object short-cut
-        LOG_WARN("object_get: empty object", (WORD)object);
+        LOG_DEBUG("object_get: empty object", (WORD)object);
         return false;  // not found.
     }
     parse.size = parse.end;  // limit to object contents

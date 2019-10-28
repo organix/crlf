@@ -268,7 +268,7 @@ static BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DAT
         DATA_PTR value;
         if (!actor_eval(sponsor, event, expression, &value)) {
             LOG_WARN("array_eval: bad expression!", (WORD)expression);
-            if (!value_print(expression, 0)) return false;  // print failed!
+            IF_WARN(value_print(expression, 0));
             return false;  // evaluation failed!
         }
         DATA_PTR array;
@@ -277,7 +277,7 @@ static BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DAT
         *result = TRACK(array);
     }
     LOG_DEBUG("array_eval: result @", (WORD)*result);
-    if (!value_print(*result, 0)) return false;  // print failed!
+    IF_DEBUG(value_print(*result, 0));
     return true;  // success!
 }
 
@@ -292,11 +292,11 @@ static BYTE op_1_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA
     DATA_PTR result;
     if (!array_eval(sponsor, event, exprs, &result)) {
         LOG_WARN("op_1_eval: argument evaluation failed!", (WORD)exprs);
-        if (!value_print(exprs, 0)) return false;  // print failed!
+        IF_WARN(value_print(exprs, 0));
         return false;  // evaluation failed!
     }
-    LOG_DEBUG("op_2_eval: result @", (WORD)result);
-    //if (!value_print(result, 0)) return false;  // print failed!
+    LOG_TRACE("op_1_eval: result @", (WORD)result);
+    IF_TRACE(value_print(result, 0));
     if (!array_get(result, 0, x)) return false;  // x value required!
     return true;  // success!
 }
@@ -312,11 +312,11 @@ static BYTE op_2_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA
     DATA_PTR result;
     if (!array_eval(sponsor, event, exprs, &result)) {
         LOG_WARN("op_2_eval: argument evaluation failed!", (WORD)exprs);
-        if (!value_print(exprs, 0)) return false;  // print failed!
+        IF_WARN(value_print(exprs, 0));
         return false;  // evaluation failed!
     }
-    LOG_DEBUG("op_2_eval: result @", (WORD)result);
-    //if (!value_print(result, 0)) return false;  // print failed!
+    LOG_TRACE("op_2_eval: result @", (WORD)result);
+    IF_TRACE(value_print(result, 0));
     if (!array_get(result, 0, x)) return false;  // x value required!
     if (!array_get(result, 1, y)) return false;  // y value required!
     return true;  // success!
@@ -503,8 +503,10 @@ BYTE operation_eval(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PT
 // evaluate actor expression (expression -> value)
 BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_PTR * result) {
     LOG_TRACE("actor_eval: expression", (WORD)expression);
-    prints("  ");
-    if (!value_print(expression, 0)) return false;  // print failed!
+    IF_DEBUG({
+        prints("  ");
+        value_print(expression, 0);
+    });
     DATA_PTR kind;
     if (!object_get(expression, s_kind, &kind)) {
         LOG_WARN("actor_eval: missing 'kind' property", (WORD)expression);
@@ -638,15 +640,17 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         *result = v_null;
     }
     LOG_TRACE("actor_eval: result", (WORD)(*result));
-    prints("  -> ");
-    if (!value_print(*result, 0)) return false;  // print failed!
+    IF_DEBUG({
+        prints("  -> ");
+        value_print(*result, 0);
+    });
     return true;  // success!
 }
 
 // execute actor command (action -> effects)
 BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
-    LOG_TRACE("actor_exec: command", (WORD)command);
-    if (!value_print(command, 1)) return false;  // print failed!
+    LOG_DEBUG("actor_exec: command", (WORD)command);
+    IF_DEBUG(value_print(command, 1));
     DATA_PTR kind;
     if (!object_get(command, s_kind, &kind)) {
         LOG_WARN("actor_exec: missing 'kind' property", (WORD)command);
@@ -663,7 +667,6 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         // FIXME: make sure `name` is a String...
         DATA_PTR value;
         if (!property_eval(sponsor, event, command, s_value, &value)) return false;  // evaluation failed!
-        //if (!value_print(value, 0)) return false;  // print failed
         if (!event_update_binding(sponsor, event, name, value)) return false;  // update failed!
     } else if (value_equiv(kind, k_conditional)) {
         // { "kind":"conditional", "args":[{ "if":<expression>, "do":[<action>, ...] }, ...] }
@@ -727,7 +730,7 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         DATA_PTR error;
         if (!property_eval(sponsor, event, command, s_error, &error)) {
             LOG_INFO("actor_exec: DOUBLE-FAULT!", (WORD)command);
-            if (!value_print(command, 0)) return false;  // print failed
+            IF_WARN(value_print(command, 0));
             return false;  // evaluation failed!
         }
         LOG_WARN("actor_exec: FAIL!", (WORD)error);
@@ -749,14 +752,14 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
 
 // execute actor script (array of commands)
 BYTE script_exec(sponsor_t * sponsor, event_t * event, DATA_PTR script) {
-    LOG_DEBUG("script_exec: script =", (WORD)script);
-    if (!value_print(script, 1)) return false;  // print failed!
+    LOG_TRACE("script_exec: script =", (WORD)script);
+    IF_TRACE(value_print(script, 1));
     WORD length;
     if (!array_length(script, &length)) {
         LOG_WARN("script_exec: script array required!", (WORD)script);
         return false;  // top-level array required!
     }
-    LOG_INFO("script_exec: script array length", length);
+    LOG_DEBUG("script_exec: script array length", length);
     WORD i;
     for (i = 0; i < length; ++i) {
         DATA_PTR command;
@@ -770,14 +773,17 @@ BYTE script_exec(sponsor_t * sponsor, event_t * event, DATA_PTR script) {
             return false;  // failed executing command!
         }
     }
-    LOG_INFO("script_exec: completed successfully", i);
+    LOG_DEBUG("script_exec: completed successfully", i);
     return true;  // success!
 }
 
 BYTE validate_value(DATA_PTR value) {
-    LOG_DEBUG("validate_value @", (WORD)value);
+    LOG_INFO("validate_value @", (WORD)value);
     // FIXME: IMPLEMENT SINGLE-PASS PARSE/VALIDATE TO ENSURE SANITY AND CAPTURE MEMOIZED STRINGS...
-    if (!value_print(value, 1)) return false;  // print failed!
+    if (!value_print(value, 1)) {
+        LOG_WARN("validate_value: FAILED VALIDATION!", false);
+        return false;  // print failed!
+    }
     return true;  // success!
 }
 
@@ -836,7 +842,7 @@ int run_actor_config(DATA_PTR item) {
     if (!object_add(sponsor, behavior_template, s_script, script, &behavior)) return false;  // allocation failure!
     behavior = TRACK(behavior);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "run_actor_config: behavior =", (WORD)behavior);
-    //if (!value_print(behavior, 1)) return 1;  // print failed!
+    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(behavior, 1));
     actor_t bootstrap_actor = {
         .capability = { null },  // can't send messages to bootstrap
         .scope = {

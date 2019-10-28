@@ -600,19 +600,19 @@ BYTE array_length(DATA_PTR array, WORD * length);
 BYTE array_get(DATA_PTR object, WORD index, DATA_PTR * value);
 BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, DATA_PTR * value);
 */
-    //value_print(data_0, 0);
+    IF_TRACE(value_print(data_0, 0));
     assert(array_length(data_0, &length));
     assert(length == 0);
 
-    //value_print(data_1, 0);
+    IF_TRACE(value_print(data_1, 0));
     assert(array_length(data_1, &length));
     assert(length == 0);
 
-    //value_print(data_2, 0);
+    IF_TRACE(value_print(data_2, 0));
     assert(array_length(data_2, &length));
     assert(length == 0);
 
-    //value_print(data_3, 1);
+    IF_TRACE(value_print(data_3, 1));
     assert(array_length(data_3, &length));
     LOG_DEBUG("test_array: data_3.length =", length);
     assert(length == 4);
@@ -626,7 +626,7 @@ BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, D
     assert(value_equiv(value, v_null));
     assert(!array_get(data_3, 4, &value));
 
-    //value_print(data_4, 1);
+    IF_TRACE(value_print(data_4, 1));
     assert(array_length(data_4, &length));
     LOG_DEBUG("test_array: data_4.length =", length);
     assert(length == 2);
@@ -635,7 +635,7 @@ BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, D
     assert(array_get(data_4, 1, &value));
     assert(!array_get(data_4, 2, &value));
 
-    //value_print(data_5, 1);
+    IF_TRACE(value_print(data_5, 1));
     assert(array_length(data_5, &length));
     LOG_DEBUG("test_array: data_5.length =", length);
     assert(length == 5);
@@ -699,7 +699,7 @@ ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
     assert(RELEASE(&array));
     array = TRACK(value);
     // verify result
-    //value_print(array, 1);
+    IF_TRACE(value_print(array, 1));
     assert(value_equiv(array, data_10));
     assert(array_length(array, &length));
     LOG_DEBUG("test_array: array.length =", length);
@@ -731,30 +731,30 @@ static int test_object() {
 BYTE object_has(DATA_PTR object, DATA_PTR name);
 BYTE object_get(DATA_PTR object, DATA_PTR name, DATA_PTR * value);
 */
-    //value_print(data_0, 0);
+    IF_TRACE(value_print(data_0, 0));
     assert(!object_has(data_0, s_kind));
     assert(!object_get(data_0, s_kind, &value));
 
-    //value_print(data_1, 0);
+    IF_TRACE(value_print(data_1, 0));
     assert(!object_has(data_1, s_kind));
     assert(!object_get(data_1, s_kind, &value));
     assert(object_has(data_1, s_value));
     assert(object_get(data_1, s_value, &value));
     assert(value_equiv(value, i_42));
 
-    //value_print(data_2, 0);
+    IF_TRACE(value_print(data_2, 0));
     assert(!object_has(data_2, s_kind));
     assert(!object_get(data_0, s_kind, &value));
 
-    //value_print(data_3, 0);
+    IF_TRACE(value_print(data_3, 0));
     assert(!object_has(data_3, s_kind));
     assert(!object_get(data_0, s_kind, &value));
 
-    //value_print(data_4, 0);
+    IF_TRACE(value_print(data_4, 0));
     assert(!object_has(data_4, s_kind));
     assert(!object_get(data_0, s_kind, &value));
 
-    //value_print(data_5, 1);
+    IF_TRACE(value_print(data_5, 1));
     assert(!object_has(data_5, s_kind));
     assert(object_get(data_5, s_zero, &value));
     assert(value_equiv(value, i_0));
@@ -780,34 +780,34 @@ BIND "kind" TO 0 WITH {"name":null, "kind":"actor_assign"}
     // start with nothing
     DATA_PTR object;
     assert(COPY(&object, o_));
-    //value_print(object, 1);
+    IF_TRACE(value_print(object, 1));
     // bind "kind"
     assert(object_add(sponsor, object, s_kind, k_actor_assign, &result));
-    //value_print(result, 1);
+    IF_TRACE(value_print(result, 1));
     assert(RELEASE(&object));
     object = result;
     // bind "name"
     assert(object_add(sponsor, object, s_name, s_actor, &result));
-    ///value_print(result, 1);
+    IF_TRACE(value_print(result, 1));
     assert(RELEASE(&object));
     object = result;
     // re-bind "name"
     assert(object_add(sponsor, object, s_name, v_null, &result));
-    //value_print(result, 1);
+    IF_TRACE(value_print(result, 1));
     assert(RELEASE(&object));
     object = result;
     // re-bind "kind"
     assert(object_add(sponsor, object, s_kind, i_0, &result));
-    //value_print(result, 1);
+    IF_TRACE(value_print(result, 1));
     assert(RELEASE(&object));
     object = result;
     // verify result
     assert(COPY(&result, object));
-    //value_print(result, 1);
+    IF_TRACE(value_print(result, 1));
     assert(object_get(object, s_name, &value));
     assert(value_equiv(value, v_null));
     assert(RELEASE(&object));
-    //value_print(data_10, 1);
+    IF_TRACE(value_print(data_10, 1));
     assert(value_equiv(result, data_10));
     assert(RELEASE(&result));
 

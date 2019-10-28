@@ -108,12 +108,14 @@ For now we'll make these all responsibilities of the event, with help from the s
 **/
 
 BYTE event_init_scope(sponsor_t * sponsor, event_t * event, actor_t * actor, DATA_PTR state) {
+    LOG_TRACE("event_init_scope: state =", (WORD)state);
     actor->scope.parent = &event->actor->scope;
     if (!COPY(&actor->scope.state, state)) return false;  // allocation failure!
     return true;  // success
 }
 
 BYTE event_has_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name) {
+    LOG_TRACE("event_has_binding: name =", (WORD)name);
     actor_t * actor = event->actor;
     scope_t * scope = &actor->scope;
     WORD has = object_has(scope->state, name);
@@ -122,11 +124,12 @@ BYTE event_has_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name) {
         if (!scope) break;
         has = object_has(scope->state, name);
     }
-    LOG_TRACE("event_has_binding", has);
+    LOG_DEBUG("event_has_binding", has);
     return has;
 }
 
 BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR * value) {
+    LOG_TRACE("event_lookup_binding: name =", (WORD)name);
     actor_t * actor = event->actor;
     scope_t * scope = &actor->scope;
     *value = v_null;  // default value is `null`
@@ -137,38 +140,39 @@ BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, D
             // FIXME: we may want to "throw" an exception here...
             break;
         }
-        LOG_DEBUG("event_lookup_binding: searching scope", (WORD)scope->state);
-        if (!value_print(scope->state, 1)) return false;  // print failed
+        LOG_TRACE("event_lookup_binding: searching scope", (WORD)scope->state);
+        IF_TRACE(value_print(scope->state, 1));
     }
     LOG_DEBUG("event_lookup_binding: value =", (WORD)*value);
     return true;  // success
 }
 
 BYTE event_update_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR value) {
+    LOG_TRACE("event_update_binding: name =", (WORD)name);
     actor_t * actor = event->actor;
     DATA_PTR state;
     if (!object_add(sponsor, actor->scope.state, name, value, &state)) return false;  // allocation failure!
     if (!RELEASE(&actor->scope.state)) return false;  // reclamation failure!
     actor->scope.state = TRACK(state);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "event_update_binding: state' =", (WORD)state);
-    if (!value_print(state, 1)) return false;  // print failed
-    LOG_TRACE("event_update_binding: value =", (WORD)value);
+    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(state, 1));
+    LOG_DEBUG("event_update_binding: value =", (WORD)value);
     return true;  // success
 }
 
 BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * behavior) {
     actor_t * actor = event->actor;
-    LOG_DEBUG("event_lookup_behavior: state =", (WORD)actor->scope.state);
-    if (!value_print(actor->scope.state, 1)) return false;  // print failed
+    LOG_TRACE("event_lookup_behavior: state =", (WORD)actor->scope.state);
+    IF_TRACE(value_print(actor->scope.state, 1));
     *behavior = actor->behavior;
-    LOG_TRACE("event_lookup_behavior: behavior =", (WORD)*behavior);
+    LOG_DEBUG("event_lookup_behavior: behavior =", (WORD)*behavior);
     return true;  // success
 }
 
 BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior) {
     LOG_TRACE("event_update_behavior: behavior =", (WORD)behavior);
     event->effect.behavior = behavior;
-    //if (!value_print(behavior, 0)) return false;  // print failed
+    IF_TRACE(value_print(behavior, 0));
     return true;  // success
 }
 
@@ -186,12 +190,16 @@ BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * messa
 }
 
 BYTE event_init_effects(sponsor_t * sponsor, event_t * event) {
+    LOG_TRACE("event_init_effects: event =", (WORD)event);
+    // FIXME: checkpoint actors and events to support revert on failure
     event->effect.behavior = NULL;
     event->effect.error = NULL;
+    // FIXME: may want to create a local (empty) binding scope to capture state changes...
     return true;  // success
 }
 
 BYTE event_apply_effects(sponsor_t * sponsor, event_t * event) {
+    LOG_TRACE("event_apply_effects: event =", (WORD)event);
     if (event->effect.error) {
         LOG_WARN("event_apply_effects: can't apply error effect!", (WORD)event->effect.error);
         return false;  // apply failed!
@@ -222,7 +230,7 @@ typedef struct {
 static actor_t * bounded_sponsor_find_actor(sponsor_t * sponsor, DATA_PTR address) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_find_actor: address =", (WORD)address);
-    //if (!value_print(address, 1)) return NULL;  // print failed!
+    IF_NONE(value_print(address, 1));
     parse_t parse;
     if (!value_parse(address, &parse)
     ||  !(parse.type & T_Capability)) {
@@ -253,16 +261,19 @@ static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_dispatch: event =", (WORD)event);
     if (!event_init_effects(sponsor, event)) return false;  // init failed!
     LOG_DEBUG("bounded_sponsor_dispatch: message =", (WORD)event->message);
-    if (!value_print(event->message, 1)) return false;  // print failed
+    IF_DEBUG(value_print(event->message, 1));
     actor_t * actor = event->actor;
     LOG_DEBUG("bounded_sponsor_dispatch: actor =", (WORD)actor);
-    if (!value_print(actor->capability, 1)) return false;  // print failed
+    IF_DEBUG(value_print(actor->capability, 1));
     if (run_actor_script(sponsor, event) == 0) {
         // FIXME: should `event_apply_effects` be called inside `run_actor_script`?
-        if (!event_apply_effects(sponsor, event)) return false;  // effects failed!
+        if (!event_apply_effects(sponsor, event)) {
+            LOG_WARN("bounded_sponsor_dispatch: failed to apply effects!", (WORD)event);
+            return false;  // effects failed!
+        }
     } else if (event->effect.error) {
         LOG_WARN("bounded_sponsor_dispatch: caught actor FAIL!", (WORD)event->effect.error);
-        if (!value_print(event->effect.error, 1)) return false;  // print failed!
+        IF_WARN(value_print(event->effect.error, 1));
     } else {
         LOG_WARN("bounded_sponsor_dispatch: actor-script execution failed!", (WORD)event);
         return false;  // execution failed!
@@ -278,9 +289,9 @@ static BYTE bounded_sponsor_create(sponsor_t * sponsor, event_t * event, DATA_PT
         return false;  // no more actors!
     }
     LOG_TRACE("bounded_sponsor_create: state =", (WORD)state);
-    if (!value_print(state, 0)) return false;  // print failed!
+    IF_TRACE(value_print(state, 0));
     LOG_TRACE("bounded_sponsor_create: behavior =", (WORD)behavior);
-    if (!value_print(behavior, 0)) return false;  // print failed!
+    IF_TRACE(value_print(behavior, 0));
     WORD ocap = --THIS->actors;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_create: ocap =", ocap);
     actor_t * actor = &THIS->actor[ocap];
@@ -296,28 +307,8 @@ static BYTE bounded_sponsor_create(sponsor_t * sponsor, event_t * event, DATA_PT
     if (!event_init_scope(sponsor, event, actor, state)) return false;  // allocation failure!
     if (!COPY(&actor->behavior, behavior)) return false;  // allocation failure!
     *address = actor->capability;
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_create: address =", (WORD)*address);
-    if (!value_print(*address, 0)) return false;  // print failed!
-#if 0
-    // start with nothing
-    DATA_PTR object;
-    DATA_PTR result;
-    assert(COPY(&object, o_));
-    // bind "behavior"
-    assert(object_add(sponsor, object, s_behavior, actor->behavior, &result));
-    assert(RELEASE(&object));
-    object = result;
-    // bind "state"
-    assert(object_add(sponsor, object, s_state, actor->state, &result));
-    assert(RELEASE(&object));
-    object = result;
-    // bind "actor"
-    assert(object_add(sponsor, object, s_actor, actor->capability, &result));
-    assert(RELEASE(&object));
-    object = result;
-    if (!value_print(object, 1)) return false;  // print failed!
-    assert(RELEASE(&object));
-#endif
+    LOG_DEBUG("bounded_sponsor_create: address =", (WORD)*address);
+    IF_TRACE(value_print(*address, 0));
     return true;  // success!
 }
 
@@ -327,21 +318,21 @@ static BYTE bounded_sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR
         LOG_WARN("bounded_sponsor_send: no more message-send events!", (WORD)THIS);
         return false;  // no more message-send events!
     }
-    LOG_TRACE("bounded_sponsor_send: address =", (WORD)address);
-    if (!value_print(address, 1)) return false;  // print failed!
+    LOG_DEBUG("bounded_sponsor_send: address =", (WORD)address);
+    IF_TRACE(value_print(address, 1));
     actor_t * actor = bounded_sponsor_find_actor(sponsor, address);
     if (!actor) return false;  // bad actor!
-    LOG_TRACE("bounded_sponsor_send: message =", (WORD)message);
-    if (!value_print(message, 1)) return false;  // print failed!
+    LOG_DEBUG("bounded_sponsor_send: message =", (WORD)message);
+    IF_TRACE(value_print(message, 1));
     if (value_equiv(address, v_null)) {
-        LOG_INFO("bounded_sponsor_send: ignoring message to null.", (WORD)message);
+        LOG_WARN("bounded_sponsor_send: ignoring message to null.", (WORD)message);
         // FIXME: we may want to catch this case earlier, and avoid evaluating the message expression...
         return true;  // success!
     }
     WORD current = --THIS->events;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_send: current =", current);
     event_t * event = &THIS->event[current];
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_send: event =", (WORD)event);
+    LOG_LEVEL(LOG_LEVEL_TRACE+0, "bounded_sponsor_send: event =", (WORD)event);
     event->actor = actor;
     COPY(&event->message, message);
     return true;  // success!
@@ -355,9 +346,9 @@ static BYTE bounded_sponsor_become(sponsor_t * sponsor, DATA_PTR behavior) {
 
 static BYTE bounded_sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error) {
     //bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
-    LOG_TRACE("bounded_sponsor_fail: error =", (WORD)error);
+    LOG_DEBUG("bounded_sponsor_fail: error =", (WORD)error);
     event->effect.error = error;
-    //if (!value_print(error, 0)) return false;  // print failed
+    IF_TRACE(value_print(error, 0));
     return true;  // success!
 }
 
@@ -382,12 +373,12 @@ static BYTE bounded_sponsor_release(sponsor_t * sponsor, DATA_PTR * data) {
 }
 
 sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * work_pool) {
-    LOG_TRACE("new_bounded_sponsor: actors =", actors);
+    LOG_DEBUG("new_bounded_sponsor: actors =", actors);
     if (actors > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but this code depends on it.
         LOG_WARN("new_bounded_sponsor: too many actors!", 0xFFFF);
         return NULL;  // too many actors!
     }
-    LOG_TRACE("new_bounded_sponsor: events =", events);
+    LOG_DEBUG("new_bounded_sponsor: events =", events);
     if (events > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but this code depends on it.
         LOG_WARN("new_bounded_sponsor: too many events!", 0xFFFF);
         return NULL;  // too many events!
@@ -556,7 +547,7 @@ DATA_PTR audit_track(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR ad
 
 #include <stdio.h>  // FIXME!
 int audit_show_leaks() {
-    int count = 0;
+    WORD count = 0;
     WORD total = 0;
 #if AUDIT_ALLOCATION
     LOG_INFO("audit_show_leaks: allocations", (WORD)audit_index);
@@ -573,8 +564,7 @@ int audit_show_leaks() {
     if (count == 0) {  // if there were no leaks...
         audit_index = 0;  // ...clear the audit history and start again.
     }
-    fprintf(stdout, "audit_show_leaks: leaks found = %d\n", count);
-    fflush(stdout);
+    LOG_INFO("audit_show_leaks: leaks found", count);
 #else
     /* can't check for leaks if we're not auditing! */
 #endif
