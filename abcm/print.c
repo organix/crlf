@@ -12,6 +12,7 @@
 #include "log.h"
 
 #define HEXDUMP_ANNOTATION 1 /* dump bose-encoded bytes for collection values */
+#define ANSI_COLOR_OUTPUT 1 /* use ansi terminal escape sequences to set output colors */
 
 #include <stdio.h>
 // FIXME: implement non-stdio output primitives
@@ -38,6 +39,41 @@ void newline() {
     fputc('\n', OUTPUT);
     fflush(OUTPUT);
 }
+
+typedef enum {
+    Black = '0',    // ^[[30m
+    Red,            // ^[[31m
+    Green,          // ^[[32m
+    Yellow,         // ^[[33m
+    Blue,           // ^[[34m
+    Magenta,        // ^[[35m
+    Cyan,           // ^[[36m
+    White           // ^[[37m
+} color_t;
+
+#if ANSI_COLOR_OUTPUT
+
+#define ESC 0x1B
+
+void set_color(color_t color) {
+    fputc(ESC, OUTPUT);
+    fputc('[', OUTPUT);
+    fputc('3', OUTPUT);
+    fputc(color, OUTPUT);
+    fputc('m', OUTPUT);
+}
+void clear_color() {
+    fputc(ESC, OUTPUT);
+    fputc('[', OUTPUT);
+    fputc('m', OUTPUT);
+}
+
+#else
+
+#define set_color(c) /* set_color disabled */
+#define clear_color() /* clear_color disabled */
+
+#endif
 
 static BYTE int_print(parse_t * parse) {
     long n = 0;
@@ -69,7 +105,9 @@ static BYTE int_print(parse_t * parse) {
         // direct-coded (small) integer
         n = (long)(parse->value);
     }
+    set_color(Green);
     fprintf(OUTPUT, "%ld", n);  // FIXME!
+    clear_color();
     return true;  // success!
 }
 
@@ -118,16 +156,20 @@ static void space(WORD indent) {  // space between values
 }
 
 static BYTE null_print(parse_t * parse) {
+    set_color(Magenta);
     prints("null");
+    clear_color();
     return true;  // success!
 }
 
 static BYTE boolean_print(parse_t * parse) {
+    set_color(Magenta);
     if (parse->prefix) {
         prints("true");
     } else {
         prints("false");
     }
+    clear_color();
     return true;  // success!
 }
 
@@ -137,6 +179,7 @@ static BYTE number_print(parse_t * parse) {
         return true;  // base-10 works for int-sized values...
     }
     // FIXME: JSON requires base-10, but we generate base-16 for numbers that are bigger than `int`...
+    set_color(Green);
     prints("0x");
     WORD end = parse->end;  // offset past end of number data
     WORD start = end - parse->value;  // offset to start of number data
@@ -148,6 +191,7 @@ static BYTE number_print(parse_t * parse) {
         }
 */
     }
+    clear_color();
     return true;  // success!
 }
 
@@ -155,9 +199,11 @@ static BYTE string_print(parse_t * parse) {
     // print parsed value known to be a String
     if (parse->prefix == mem_ref) {
 #if HEXDUMP_ANNOTATION
+        set_color(Red);
         print('(');
         hex_print(parse->value);
         print(')');
+        clear_color();
 #endif
         parse_t mem_parse;
         if (!value_parse((DATA_PTR)parse->count, &mem_parse)) return false;
@@ -166,9 +212,12 @@ static BYTE string_print(parse_t * parse) {
     }
     assert(parse->start < (parse->end - parse->value));
     if (parse->prefix == octets) {  // special case: raw octets or capability data
+        set_color(Yellow);
         print('<');
         if (parse->type & T_Capability) {
+            set_color(Magenta);
             print('@');
+            set_color(Yellow);
         }
         DATA_PTR data = parse->base + (parse->end - parse->value);
         for (WORD i = 0; i < parse->value; ++i) {
@@ -176,8 +225,10 @@ static BYTE string_print(parse_t * parse) {
             hex_print(data[i]);
         }
         prints(" >");
+        clear_color();
         return true;  // success!
     }
+    set_color(Yellow);
     print('"');
     parse_t code_parse = {
         .base = parse->base + (parse->end - parse->value),  // start of codepoint data
@@ -196,28 +247,35 @@ static BYTE string_print(parse_t * parse) {
         code_parse.start = code_parse.end;
     }
     print('"');
+    clear_color();
     return true;  // success!
 }
 
 static BYTE array_print(parse_t * parse, WORD indent) {
     // print parsed value known to be an Array
     assert(parse->start < (parse->end - parse->value));
+    set_color(Cyan);
     print('[');
     if (parse->value == 0) {  // empty array short-cut
         print(']');
+        clear_color();
 #if HEXDUMP_ANNOTATION
         if (indent) {
+            set_color(Blue);
             prints("  //");
             hex_dump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
+            clear_color();
         }
 #endif
         return true;
     }
     if (indent) {
 #if HEXDUMP_ANNOTATION
+        set_color(Blue);
         prints("  //");
         hex_dump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
         prints(" ...");
+        clear_color();
 #endif
         space(++indent);
     }
@@ -233,18 +291,24 @@ static BYTE array_print(parse_t * parse, WORD indent) {
         }
         if (!parse_print(&item_parse, indent)) return false;  // print failed!
         if (item_parse.end < item_parse.size) {
+            set_color(Cyan);
             print(',');
+            clear_color();
 #if HEXDUMP_ANNOTATION
             if (indent && ((item_parse.prefix < 0x02) || (item_parse.prefix > 0x07))) {  // not Arrays or Objects
+                set_color(Blue);
                 prints("  //");
                 hex_dump(item_parse.base + item_parse.start, item_parse.end - item_parse.start);
+                clear_color();
             }
 #endif
             space(indent);
 #if HEXDUMP_ANNOTATION
         } else if (indent && ((item_parse.prefix < 0x02) || (item_parse.prefix > 0x07))) {  // not Arrays or Objects
+            set_color(Blue);
             prints("  //");
             hex_dump(item_parse.base + item_parse.start, item_parse.end - item_parse.start);
+            clear_color();
 #endif
         }
         item_parse.start = item_parse.end;
@@ -252,29 +316,37 @@ static BYTE array_print(parse_t * parse, WORD indent) {
     if (indent) {
         space(--indent);
     }
+    set_color(Cyan);
     print(']');
+    clear_color();
     return true;  // success!
 }
 
 static BYTE object_print(parse_t * parse, WORD indent) {
     // print parsed value known to be an Object
     assert(parse->start < (parse->end - parse->value));
+    set_color(Cyan);
     print('{');
     if (parse->value == 0) {  // empty object short-cut
         print('}');
+        clear_color();
 #if HEXDUMP_ANNOTATION
         if (indent) {
+            set_color(Blue);
             prints("  //");
             hex_dump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
+            clear_color();
         }
 #endif
         return true;
     }
     if (indent) {
 #if HEXDUMP_ANNOTATION
+        set_color(Blue);
         prints("  //");
         hex_dump(parse->base + parse->start, (parse->end - parse->start) - parse->value);
         prints(" ...");
+        clear_color();
 #endif
         space(++indent);
     }
@@ -290,7 +362,9 @@ static BYTE object_print(parse_t * parse, WORD indent) {
             return false;  // bad property key
         }
         if (!string_print(&prop_parse)) return false;  // print failed!
+        set_color(Cyan);
         print(':');
+        clear_color();
         if (indent) {
             print(' ');
         }
@@ -302,18 +376,24 @@ static BYTE object_print(parse_t * parse, WORD indent) {
         }
         if (!parse_print(&prop_parse, indent)) return false;  // print failed!
         if (prop_parse.end < prop_parse.size) {
+            set_color(Cyan);
             print(',');
+            clear_color();
 #if HEXDUMP_ANNOTATION
             if (indent && ((prop_parse.prefix < 0x02) || (prop_parse.prefix > 0x07))) {  // not Arrays or Objects
+                set_color(Blue);
                 prints("  //");
                 hex_dump(prop_parse.base + prop_parse.start, prop_parse.end - prop_parse.start);
+                clear_color();
             }
 #endif
             space(indent);
 #if HEXDUMP_ANNOTATION
         } else if (indent && ((prop_parse.prefix < 0x02) || (prop_parse.prefix > 0x07))) {  // not Arrays or Objects
+            set_color(Blue);
             prints("  //");
             hex_dump(prop_parse.base + prop_parse.start, prop_parse.end - prop_parse.start);
+            clear_color();
 #endif
         }
         prop_parse.start = prop_parse.end;
@@ -321,7 +401,9 @@ static BYTE object_print(parse_t * parse, WORD indent) {
     if (indent) {
         space(--indent);
     }
+    set_color(Cyan);
     print('}');
+    clear_color();
     return true;  // success!
 }
 
@@ -369,8 +451,10 @@ BYTE value_print(DATA_PTR value, WORD indent) {
     BYTE ok = parse_print(&parse, indent);
 #if HEXDUMP_ANNOTATION
     if (indent && ((parse.prefix < 0x02) || (parse.prefix > 0x07))) {  // not Arrays or Objects
+        set_color(Blue);
         prints("  //");
         hex_dump(parse.base + parse.start, parse.end - parse.start);
+        clear_color();
     }
 #endif
     newline();
