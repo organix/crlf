@@ -254,7 +254,7 @@ static BYTE property_eval(sponsor_t * sponsor, event_t * event, DATA_PTR object,
 }
 
 // evaluate array of expressions
-BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA_PTR * result) {
+static BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA_PTR * result) {
     LOG_TRACE("array_eval: exprs", (WORD)exprs);
     WORD length;
     if (!array_length(exprs, &length)) return false;  // exprs array required!
@@ -277,9 +277,27 @@ BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA_PTR *
     return true;  // success!
 }
 
+// evaluate binary operator expression
+static BYTE op_2_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA_PTR * x, DATA_PTR * y) {
+    WORD length;
+    if (!array_length(exprs, &length)) return false;  // exprs array required!
+    if (length != 2) return false;  // exprs array must have exactly 2 elements!
+    DATA_PTR result;
+    if (!array_eval(sponsor, event, exprs, &result)) return false;  // evaluation failed!
+    if (!array_get(result, 0, x)) return false;  // x value required!
+    if (!array_get(result, 1, y)) return false;  // y value required!
+    return true;  // success!
+}
+
 BYTE op_list[] = { utf8, n_4, 'l', 'i', 's', 't' };
 BYTE op_join[] = { utf8, n_7, 'j', 'o', 'i', 'n', '[', '*', ']' };
 BYTE op_conditional[] = { utf8, n_14, 'c', 'o', 'n', 'd', 'i', 't', 'i', 'o', 'n', 'a', 'l', '[', '*', ']' };
+BYTE op_EQ_2[] = { utf8, n_5, 'E', 'Q', '[', '2', ']' };
+BYTE op_NEQ_2[] = { utf8, n_6, 'N', 'E', 'Q', '[', '2', ']' };
+BYTE op_LT_2[] = { utf8, n_5, 'L', 'T', '[', '2', ']' };
+BYTE op_LTE_2[] = { utf8, n_6, 'L', 'T', 'E', '[', '2', ']' };
+BYTE op_GT_2[] = { utf8, n_5, 'G', 'T', '[', '2', ']' };
+BYTE op_GTE_2[] = { utf8, n_6, 'G', 'T', 'E', '[', '2', ']' };
 
 // evaluate operation expression
 BYTE operation_eval(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * result) {
@@ -300,20 +318,66 @@ BYTE operation_eval(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PT
             if (!array_get(args, i, &if_expr)) return false;  // if_expr required!
             DATA_PTR value;
             if (!actor_eval(sponsor, event, if_expr, &value)) {
-                LOG_WARN("array_eval: bad if_expr!", (WORD)if_expr);
+                LOG_WARN("operation_eval: bad if_expr!", (WORD)if_expr);
                 return false;  // evaluation failed!
             }
             if (value_equiv(value, b_true)) {
                 DATA_PTR do_expr;
                 if (!array_get(args, i+1, &do_expr)) return false;  // do_expr required!
                 if (!actor_eval(sponsor, event, do_expr, result)) {
-                    LOG_WARN("array_eval: bad do_expr!", (WORD)do_expr);
+                    LOG_WARN("operation_eval: bad do_expr!", (WORD)do_expr);
                     return false;  // evaluation failed!
                 }
                 return true;  // success! -- early exit matching clause.
             }
         }
         *result = v_null;  // default value if no matching clause...
+    } else if (value_equiv(name, op_EQ_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        *result = (value_equiv(x, y)) ? b_true : b_false;
+    } else if (value_equiv(name, op_NEQ_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        *result = (value_equiv(x, y)) ? b_false : b_true;
+    } else if (value_equiv(name, op_LT_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        WORD i;
+        if (!value_integer(x, &i)) return false;  // number required!
+        WORD j;
+        if (!value_integer(y, &j)) return false;  // number required!
+        *result = ((long)i < (long)j) ? b_true : b_false;  // FIXME: only works for signed `long`...
+    } else if (value_equiv(name, op_LTE_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        WORD i;
+        if (!value_integer(x, &i)) return false;  // number required!
+        WORD j;
+        if (!value_integer(y, &j)) return false;  // number required!
+        *result = ((long)i <= (long)j) ? b_true : b_false;  // FIXME: only works for signed `long`...
+    } else if (value_equiv(name, op_GT_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        WORD i;
+        if (!value_integer(x, &i)) return false;  // number required!
+        WORD j;
+        if (!value_integer(y, &j)) return false;  // number required!
+        *result = ((long)i > (long)j) ? b_true : b_false;  // FIXME: only works for signed `long`...
+    } else if (value_equiv(name, op_GTE_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        WORD i;
+        if (!value_integer(x, &i)) return false;  // number required!
+        WORD j;
+        if (!value_integer(y, &j)) return false;  // number required!
+        *result = ((long)i >= (long)j) ? b_true : b_false;  // FIXME: only works for signed `long`...
     } else {
         LOG_WARN("operation_eval: unknown 'name' of operation", (WORD)name);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
