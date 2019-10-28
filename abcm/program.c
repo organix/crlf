@@ -7,6 +7,7 @@
 #include "program.h"
 #include "bose.h"
 #include "sponsor.h"
+#include "string.h"
 #include "array.h"
 #include "object.h"
 #include "equiv.h"
@@ -100,10 +101,10 @@ BYTE bootstrap[] = {  // non-memoized 2-actor, 2-event testcase
 */
 /**/
 BYTE bootstrap[] = {  // stateless stream reader (from PEG example)
-    0x06, 0x10, 0x82, 0xb0, 0x05, 0x81, 0x07, 0x10, 0x82, 0xaa, 0x05, 0x84, 0x0b, 0x84, 0x6b, 0x69,  // ···°·····ª····ki
+    0x06, 0x10, 0x82, 0xb8, 0x05, 0x81, 0x07, 0x10, 0x82, 0xb2, 0x05, 0x84, 0x0b, 0x84, 0x6b, 0x69,  // ···¸·····²····ki
     0x6e, 0x64, 0x0b, 0x8d, 0x61, 0x63, 0x74, 0x6f, 0x72, 0x5f, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x6f,  // nd··actor_sponso
     0x72, 0x0b, 0x86, 0x61, 0x63, 0x74, 0x6f, 0x72, 0x73, 0x89, 0x0b, 0x86, 0x65, 0x76, 0x65, 0x6e,  // r··actors···even
-    0x74, 0x73, 0xe3, 0x0b, 0x86, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x06, 0x10, 0x82, 0x75, 0x05,  // tsã··script···u·
+    0x74, 0x73, 0xe3, 0x0b, 0x86, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x06, 0x10, 0x82, 0x7d, 0x05,  // tsã··script···}·
     0x86, 0x07, 0x10, 0x82, 0xc2, 0x00, 0x83, 0x09, 0x00, 0x0b, 0x8c, 0x61, 0x63, 0x74, 0x6f, 0x72,  // ····Â······actor
     0x5f, 0x61, 0x73, 0x73, 0x69, 0x67, 0x6e, 0x0b, 0x84, 0x6e, 0x61, 0x6d, 0x65, 0x0b, 0x87, 0x63,  // _assign··name··c
     0x6f, 0x6e, 0x73, 0x6f, 0x6c, 0x65, 0x0b, 0x85, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x07, 0x10, 0x82,  // onsole··value···
@@ -173,25 +174,25 @@ BYTE bootstrap[] = {  // stateless stream reader (from PEG example)
     0x07, 0xa9, 0x84, 0x09, 0x00, 0x09, 0x2b, 0x09, 0x06, 0x09, 0x25, 0x09, 0x08, 0x07, 0x8c, 0x83,  // ·©····+···%·····
     0x09, 0x00, 0x09, 0x0b, 0x09, 0x0c, 0x09, 0x26, 0x09, 0x0e, 0x81, 0x09, 0x2c, 0x07, 0x8c, 0x83,  // ·······&····,···
     0x09, 0x00, 0x09, 0x0b, 0x09, 0x0c, 0x09, 0x0d, 0x09, 0x0e, 0x03, 0x09, 0x0f, 0x07, 0x89, 0x82,  // ················
-    0x09, 0x00, 0x09, 0x17, 0x09, 0x06, 0x09, 0x1d, 0x07, 0x10, 0x82, 0xda, 0x00, 0x83, 0x09, 0x00,  // ···········Ú····
+    0x09, 0x00, 0x09, 0x17, 0x09, 0x06, 0x09, 0x1d, 0x07, 0x10, 0x82, 0xe2, 0x00, 0x83, 0x09, 0x00,  // ···········â····
     0x09, 0x05, 0x09, 0x06, 0x0b, 0x86, 0x72, 0x65, 0x61, 0x64, 0x65, 0x72, 0x09, 0x08, 0x07, 0x10,  // ······reader····
-    0x82, 0xc4, 0x00, 0x83, 0x09, 0x00, 0x09, 0x09, 0x09, 0x0a, 0x07, 0x8c, 0x83, 0x09, 0x00, 0x09,  // ·Ä··············
-    0x0b, 0x09, 0x0c, 0x09, 0x0d, 0x09, 0x0e, 0x03, 0x09, 0x0f, 0x07, 0x10, 0x82, 0xa8, 0x00, 0x83,  // ·············¨··
+    0x82, 0xcc, 0x00, 0x83, 0x09, 0x00, 0x09, 0x09, 0x09, 0x0a, 0x07, 0x8c, 0x83, 0x09, 0x00, 0x09,  // ·Ì··············
+    0x0b, 0x09, 0x0c, 0x09, 0x0d, 0x09, 0x0e, 0x03, 0x09, 0x0f, 0x07, 0x10, 0x82, 0xb0, 0x00, 0x83,  // ·············°··
     0x09, 0x00, 0x09, 0x10, 0x09, 0x06, 0x0b, 0x8d, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x5f, 0x72,  // ········stream_r
-    0x65, 0x61, 0x64, 0x65, 0x72, 0x09, 0x04, 0x06, 0x10, 0x82, 0x8b, 0x00, 0x82, 0x07, 0x9b, 0x83,  // eader···········
+    0x65, 0x61, 0x64, 0x65, 0x72, 0x09, 0x04, 0x06, 0x10, 0x82, 0x93, 0x00, 0x82, 0x07, 0x9b, 0x83,  // eader···········
     0x09, 0x00, 0x09, 0x15, 0x09, 0x16, 0x07, 0x85, 0x81, 0x09, 0x00, 0x09, 0x13, 0x09, 0x19, 0x07,  // ················
-    0x89, 0x82, 0x09, 0x00, 0x09, 0x17, 0x09, 0x06, 0x09, 0x07, 0x07, 0xeb, 0x82, 0x09, 0x00, 0x09,  // ···········ë····
-    0x1f, 0x09, 0x20, 0x06, 0xe2, 0x81, 0x07, 0xdf, 0x82, 0x09, 0x21, 0x07, 0x92, 0x83, 0x09, 0x00,  // ·· ·â··ß··!·····
-    0x09, 0x1a, 0x09, 0x06, 0x09, 0x2a, 0x09, 0x1c, 0x07, 0x85, 0x81, 0x09, 0x00, 0x09, 0x13, 0x09,  // ·····*··········
-    0x29, 0x06, 0xc4, 0x81, 0x07, 0xc1, 0x83, 0x09, 0x00, 0x09, 0x15, 0x09, 0x16, 0x07, 0xa2, 0x84,  // )·Ä··Á········¢·
-    0x09, 0x00, 0x09, 0x2b, 0x09, 0x06, 0x09, 0x1b, 0x09, 0x08, 0x07, 0x85, 0x81, 0x09, 0x00, 0x09,  // ···+············
-    0x30, 0x09, 0x2c, 0x07, 0x8c, 0x83, 0x09, 0x00, 0x09, 0x0b, 0x09, 0x0c, 0x09, 0x0d, 0x09, 0x0e,  // 0·,·············
-    0x03, 0x09, 0x19, 0x07, 0x92, 0x83, 0x09, 0x00, 0x09, 0x1a, 0x09, 0x06, 0x09, 0x2a, 0x09, 0x1c,  // ·············*··
-    0x07, 0x85, 0x81, 0x09, 0x00, 0x09, 0x13, 0x07, 0xbc, 0x83, 0x09, 0x00, 0x09, 0x15, 0x09, 0x16,  // ········¼·······
-    0x07, 0xa6, 0x84, 0x09, 0x00, 0x09, 0x2b, 0x09, 0x06, 0x09, 0x1b, 0x09, 0x08, 0x07, 0x89, 0x82,  // ·¦····+·········
-    0x09, 0x00, 0x09, 0x17, 0x09, 0x06, 0x09, 0x33, 0x09, 0x2c, 0x07, 0x8c, 0x83, 0x09, 0x00, 0x09,  // ·······3·,······
-    0x0b, 0x09, 0x0c, 0x09, 0x0d, 0x09, 0x0e, 0x03, 0x09, 0x19, 0x07, 0x89, 0x82, 0x09, 0x00, 0x09,  // ················
-    0x17, 0x09, 0x06, 0x09, 0x31,                                                                    // ····1
+    0x89, 0x82, 0x09, 0x00, 0x09, 0x17, 0x09, 0x06, 0x09, 0x07, 0x07, 0xf3, 0x82, 0x09, 0x00, 0x09,  // ···········ó····
+    0x1f, 0x09, 0x20, 0x06, 0xea, 0x81, 0x07, 0xe7, 0x82, 0x09, 0x21, 0x07, 0x9a, 0x83, 0x09, 0x00,  // ·· ·ê··ç··!·····
+    0x0b, 0x88, 0x64, 0x69, 0x63, 0x74, 0x5f, 0x68, 0x61, 0x73, 0x09, 0x06, 0x09, 0x2a, 0x09, 0x1c,  // ··dict_has···*··
+    0x07, 0x85, 0x81, 0x09, 0x00, 0x09, 0x13, 0x09, 0x29, 0x06, 0xc4, 0x81, 0x07, 0xc1, 0x83, 0x09,  // ········)·Ä··Á··
+    0x00, 0x09, 0x15, 0x09, 0x16, 0x07, 0xa2, 0x84, 0x09, 0x00, 0x09, 0x2b, 0x09, 0x06, 0x09, 0x1b,  // ······¢····+····
+    0x09, 0x08, 0x07, 0x85, 0x81, 0x09, 0x00, 0x09, 0x30, 0x09, 0x2c, 0x07, 0x8c, 0x83, 0x09, 0x00,  // ········0·,·····
+    0x09, 0x0b, 0x09, 0x0c, 0x09, 0x0d, 0x09, 0x0e, 0x03, 0x09, 0x19, 0x07, 0x92, 0x83, 0x09, 0x00,  // ················
+    0x09, 0x1a, 0x09, 0x06, 0x09, 0x2a, 0x09, 0x1c, 0x07, 0x85, 0x81, 0x09, 0x00, 0x09, 0x13, 0x07,  // ·····*··········
+    0xbc, 0x83, 0x09, 0x00, 0x09, 0x15, 0x09, 0x16, 0x07, 0xa6, 0x84, 0x09, 0x00, 0x09, 0x2b, 0x09,  // ¼········¦····+·
+    0x06, 0x09, 0x1b, 0x09, 0x08, 0x07, 0x89, 0x82, 0x09, 0x00, 0x09, 0x17, 0x09, 0x06, 0x09, 0x33,  // ···············3
+    0x09, 0x2c, 0x07, 0x8c, 0x83, 0x09, 0x00, 0x09, 0x0b, 0x09, 0x0c, 0x09, 0x0d, 0x09, 0x0e, 0x03,  // ·,··············
+    0x09, 0x19, 0x07, 0x89, 0x82, 0x09, 0x00, 0x09, 0x17, 0x09, 0x06, 0x09, 0x31,                    // ············1
 };
 /*
 BYTE bootstrap[] = {  // testcase for FAIL! action
@@ -267,6 +268,7 @@ static BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DAT
         DATA_PTR value;
         if (!actor_eval(sponsor, event, expression, &value)) {
             LOG_WARN("array_eval: bad expression!", (WORD)expression);
+            if (!value_print(expression, 0)) return false;  // print failed!
             return false;  // evaluation failed!
         }
         DATA_PTR array;
@@ -274,6 +276,28 @@ static BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DAT
         if (!RELEASE(result)) return false;  // reclamation failure!
         *result = TRACK(array);
     }
+    LOG_DEBUG("array_eval: result @", (WORD)*result);
+    if (!value_print(*result, 0)) return false;  // print failed!
+    return true;  // success!
+}
+
+// evaluate unary operator expression
+static BYTE op_1_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA_PTR * x) {
+    WORD length;
+    if (!array_length(exprs, &length)) return false;  // exprs array required!
+    if (length != 1) {
+        LOG_WARN("op_1_eval: must have exactly 1 argument!", length);
+        return false;  // exprs array must have exactly 1 element!
+    }
+    DATA_PTR result;
+    if (!array_eval(sponsor, event, exprs, &result)) {
+        LOG_WARN("op_1_eval: argument evaluation failed!", (WORD)exprs);
+        if (!value_print(exprs, 0)) return false;  // print failed!
+        return false;  // evaluation failed!
+    }
+    LOG_DEBUG("op_2_eval: result @", (WORD)result);
+    //if (!value_print(result, 0)) return false;  // print failed!
+    if (!array_get(result, 0, x)) return false;  // x value required!
     return true;  // success!
 }
 
@@ -281,15 +305,26 @@ static BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DAT
 static BYTE op_2_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA_PTR * x, DATA_PTR * y) {
     WORD length;
     if (!array_length(exprs, &length)) return false;  // exprs array required!
-    if (length != 2) return false;  // exprs array must have exactly 2 elements!
+    if (length != 2) {
+        LOG_WARN("op_2_eval: must have exactly 2 arguments!", length);
+        return false;  // exprs array must have exactly 2 elements!
+    }
     DATA_PTR result;
-    if (!array_eval(sponsor, event, exprs, &result)) return false;  // evaluation failed!
+    if (!array_eval(sponsor, event, exprs, &result)) {
+        LOG_WARN("op_2_eval: argument evaluation failed!", (WORD)exprs);
+        if (!value_print(exprs, 0)) return false;  // print failed!
+        return false;  // evaluation failed!
+    }
+    LOG_DEBUG("op_2_eval: result @", (WORD)result);
+    //if (!value_print(result, 0)) return false;  // print failed!
     if (!array_get(result, 0, x)) return false;  // x value required!
     if (!array_get(result, 1, y)) return false;  // y value required!
     return true;  // success!
 }
 
 BYTE op_list[] = { utf8, n_4, 'l', 'i', 's', 't' };
+BYTE op_length[] = { utf8, n_9, 'l', 'e', 'n', 'g', 't', 'h', '[', '1', ']' };
+BYTE op_charAt[] = { utf8, n_20, 'c', 'h', 'a', 'r', 'A', 't', '_', 'F', 'R', 'O', 'M', '_', 'S', 'T', 'A', 'R', 'T', '[', '2', ']' };
 BYTE op_join[] = { utf8, n_7, 'j', 'o', 'i', 'n', '[', '*', ']' };
 BYTE op_conditional[] = { utf8, n_14, 'c', 'o', 'n', 'd', 'i', 't', 'i', 'o', 'n', 'a', 'l', '[', '*', ']' };
 BYTE op_EQ_2[] = { utf8, n_5, 'E', 'Q', '[', '2', ']' };
@@ -298,6 +333,29 @@ BYTE op_LT_2[] = { utf8, n_5, 'L', 'T', '[', '2', ']' };
 BYTE op_LTE_2[] = { utf8, n_6, 'L', 'T', 'E', '[', '2', ']' };
 BYTE op_GT_2[] = { utf8, n_5, 'G', 'T', '[', '2', ']' };
 BYTE op_GTE_2[] = { utf8, n_6, 'G', 'T', 'E', '[', '2', ']' };
+BYTE op_ADD_2[] = { utf8, n_6, 'A', 'D', 'D', '[', '2', ']' };
+BYTE op_MINUS_2[] = { utf8, n_8, 'M', 'I', 'N', 'U', 'S', '[', '2', ']' };
+BYTE op_MULTIPLY_2[] = { utf8, n_11, 'M', 'U', 'L', 'T', 'I', 'P', 'L', 'Y', '[', '2', ']' };
+BYTE op_DIVIDE_2[] = { utf8, n_9, 'D', 'I', 'V', 'I', 'D', 'E', '[', '2', ']' };
+
+// FIXME: this should be in `number.c`, when it exists...
+BYTE make_integer(sponsor_t * sponsor, WORD integer, DATA_PTR * new) {
+    LOG_TRACE("make_integer: integer", integer);
+    long n = (long)integer;  // treat it as a signed value...
+    DATA_PTR data;
+    WORD size;
+    if ((-64 <= n) && (n <= 126)) {  // small integer range
+        size = 1;
+        if (!RESERVE(&data, size)) return false;  // out of memory!
+        data[0] = (n + n_0);  // encode small integer value
+        LOG_DEBUG("make_integer: encoded small", data[0]);
+        *new = data;
+    } else {
+        LOG_WARN("make_integer: value too large!", (WORD)integer);
+        return false;  // value too large!
+    }
+    return true;  // success!
+}
 
 // evaluate operation expression
 BYTE operation_eval(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * result) {
@@ -305,6 +363,22 @@ BYTE operation_eval(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PT
     LOG_TRACE("operation_eval: args", (WORD)args);
     if (value_equiv(name, op_list)) {
         if (!array_eval(sponsor, event, args, result)) return false;  // evaluation failed!
+    } else if (value_equiv(name, op_length)) {
+        DATA_PTR x;
+        if (!op_1_eval(sponsor, event, args, &x)) return false;  // bad arg!
+        WORD length;
+        if (!string_length(x, &length)) return false;  // bad length!
+        if (!make_integer(sponsor, length, result)) return false;  // bad allocation!
+    } else if (value_equiv(name, op_charAt)) {
+        DATA_PTR s;
+        DATA_PTR n;
+        if (!op_2_eval(sponsor, event, args, &s, &n)) return false;  // bad args!
+        WORD i;
+        if (!value_integer(n, &i)) return false;  // number required!
+        --i;  // adjust for 1-based index
+        if (!string_get(s, i, &i)) return false;  // get failed!
+        // FIXME: Blocky semantics return a single-character String (we return a codepoint)...
+        if (!make_integer(sponsor, i, result)) return false;  // bad allocation!
     } else if (value_equiv(name, op_join)) {
         if (!array_eval(sponsor, event, args, result)) return false;  // evaluation failed!
         // TODO: join the results into a single string...
@@ -378,6 +452,46 @@ BYTE operation_eval(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PT
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
         *result = ((long)i >= (long)j) ? b_true : b_false;  // FIXME: only works for signed `long`...
+    } else if (value_equiv(name, op_ADD_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        WORD i;
+        if (!value_integer(x, &i)) return false;  // number required!
+        WORD j;
+        if (!value_integer(y, &j)) return false;  // number required!
+        i += j;  // calculate sum...
+        if (!make_integer(sponsor, i, result)) return false;  // bad allocation!
+    } else if (value_equiv(name, op_MINUS_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        WORD i;
+        if (!value_integer(x, &i)) return false;  // number required!
+        WORD j;
+        if (!value_integer(y, &j)) return false;  // number required!
+        i -= j;  // calculate difference...
+        if (!make_integer(sponsor, i, result)) return false;  // bad allocation!
+    } else if (value_equiv(name, op_MULTIPLY_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        WORD i;
+        if (!value_integer(x, &i)) return false;  // number required!
+        WORD j;
+        if (!value_integer(y, &j)) return false;  // number required!
+        i *= j;  // calculate product...
+        if (!make_integer(sponsor, i, result)) return false;  // bad allocation!
+    } else if (value_equiv(name, op_DIVIDE_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        WORD i;
+        if (!value_integer(x, &i)) return false;  // number required!
+        WORD j;
+        if (!value_integer(y, &j)) return false;  // number required!
+        i /= j;  // calculate quotient...
+        if (!make_integer(sponsor, i, result)) return false;  // bad allocation!
     } else {
         LOG_WARN("operation_eval: unknown 'name' of operation", (WORD)name);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
@@ -574,7 +688,7 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
                     LOG_DEBUG("actor_exec: missing 'do' property", (WORD)clause);
                     return false;  // missing property
                 }
-                if (!actor_exec(sponsor, event, do_expr)) {
+                if (!script_exec(sponsor, event, do_expr)) {
                     LOG_WARN("actor_exec: bad do_expr!", (WORD)do_expr);
                     return false;  // execution failed!
                 }
@@ -624,11 +738,39 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         LOG_DEBUG("actor_exec: print action", (WORD)kind);
         DATA_PTR value;
         if (!property_eval(sponsor, event, command, s_value, &value)) return false;  // evaluation failed!
-        if (!value_print(value, 0)) return false;  // print failed
+        prints("LOG: ");
+        if (!value_print(value, 1)) return false;  // print failed
     } else {
         LOG_WARN("actor_exec: unknown 'kind' of command", (WORD)kind);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
     }
+    return true;  // success!
+}
+
+// execute actor script (array of commands)
+BYTE script_exec(sponsor_t * sponsor, event_t * event, DATA_PTR script) {
+    LOG_DEBUG("script_exec: script =", (WORD)script);
+    if (!value_print(script, 1)) return false;  // print failed!
+    WORD length;
+    if (!array_length(script, &length)) {
+        LOG_WARN("script_exec: script array required!", (WORD)script);
+        return false;  // top-level array required!
+    }
+    LOG_INFO("script_exec: script array length", length);
+    WORD i;
+    for (i = 0; i < length; ++i) {
+        DATA_PTR command;
+        if (!array_get(script, i, &command)
+        ||  !object_has(command, s_kind)) {
+            LOG_WARN("script_exec: command object required!", (WORD)command);
+            return false;  // command object required!
+        }
+        if (!actor_exec(sponsor, event, command)) {
+            LOG_WARN("script_exec: failed executing command!", (WORD)command);
+            return false;  // failed executing command!
+        }
+    }
+    LOG_INFO("script_exec: completed successfully", i);
     return true;  // success!
 }
 
@@ -647,34 +789,16 @@ int run_actor_script(sponsor_t * sponsor, event_t * event) {
     LOG_TRACE("run_actor_script: sponsor =", (WORD)sponsor);
     LOG_TRACE("run_actor_script: event =", (WORD)event);
     DATA_PTR behavior;
-    if (!event_lookup_behavior(sponsor, event, &behavior)) return false;  // lookup failed!
+    if (!event_lookup_behavior(sponsor, event, &behavior)) return 1;  // lookup failed!
     DATA_PTR script;
     if (!object_get(behavior, s_script, &script)) {
         LOG_WARN("run_actor_script: script required!", (WORD)behavior);
-        return false;  // script required!
+        return 1;  // script required!
     }
-    LOG_DEBUG("run_actor_script: script =", (WORD)script);
-    //if (!value_print(script, 1)) return 1;  // print failed!
-    WORD length;
-    if (!array_length(script, &length)) {
-        LOG_WARN("run_actor_script: script array required!", (WORD)script);
-        return 1;  // top-level array required!
+    if (!script_exec(sponsor, event, script)) {
+        LOG_WARN("run_actor_script: script failed!", (WORD)script);
+         return 1;  // script failed!
     }
-    LOG_INFO("run_actor_script: script array length", length);
-    WORD i;
-    for (i = 0; i < length; ++i) {
-        DATA_PTR command;
-        if (!array_get(script, i, &command)
-        ||  !object_has(command, s_kind)) {
-            LOG_WARN("run_actor_script: command object required!", (WORD)command);
-            return 1;  // command object required!
-        }
-        if (!actor_exec(sponsor, event, command)) {
-            LOG_WARN("run_actor_script: failed executing command!", (WORD)command);
-            return 1;  // failed executing command!
-        }
-    }
-    LOG_INFO("run_actor_script: completed successfully", i);
     return 0;  // success!
 }
 

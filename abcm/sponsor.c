@@ -137,8 +137,10 @@ BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, D
             // FIXME: we may want to "throw" an exception here...
             break;
         }
+        LOG_DEBUG("event_lookup_binding: searching scope", (WORD)scope->state);
+        if (!value_print(scope->state, 1)) return false;  // print failed
     }
-    LOG_TRACE("event_lookup_binding: value =", (WORD)*value);
+    LOG_DEBUG("event_lookup_binding: value =", (WORD)*value);
     return true;  // success
 }
 
@@ -156,6 +158,8 @@ BYTE event_update_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, D
 
 BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * behavior) {
     actor_t * actor = event->actor;
+    LOG_DEBUG("event_lookup_behavior: state =", (WORD)actor->scope.state);
+    if (!value_print(actor->scope.state, 1)) return false;  // print failed
     *behavior = actor->behavior;
     LOG_TRACE("event_lookup_behavior: behavior =", (WORD)*behavior);
     return true;  // success
@@ -248,6 +252,11 @@ static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
     event_t * event = &THIS->event[current];
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_dispatch: event =", (WORD)event);
     if (!event_init_effects(sponsor, event)) return false;  // init failed!
+    LOG_DEBUG("bounded_sponsor_dispatch: message =", (WORD)event->message);
+    if (!value_print(event->message, 1)) return false;  // print failed
+    actor_t * actor = event->actor;
+    LOG_DEBUG("bounded_sponsor_dispatch: actor =", (WORD)actor);
+    if (!value_print(actor->capability, 1)) return false;  // print failed
     if (run_actor_script(sponsor, event) == 0) {
         // FIXME: should `event_apply_effects` be called inside `run_actor_script`?
         if (!event_apply_effects(sponsor, event)) return false;  // effects failed!

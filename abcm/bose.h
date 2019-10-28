@@ -211,6 +211,7 @@ BYTE object_property_count(parse_t * parse, WORD * count_ptr);
 BYTE object_get_property(parse_t * parse, DATA_PTR key);
 
 BYTE value_parse(DATA_PTR value, parse_t * parse);
+BYTE string_parse(DATA_PTR value, parse_t * parse);  // prepare parse structure for iteration by `parse_codepoint`
 BYTE value_type(DATA_PTR value, BYTE * type);
 BYTE value_integer(DATA_PTR value, WORD * number);
 

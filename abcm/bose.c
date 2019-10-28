@@ -610,9 +610,41 @@ BYTE value_parse(DATA_PTR value, parse_t * parse) {
     parse->size = MAX_WORD;  // don't know how big value will be
     parse->start = 0;  // start at the beginning
     if (!parse_value(parse)) {
-        LOG_WARN("parse_value: bad value", (WORD)value);
+        LOG_WARN("value_parse: bad value", (WORD)value);
         return false;  // bad value
     }
+    // warning: data already written through `parse` pointer, even on failure!
+    return true;
+}
+
+/**
+Usage:
+    BYTE data[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e' };
+    parse_t parse;
+    if (!string_parse(data, &parse)) return false;  // bad string
+    while (parse.start < parse.size) {
+        if (!parse_codepoint(&parse)) return false;  // bad codepoint
+        output(parse.value);
+        parse.start = parse.end;
+    }
+**/
+BYTE string_parse(DATA_PTR value, parse_t * parse) {  // prepare parse structure for iteration by `parse_codepoint`
+    LOG_TRACE("string_parse @", (WORD)value);
+    parse->base = value;
+    parse->size = MAX_WORD;  // don't know how big value will be
+    parse->start = 0;  // start at the beginning
+    if (!parse_string(parse)) {
+        LOG_WARN("value_parse: bad value", (WORD)value);
+        return false;  // bad value
+    }
+    if (parse->prefix == mem_ref) {  // redirect to memo table entry
+        if (!value_parse((DATA_PTR)parse->count, parse)) return false;  // bad memo!
+    }
+    WORD code_start = (parse->end - parse->value);  // start of codepoint data
+    // note: prefix and type are used by `parse_codepoint`, but are already set by `parse_value`...
+    parse->base += code_start;  // reposition to start of codepoint data
+    parse->size = parse->value;  // limit to codepoint data
+    parse->start = 0;  // start at the beginning
     // warning: data already written through `parse` pointer, even on failure!
     return true;
 }

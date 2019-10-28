@@ -53,9 +53,9 @@ BYTE array_length(DATA_PTR array, WORD * length) {
     return true;  // success!
 };
 
-BYTE array_get(DATA_PTR array, WORD index, DATA_PTR * value) {
+BYTE array_get(DATA_PTR array, WORD offset, DATA_PTR * value) {
     LOG_TRACE("array_get @", (WORD)array);
-    LOG_DEBUG("array_get: index =", index);
+    LOG_DEBUG("array_get: offset =", offset);
     parse_t parse = {
         .base = array,
         .size = MAX_WORD,  // don't know how big array will be
@@ -72,8 +72,8 @@ BYTE array_get(DATA_PTR array, WORD index, DATA_PTR * value) {
     }
     if (parse.type & T_Counted) {  // assume count is correct
         LOG_DEBUG("array_get: counted array", parse.count);
-        if (index >= parse.count) {
-            LOG_WARN("array_get: index must be less than count", parse.count);
+        if (offset >= parse.count) {
+            LOG_WARN("array_get: offset must be less than count", parse.count);
             return false;  // not found.
         }
     }
@@ -83,7 +83,7 @@ BYTE array_get(DATA_PTR array, WORD index, DATA_PTR * value) {
     while (parse.start < parse.size) {
         LOG_TRACE("array_get: element start =", parse.start);
 #if 1
-        if (n == index) {
+        if (n == offset) {
             *value = parse.base + parse.start;
             LOG_DEBUG("array_get: found value @", (WORD)*value);
             return true;  // FOUND!
@@ -99,7 +99,7 @@ BYTE array_get(DATA_PTR array, WORD index, DATA_PTR * value) {
             return false;  // bad element
         }
         DUMP_PARSE("array element", &parse);
-        if (n == index) {
+        if (n == offset) {
             *value = parse.base + parse.start;
             LOG_DEBUG("array_get: found value @", (WORD)*value);
             return true;  // FOUND!
@@ -108,7 +108,7 @@ BYTE array_get(DATA_PTR array, WORD index, DATA_PTR * value) {
         ++n;  // increment item count
         parse.start = parse.end;
     }
-    LOG_WARN("array_get: index must be less than length", n);
+    LOG_WARN("array_get: offset must be less than length", n);
     return false;  // not found.
 };
 
@@ -118,10 +118,10 @@ ADD x AT 1 TO [a, b, c] --> [a, x, b, c]
 ADD x AT 2 TO [a, b, c] --> [a, b, x, c]
 ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
 */
-BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, DATA_PTR * new) {
+BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD offset, DATA_PTR * new) {
     LOG_TRACE("array_add @", (WORD)array);
     LOG_DEBUG("array_add: item @", (WORD)item);
-    LOG_DEBUG("array_add: index =", index);
+    LOG_DEBUG("array_add: offset =", offset);
     parse_t parse = {
         .base = array,
         .size = MAX_WORD,  // don't know how big array will be
@@ -144,8 +144,8 @@ BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, D
     //DUMP_PARSE("item", &item_parse);
     if (parse.type & T_Counted) {  // assume count is correct
         LOG_DEBUG("array_add: counted array", parse.count);
-        if (index > parse.count) {
-            LOG_WARN("array_add: index exceeds count", parse.count);
+        if (offset > parse.count) {
+            LOG_WARN("array_add: offset exceeds count", parse.count);
             return false;  // not found.
         }
     }
@@ -161,22 +161,22 @@ BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, D
         return false;  // array too large!
     }
     if (!RESERVE(&data, size)) return false;  // out of memory!
-    WORD offset = 0;
-    data[offset++] = array_n;   // 0: counted array
-    data[offset++] = p_int_0;   // 1: size field
-    data[offset++] = n_2;       // 2:   2 bytes
-    data[offset++] = 0;         // 3:   size (LSB)
-    data[offset++] = 0;         // 4:   size (MSB)
-    data[offset++] = p_int_0;   // 5: count field
-    data[offset++] = n_2;       // 6:   2 bytes
-    data[offset++] = 0;         // 7:   count (LSB)
-    data[offset++] = 0;         // 8:   count (MSB)
+    WORD end = 0;
+    data[end++] = array_n;   // 0: counted array
+    data[end++] = p_int_0;   // 1: size field
+    data[end++] = n_2;       // 2:   2 bytes
+    data[end++] = 0;         // 3:   size (LSB)
+    data[end++] = 0;         // 4:   size (MSB)
+    data[end++] = p_int_0;   // 5: count field
+    data[end++] = n_2;       // 6:   2 bytes
+    data[end++] = 0;         // 7:   count (LSB)
+    data[end++] = 0;         // 8:   count (MSB)
 
-    /* copy elements before index */
+    /* copy elements before offset */
     parse.size = parse.end;  // limit to array contents
     parse.start = parse.end - parse.value;  // reset to start of element data
     WORD n = 0;
-    while ((n < index) && (parse.start < parse.size)) {
+    while ((n < offset) && (parse.start < parse.size)) {
         LOG_TRACE("array_add: element start =", parse.start);
         if (!parse_value(&parse)) {
             LOG_WARN("array_add: bad element", parse.start);
@@ -186,19 +186,19 @@ BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, D
         //DUMP_PARSE("array element", &parse);
         size = parse.end - parse.start;
         LOG_TRACE("array_add: element size =", size);
-        memcpy(data + offset, parse.base + parse.start, size);
-        offset += size;
+        memcpy(data + end, parse.base + parse.start, size);
+        end += size;
         ++n;  // increment item count
         parse.start = parse.end;
     }
 
-    /* copy item at index */
+    /* copy item at offset */
     size = item_parse.end - item_parse.start;
     LOG_TRACE("array_add: item size =", size);
-    memcpy(data + offset, item_parse.base + item_parse.start, size);
-    offset += size;
+    memcpy(data + end, item_parse.base + item_parse.start, size);
+    end += size;
 
-    /* copy elements after index */
+    /* copy elements after offset */
     while (parse.start < parse.size) {
         LOG_TRACE("array_add: element start =", parse.start);
         if (!parse_value(&parse)) {
@@ -209,20 +209,20 @@ BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, D
         //DUMP_PARSE("array element", &parse);
         size = parse.end - parse.start;
         LOG_TRACE("array_add: element size =", size);
-        memcpy(data + offset, parse.base + parse.start, size);
-        offset += size;
+        memcpy(data + end, parse.base + parse.start, size);
+        end += size;
         ++n;  // increment item count
         parse.start = parse.end;
     }
 
     /* fill in size/count and return new array */
-    if (index > n) {
-        LOG_WARN("array_add: index exceeds count", n);
+    if (offset > n) {
+        LOG_WARN("array_add: offset exceeds count", n);
         RELEASE(&data);  // free memory on failure
         return false;  // not found.
     }
-    LOG_TRACE("array_add: final offset =", offset);
-    size = offset - 5;  // subtract header byte count
+    LOG_TRACE("array_add: final end =", end);
+    size = end - 5;  // subtract header byte count
     LOG_TRACE("array_add: final size =", size);
     ++n;  // count new item
     LOG_TRACE("array_add: final count =", n);
