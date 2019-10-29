@@ -630,6 +630,9 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         if (!property_eval(sponsor, event, expression, s_behavior, &behavior)) return false;  // evaluation failed!
         scope_t * scope;
         if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
+#if PER_MESSAGE_LOCAL_SCOPE
+        scope = scope->parent;  // chain to parent actor-scope, not temporary event-scope
+#endif
         DATA_PTR address;
         if (!sponsor_create(sponsor, scope, state, behavior, &address)) {
             LOG_WARN("actor_eval: create failed!", (WORD)expression);

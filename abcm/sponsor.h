@@ -59,6 +59,8 @@ typedef struct event_struct {
     effect_t    effect;         // actor-command effects
 } event_t;
 
+#define PER_MESSAGE_LOCAL_SCOPE 1 // create a new empty scope per message, with the actor state as parent.
+
 BYTE scope_has_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name);
 BYTE scope_lookup_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name, DATA_PTR * value);
 BYTE scope_update_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name, DATA_PTR value);

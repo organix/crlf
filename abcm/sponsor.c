@@ -107,8 +107,6 @@ For now we'll make these all responsibilities of the event, with help from the s
 
 **/
 
-#define PER_MESSAGE_LOCAL_SCOPE 1 // create a new empty scope per message, with the actor state as parent.
-
 BYTE scope_has_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name) {
     LOG_TRACE("scope_has_binding @", (WORD)scope);
     LOG_TRACE("scope_has_binding: name =", (WORD)name);
