@@ -17,7 +17,9 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command);
 BYTE script_exec(sponsor_t * sponsor, event_t * event, DATA_PTR script);
 
 int run_actor_script(sponsor_t * sponsor, event_t * event);
-int run_actor_config(DATA_PTR item);  // { "kind":"sponsor", "actors":<integer>, "events":<integer>, "script":[ ... ] }
-int run_program(DATA_PTR program);  // [ { "kind":"sponsor", ... }, ... ]
+// { "kind":"sponsor", "actors":<integer>, "events":<integer>, "script":[ ... ] }
+int run_actor_config(DATA_PTR item);
+// [ { "kind":"sponsor", ... }, ... ]
+int run_program(DATA_PTR program);
 
 #endif // _PROGRAM_H_

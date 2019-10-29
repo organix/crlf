@@ -828,7 +828,8 @@ int run_actor_config(DATA_PTR item) {
         return 1;  // script required!
     }
     LOG_INFO("run_actor_config: script =", (WORD)script);
-    sponsor_t * sponsor = new_bounded_sponsor(actors, events, heap_pool);
+    // +1 to account for initial actor and event
+    sponsor_t * sponsor = new_bounded_sponsor(actors + 1, events + 1, heap_pool);
     assert(sponsor);
     LOG_DEBUG("run_actor_config: sponsor =", (WORD)sponsor);
     /*
@@ -855,23 +856,17 @@ int run_actor_config(DATA_PTR item) {
         .actor = &bootstrap_actor
     };
     event_t * event = &bootstrap_event;
-    if (!COPY(&event->message, o_)) return false;  // allocation failure!
-    if (!event_init_effects(sponsor, event, actors, events)) return false;  // init failed!
-    if (run_actor_script(sponsor, event) != 0) {
-        LOG_WARN("run_actor_config: boot-script execution failed!", (WORD)event);
-        return 1;  // boot-script execution failed!
+    DATA_PTR state = o_;
+    DATA_PTR address;
+    if (!sponsor_create(sponsor, event, state, behavior, &address)) {
+        LOG_WARN("run_actor_config: failed to create initial actor!", (WORD)item);
+        return 1;  // failure!
     }
-/*
-    bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;  // FIXME: THIS IS A HACK! WE KNOW THE TYPE BECAUSE WE JUST CREATED IT.
-    LOG_DEBUG("run_actor_config: new actors", (event->effect.actors - THIS->actors));
-    LOG_DEBUG("run_actor_config: new events", (event->effect.events - THIS->events));
-*/
-    // FIXME: on failure/error, reclaim new actors and events...
-    if (!event_apply_effects(sponsor, event)) {
-        LOG_WARN("run_actor_config: failed to apply effects!", (WORD)event);
-        return false;  // effects failed!
+    DATA_PTR message = o_;
+    if (!sponsor_send(sponsor, address, message)) {
+        LOG_WARN("run_actor_config: failed sending to initial actor!", (WORD)item);
+        return 1;  // failure!
     }
-    // FIXME: why not simply use the bootstrap sponsor to create a bootstrap actor and actually dispatch a bootstrap event!?
     while (sponsor_dispatch(sponsor))  // dispatch message-events
         ;
     return 0;  // success!
@@ -879,10 +874,10 @@ int run_actor_config(DATA_PTR item) {
 
 int run_program(DATA_PTR program) {
     LOG_INFO("bootstrap", (WORD)program);
-    sponsor_t * sponsor = new_bounded_sponsor(0, 0, heap_pool);
-    assert(sponsor);
-    LOG_DEBUG("run_program: boot sponsor =", (WORD)sponsor);
-    if (!memo_reset(sponsor)) return 1;  // memo reset failed!
+    sponsor_t * boot_sponsor = new_bounded_sponsor(0, 0, heap_pool);
+    assert(boot_sponsor);
+    LOG_DEBUG("run_program: boot_sponsor =", (WORD)boot_sponsor);
+    if (!memo_reset(boot_sponsor)) return 1;  // memo reset failed!
     WORD length;
     if (!array_length(program, &length)) {
         LOG_WARN("run_program: top-level array required!", (WORD)program);
@@ -903,6 +898,6 @@ int run_program(DATA_PTR program) {
             return 1;  // failed to start!
         }
     }
-    if (!memo_reset(sponsor)) return 1;  // memo reset failed!
+    if (!memo_reset(boot_sponsor)) return 1;  // memo reset failed!
     return 0;  // success
 }
