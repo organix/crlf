@@ -118,8 +118,8 @@ BYTE object_get(DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
 
 BYTE object_add(sponsor_t * sponsor, DATA_PTR object, DATA_PTR name, DATA_PTR value, DATA_PTR * new) {
     LOG_TRACE("object_add @", (WORD)object);
-    LOG_DEBUG("object_add: name @", (WORD)name);
-    LOG_DEBUG("object_add: value @", (WORD)value);
+    LOG_TRACE("object_add: name @", (WORD)name);
+    LOG_TRACE("object_add: value @", (WORD)value);
     parse_t parse = {
         .base = object,
         .size = MAX_WORD,  // don't know how big object will be
@@ -183,7 +183,7 @@ BYTE object_add(sponsor_t * sponsor, DATA_PTR object, DATA_PTR name, DATA_PTR va
     LOG_TRACE("object_add: value size =", size);
     memcpy(data + offset, value_parse.base + value_parse.start, size);
     offset += size;
-    WORD n = 1;  // count new property first
+    WORD count = 1;  // count new property first
 
     /* copy original object properties, filtering duplicate name */
     parse.size = parse.end;  // limit to object contents
@@ -217,7 +217,7 @@ BYTE object_add(sponsor_t * sponsor, DATA_PTR object, DATA_PTR name, DATA_PTR va
             LOG_TRACE("object_add: value size =", size);
             memcpy(data + offset, parse.base + parse.start, size);
             offset += size;
-            ++n;  // increment property count
+            ++count;  // increment property count
         }
         parse.start = parse.end;
     }
@@ -226,12 +226,128 @@ BYTE object_add(sponsor_t * sponsor, DATA_PTR object, DATA_PTR name, DATA_PTR va
     LOG_TRACE("object_add: final offset =", offset);
     size = offset - 5;  // subtract header byte count
     LOG_TRACE("object_add: final size =", size);
-    LOG_TRACE("object_add: final count =", n);
+    LOG_TRACE("object_add: final count =", count);
     data[3] = size & 0xFF;  // size (LSB)
     data[4] = size >> 8;    // size (MSB)
-    data[7] = n & 0xFF;     // count (LSB)
-    data[8] = n >> 8;       // count (MSB)
+    data[7] = count & 0xFF; // count (LSB)
+    data[8] = count >> 8;   // count (MSB)
     *new = data;
     LOG_DEBUG("object_add: new object @", (WORD)data);
+    return true;  // success!
+};
+
+BYTE object_concat(sponsor_t * sponsor, DATA_PTR left, DATA_PTR right, DATA_PTR * new) {
+    LOG_TRACE("object_concat: left @", (WORD)left);
+    LOG_TRACE("object_concat: right @", (WORD)right);
+    parse_t left_parse = {
+        .base = left,
+        .size = MAX_WORD,  // don't know how big left will be
+        .start = 0
+    };
+    if (!parse_object(&left_parse)) {
+        LOG_WARN("object_concat: bad left object", (WORD)left);
+        return false;  // bad left object
+    }
+    IF_TRACE({
+        DUMP_PARSE("left", &left_parse);
+    });
+    parse_t right_parse = {
+        .base = right,
+        .size = MAX_WORD,  // don't know how big right will be
+        .start = 0
+    };
+    if (!parse_object(&right_parse)) {
+        LOG_WARN("object_concat: bad right object", (WORD)right);
+        return false;  // bad right object
+    }
+    IF_TRACE({
+        DUMP_PARSE("right", &right_parse);
+    });
+    WORD count = right_parse.count;  // count all properties from right
+    if (!(right_parse.type & T_Counted)) {
+        parse_t prop_parse = right_parse;
+        prop_parse.start = (prop_parse.end - prop_parse.value);  // adjust to start of properties
+        prop_parse.size = prop_parse.end;  // limit to object contents
+        if (!object_property_count(&prop_parse, &count)) return false;  // property count failed!
+    }
+    LOG_TRACE("object_concat: right count =", count);
+
+    /* allocate space for new object */
+    DATA_PTR data;
+    WORD size = 8;  // margin for size/count growth
+    size += right_parse.value;  // plus size of right content
+    size += left_parse.value;  // plus size of left content
+    LOG_TRACE("object_concat: allocation size =", size);
+    if (size > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but code below depends on it...
+        LOG_WARN("object_concat: object too large", size);
+        return false;  // object too large!
+    }
+    if (!RESERVE(&data, size)) return false;  // out of memory!
+    WORD offset = 0;
+    data[offset++] = object_n;  // 0: counted object
+    data[offset++] = p_int_0;   // 1: size field
+    data[offset++] = n_2;       // 2:   2 bytes
+    data[offset++] = 0;         // 3:   size (LSB)
+    data[offset++] = 0;         // 4:   size (MSB)
+    data[offset++] = p_int_0;   // 5: count field
+    data[offset++] = n_2;       // 6:   2 bytes
+    data[offset++] = 0;         // 7:   count (LSB)
+    data[offset++] = 0;         // 8:   count (MSB)
+
+    /* copy all properties from right */
+    size = right_parse.value;
+    LOG_TRACE("object_concat: right size =", size);
+    memcpy(data + offset, right_parse.base + right_parse.end - size, size);
+    offset += size;
+
+    /* copy properties from left, filtering duplicates (right overrides left) */
+    parse_t parse = left_parse;
+    parse.size = parse.end;  // limit to object contents
+    parse.start = parse.end - parse.value;  // reset to start of property data
+    while (parse.start < parse.size) {
+        BYTE found = false;
+        LOG_TRACE("object_concat: property start =", parse.start);
+        if (!parse_string(&parse)) {
+            LOG_WARN("object_concat: bad property name", parse.start);
+            RELEASE(&data);  // free memory on failure
+            return false;  // bad property name
+        }
+        if (object_has(right, parse.base + parse.start)) {
+            LOG_DEBUG("object_concat: duplicate!", (WORD)parse.base + parse.start);
+            found = true;
+        } else {
+            size = parse.end - parse.start;
+            LOG_TRACE("object_concat: name size =", size);
+            memcpy(data + offset, parse.base + parse.start, size);
+            offset += size;
+        }
+        parse.start = parse.end;
+        LOG_TRACE("object_concat: value start =", parse.start);
+        if (!parse_value(&parse)) {
+            LOG_WARN("object_concat: bad property value", parse.start);
+            RELEASE(&data);  // free memory on failure
+            return false;  // bad property value
+        }
+        if (!found) {
+            size = parse.end - parse.start;
+            LOG_TRACE("object_concat: value size =", size);
+            memcpy(data + offset, parse.base + parse.start, size);
+            offset += size;
+            ++count;  // increment property count
+        }
+        parse.start = parse.end;
+    }
+
+    /* fill in size/count and return new object */
+    LOG_TRACE("object_concat: final offset =", offset);
+    size = offset - 5;  // subtract header byte count
+    LOG_TRACE("object_concat: final size =", size);
+    LOG_TRACE("object_concat: final count =", count);
+    data[3] = size & 0xFF;  // size (LSB)
+    data[4] = size >> 8;    // size (MSB)
+    data[7] = count & 0xFF; // count (LSB)
+    data[8] = count >> 8;   // count (MSB)
+    *new = data;
+    LOG_DEBUG("object_concat: new object @", (WORD)data);
     return true;  // success!
 };

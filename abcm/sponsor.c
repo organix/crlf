@@ -107,6 +107,8 @@ For now we'll make these all responsibilities of the event, with help from the s
 
 **/
 
+#define PER_MESSAGE_LOCAL_SCOPE 1 // create a new empty scope per message, with the actor state as parent.
+
 BYTE event_init_scope(sponsor_t * sponsor, event_t * event, actor_t * actor, DATA_PTR state) {
     LOG_TRACE("event_init_scope: state =", (WORD)state);
     actor->scope.parent = &event->actor->scope;
@@ -116,8 +118,12 @@ BYTE event_init_scope(sponsor_t * sponsor, event_t * event, actor_t * actor, DAT
 
 BYTE event_has_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name) {
     LOG_TRACE("event_has_binding: name =", (WORD)name);
+#if PER_MESSAGE_LOCAL_SCOPE
+    scope_t * scope = &event->effect.scope;
+#else
     actor_t * actor = event->actor;
     scope_t * scope = &actor->scope;
+#endif
     WORD has = object_has(scope->state, name);
     while (!has) {
         scope = scope->parent;
@@ -130,8 +136,12 @@ BYTE event_has_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name) {
 
 BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR * value) {
     LOG_TRACE("event_lookup_binding: name =", (WORD)name);
+#if PER_MESSAGE_LOCAL_SCOPE
+    scope_t * scope = &event->effect.scope;
+#else
     actor_t * actor = event->actor;
     scope_t * scope = &actor->scope;
+#endif
     *value = v_null;  // default value is `null`
     while (!object_get(scope->state, name, value)) {
         scope = scope->parent;
@@ -149,11 +159,21 @@ BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, D
 
 BYTE event_update_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR value) {
     LOG_TRACE("event_update_binding: name =", (WORD)name);
+#if PER_MESSAGE_LOCAL_SCOPE
+    scope_t * scope = &event->effect.scope;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "event_update_binding: state =", (WORD)scope->state);
+    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(scope->state, 1));
+    DATA_PTR state;
+    if (!object_add(sponsor, scope->state, name, value, &state)) return false;  // allocation failure!
+    if (!RELEASE(&scope->state)) return false;  // reclamation failure!
+    scope->state = TRACK(state);
+#else
     actor_t * actor = event->actor;
     DATA_PTR state;
     if (!object_add(sponsor, actor->scope.state, name, value, &state)) return false;  // allocation failure!
     if (!RELEASE(&actor->scope.state)) return false;  // reclamation failure!
     actor->scope.state = TRACK(state);
+#endif
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "event_update_binding: state' =", (WORD)state);
     IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(state, 1));
     LOG_DEBUG("event_update_binding: value =", (WORD)value);
@@ -189,12 +209,19 @@ BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * messa
     return true;  // success
 }
 
-BYTE event_init_effects(sponsor_t * sponsor, event_t * event) {
+BYTE event_init_effects(sponsor_t * sponsor, event_t * event, WORD actors, WORD events) {
     LOG_TRACE("event_init_effects: event =", (WORD)event);
-    // FIXME: checkpoint actors and events to support revert on failure
+    //actor_t * actor = event->actor;
     event->effect.behavior = NULL;
+    event->effect.actors = actors;
+    event->effect.events = events;
+#if PER_MESSAGE_LOCAL_SCOPE
+    event->effect.scope.parent = &event->actor->scope;
+    if (!COPY(&event->effect.scope.state, o_)) return false;  // allocation failure!
+    LOG_DEBUG("event_init_effects: state =", (WORD)event->effect.scope.state);
+    IF_TRACE(value_print(event->effect.scope.state, 1));
+#endif
     event->effect.error = NULL;
-    // FIXME: may want to create a local (empty) binding scope to capture state changes...
     return true;  // success
 }
 
@@ -205,6 +232,17 @@ BYTE event_apply_effects(sponsor_t * sponsor, event_t * event) {
         return false;  // apply failed!
     }
     actor_t * actor = event->actor;
+#if PER_MESSAGE_LOCAL_SCOPE
+    DATA_PTR state;
+    if (!object_concat(sponsor, actor->scope.state, event->effect.scope.state, &state)) {
+        LOG_WARN("event_apply_effects: state merge failed!", (WORD)&event->effect.scope);
+        return false;  // state merge failed!
+    }
+    if (!RELEASE(&actor->scope.state)) return false;  // reclamation failure!
+    actor->scope.state = TRACK(state);
+    LOG_DEBUG("event_apply_effects: state =", (WORD)event->effect.scope.state);
+    IF_TRACE(value_print(event->effect.scope.state, 1));
+#endif
     if (event->effect.behavior) {
         LOG_DEBUG("event_apply_effects: becoming", (WORD)event->effect.behavior);
         if (!RELEASE(&actor->behavior)) return false;  // reclamation failure!
@@ -259,14 +297,16 @@ static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_dispatch: current =", current);
     event_t * event = &THIS->event[current];
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "bounded_sponsor_dispatch: event =", (WORD)event);
-    if (!event_init_effects(sponsor, event)) return false;  // init failed!
+    if (!event_init_effects(sponsor, event, THIS->actors, THIS->events)) return false;  // init failed!
     LOG_DEBUG("bounded_sponsor_dispatch: message =", (WORD)event->message);
     IF_DEBUG(value_print(event->message, 1));
     actor_t * actor = event->actor;
     LOG_DEBUG("bounded_sponsor_dispatch: actor =", (WORD)actor);
     IF_DEBUG(value_print(actor->capability, 1));
     if (run_actor_script(sponsor, event) == 0) {
-        // FIXME: should `event_apply_effects` be called inside `run_actor_script`?
+        LOG_DEBUG("bounded_sponsor_dispatch: new actors", (event->effect.actors - THIS->actors));
+        LOG_DEBUG("bounded_sponsor_dispatch: new events", (event->effect.events - THIS->events));
+        // FIXME: on failure/error, reclaim new actors and events...
         if (!event_apply_effects(sponsor, event)) {
             LOG_WARN("bounded_sponsor_dispatch: failed to apply effects!", (WORD)event);
             return false;  // effects failed!
@@ -279,6 +319,7 @@ static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
         return false;  // execution failed!
     }
     if (!RELEASE(&event->message)) return false;  // reclamation failure!
+    LOG_DEBUG("bounded_sponsor_dispatch: event completed.", (WORD)event);
     return true;  // success!
 }
 

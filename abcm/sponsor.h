@@ -47,6 +47,9 @@ typedef struct actor_struct {
 
 typedef struct effect_struct {
     DATA_PTR    behavior;       // behavior for subsequent messages
+    WORD        actors;         // actor creation limit
+    WORD        events;         // message-send event limit
+    scope_t     scope;          // scope for new bindings
     DATA_PTR    error;          // error value, or NULL if none
 } effect_t;
 
@@ -64,7 +67,7 @@ BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * beha
 BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior);
 BYTE event_lookup_actor(sponsor_t * sponsor, event_t * event, DATA_PTR * self);
 BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * message);
-BYTE event_init_effects(sponsor_t * sponsor, event_t * event);
+BYTE event_init_effects(sponsor_t * sponsor, event_t * event, WORD actors, WORD events);
 BYTE event_apply_effects(sponsor_t * sponsor, event_t * event);
 
 typedef struct sponsor_struct {

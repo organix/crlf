@@ -854,11 +854,24 @@ int run_actor_config(DATA_PTR item) {
     event_t bootstrap_event = {
         .actor = &bootstrap_actor
     };
-    if (!COPY(&bootstrap_event.message, o_)) return false;  // allocation failure!
-    if (run_actor_script(sponsor, &bootstrap_event) != 0) {
-        LOG_WARN("run_actor_config: boot-script execution failed!", (WORD)&bootstrap_event);
+    event_t * event = &bootstrap_event;
+    if (!COPY(&event->message, o_)) return false;  // allocation failure!
+    if (!event_init_effects(sponsor, event, actors, events)) return false;  // init failed!
+    if (run_actor_script(sponsor, event) != 0) {
+        LOG_WARN("run_actor_config: boot-script execution failed!", (WORD)event);
         return 1;  // boot-script execution failed!
     }
+/*
+    bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;  // FIXME: THIS IS A HACK! WE KNOW THE TYPE BECAUSE WE JUST CREATED IT.
+    LOG_DEBUG("run_actor_config: new actors", (event->effect.actors - THIS->actors));
+    LOG_DEBUG("run_actor_config: new events", (event->effect.events - THIS->events));
+*/
+    // FIXME: on failure/error, reclaim new actors and events...
+    if (!event_apply_effects(sponsor, event)) {
+        LOG_WARN("run_actor_config: failed to apply effects!", (WORD)event);
+        return false;  // effects failed!
+    }
+    // FIXME: why not simply use the bootstrap sponsor to create a bootstrap actor and actually dispatch a bootstrap event!?
     while (sponsor_dispatch(sponsor))  // dispatch message-events
         ;
     return 0;  // success!
