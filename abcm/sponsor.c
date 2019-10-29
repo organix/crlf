@@ -109,76 +109,55 @@ For now we'll make these all responsibilities of the event, with help from the s
 
 #define PER_MESSAGE_LOCAL_SCOPE 1 // create a new empty scope per message, with the actor state as parent.
 
-BYTE event_init_scope(sponsor_t * sponsor, event_t * event, actor_t * actor, DATA_PTR state) {
-    LOG_TRACE("event_init_scope: state =", (WORD)state);
-    actor->scope.parent = &event->actor->scope;
-    if (!COPY(&actor->scope.state, state)) return false;  // allocation failure!
-    return true;  // success
-}
-
-BYTE event_has_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name) {
-    LOG_TRACE("event_has_binding: name =", (WORD)name);
-#if PER_MESSAGE_LOCAL_SCOPE
-    scope_t * scope = &event->effect.scope;
-#else
-    actor_t * actor = event->actor;
-    scope_t * scope = &actor->scope;
-#endif
+BYTE scope_has_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name) {
+    LOG_TRACE("scope_has_binding @", (WORD)scope);
+    LOG_TRACE("scope_has_binding: name =", (WORD)name);
     WORD has = object_has(scope->state, name);
     while (!has) {
         scope = scope->parent;
         if (!scope) break;
         has = object_has(scope->state, name);
     }
-    LOG_DEBUG("event_has_binding", has);
+    LOG_DEBUG("scope_has_binding", has);
     return has;
 }
 
-BYTE event_lookup_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR * value) {
-    LOG_TRACE("event_lookup_binding: name =", (WORD)name);
-#if PER_MESSAGE_LOCAL_SCOPE
-    scope_t * scope = &event->effect.scope;
-#else
-    actor_t * actor = event->actor;
-    scope_t * scope = &actor->scope;
-#endif
+BYTE scope_lookup_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name, DATA_PTR * value) {
+    LOG_TRACE("scope_lookup_binding @", (WORD)scope);
+    LOG_TRACE("scope_lookup_binding: name =", (WORD)name);
     *value = v_null;  // default value is `null`
     while (!object_get(scope->state, name, value)) {
         scope = scope->parent;
         if (!scope) {
-            LOG_WARN("event_lookup_binding: undefined variable!", (WORD)name);
+            LOG_WARN("scope_lookup_binding: undefined variable!", (WORD)name);
             // FIXME: we may want to "throw" an exception here...
             break;
         }
-        LOG_TRACE("event_lookup_binding: searching scope", (WORD)scope->state);
+        LOG_TRACE("scope_lookup_binding: searching scope", (WORD)scope->state);
         IF_TRACE(value_print(scope->state, 1));
     }
-    LOG_DEBUG("event_lookup_binding: value =", (WORD)*value);
+    LOG_DEBUG("scope_lookup_binding: value =", (WORD)*value);
     return true;  // success
 }
 
-BYTE event_update_binding(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR value) {
-    LOG_TRACE("event_update_binding: name =", (WORD)name);
-#if PER_MESSAGE_LOCAL_SCOPE
-    scope_t * scope = &event->effect.scope;
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "event_update_binding: state =", (WORD)scope->state);
+BYTE scope_update_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name, DATA_PTR value) {
+    LOG_TRACE("scope_update_binding @", (WORD)scope);
+    LOG_TRACE("scope_update_binding: name =", (WORD)name);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "scope_update_binding: state =", (WORD)scope->state);
     IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(scope->state, 1));
     DATA_PTR state;
     if (!object_add(sponsor, scope->state, name, value, &state)) return false;  // allocation failure!
     if (!RELEASE(&scope->state)) return false;  // reclamation failure!
     scope->state = TRACK(state);
-#else
-    actor_t * actor = event->actor;
-    DATA_PTR state;
-    if (!object_add(sponsor, actor->scope.state, name, value, &state)) return false;  // allocation failure!
-    if (!RELEASE(&actor->scope.state)) return false;  // reclamation failure!
-    actor->scope.state = TRACK(state);
-#endif
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "event_update_binding: state' =", (WORD)state);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "scope_update_binding: state' =", (WORD)state);
     IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(state, 1));
-    LOG_DEBUG("event_update_binding: value =", (WORD)value);
+    LOG_DEBUG("scope_update_binding: value =", (WORD)value);
     return true;  // success
 }
+
+/*
+ * actor-message delivery event
+ */
 
 BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * behavior) {
     actor_t * actor = event->actor;
@@ -206,6 +185,16 @@ BYTE event_lookup_actor(sponsor_t * sponsor, event_t * event, DATA_PTR * self) {
 BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * message) {
     *message = event->message;
     LOG_TRACE("event_lookup_message: message =", (WORD)*message);
+    return true;  // success
+}
+
+BYTE event_lookup_scope(sponsor_t * sponsor, event_t * event, scope_t ** scope) {
+#if PER_MESSAGE_LOCAL_SCOPE
+    *scope = &event->effect.scope;
+#else
+    *scope = &event->actor->scope;
+#endif
+    LOG_TRACE("event_lookup_scope: scope =", (WORD)*scope);
     return true;  // success
 }
 
@@ -323,7 +312,7 @@ static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
     return true;  // success!
 }
 
-static BYTE bounded_sponsor_create(sponsor_t * sponsor, event_t * event, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
+static BYTE bounded_sponsor_create(sponsor_t * sponsor, scope_t * scope, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
     if (THIS->actors < 1) {
         LOG_WARN("bounded_sponsor_create: no more actors!", (WORD)THIS);
@@ -345,7 +334,9 @@ static BYTE bounded_sponsor_create(sponsor_t * sponsor, event_t * event, DATA_PT
     actor->capability[5] = null;        // --unused--
     actor->capability[6] = null;        // --unused--
     actor->capability[7] = null;        // --unused--
-    if (!event_init_scope(sponsor, event, actor, state)) return false;  // allocation failure!
+    // chain scope to parent
+    actor->scope.parent = scope;
+    if (!COPY(&actor->scope.state, state)) return false;  // allocation failure!
     if (!COPY(&actor->behavior, behavior)) return false;  // allocation failure!
     *address = actor->capability;
     LOG_DEBUG("bounded_sponsor_create: address =", (WORD)*address);
@@ -453,8 +444,8 @@ inline BYTE sponsor_dispatch(sponsor_t * sponsor) {
     return sponsor->dispatch(sponsor);
 }
 
-inline BYTE sponsor_create(sponsor_t * sponsor, event_t * event, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
-    return sponsor->create(sponsor, event, state, behavior, address);
+inline BYTE sponsor_create(sponsor_t * sponsor, scope_t * scope, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
+    return sponsor->create(sponsor, scope, state, behavior, address);
 }
 
 inline BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message) {

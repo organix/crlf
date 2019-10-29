@@ -547,7 +547,9 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         }
         // FIXME: make sure `name` is a String...
         *result = b_false;  // default value is `false`
-        if (event_has_binding(sponsor, event, name)) {
+        scope_t * scope;
+        if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
+        if (scope_has_binding(sponsor, scope, name)) {
             *result = b_true;  // default value is `true`
         }
     } else if (value_equiv(kind, k_actor_state)) {
@@ -559,7 +561,9 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
             return false;  // missing property
         }
         // FIXME: make sure `name` is a String...
-        if (!event_lookup_binding(sponsor, event, name, result)) return false;  // lookup failed!
+        scope_t * scope;
+        if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
+        if (!scope_lookup_binding(sponsor, scope, name, result)) return false;  // lookup failed!
     } else if (value_equiv(kind, k_dict_has)) {
         // { "kind":"dict_has", "name":<string>, "in":<dictionary> }
         LOG_DEBUG("actor_eval: dict_has expression", (WORD)kind);
@@ -624,8 +628,10 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         if (!property_eval(sponsor, event, expression, s_state, &state)) return false;  // evaluation failed!
         DATA_PTR behavior;
         if (!property_eval(sponsor, event, expression, s_behavior, &behavior)) return false;  // evaluation failed!
+        scope_t * scope;
+        if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
         DATA_PTR address;
-        if (!sponsor_create(sponsor, event, state, behavior, &address)) {
+        if (!sponsor_create(sponsor, scope, state, behavior, &address)) {
             LOG_WARN("actor_eval: create failed!", (WORD)expression);
             return false;  // create failed!
         }
@@ -667,7 +673,9 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         // FIXME: make sure `name` is a String...
         DATA_PTR value;
         if (!property_eval(sponsor, event, command, s_value, &value)) return false;  // evaluation failed!
-        if (!event_update_binding(sponsor, event, name, value)) return false;  // update failed!
+        scope_t * scope;
+        if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
+        if (!scope_update_binding(sponsor, scope, name, value)) return false;  // update failed!
     } else if (value_equiv(kind, k_conditional)) {
         // { "kind":"conditional", "args":[{ "if":<expression>, "do":[<action>, ...] }, ...] }
         LOG_DEBUG("actor_exec: conditional action", (WORD)kind);
@@ -844,21 +852,11 @@ int run_actor_config(DATA_PTR item) {
     behavior = TRACK(behavior);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "run_actor_config: behavior =", (WORD)behavior);
     IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(behavior, 1));
-    actor_t bootstrap_actor = {
-        .capability = { null },  // can't send messages to bootstrap
-        .scope = {
-            .parent = NULL
-        },
-        .behavior = behavior
-    };
-    if (!COPY(&bootstrap_actor.scope.state, o_)) return false;  // allocation failure!
-    event_t bootstrap_event = {
-        .actor = &bootstrap_actor
-    };
-    event_t * event = &bootstrap_event;
+    scope_t * scope = NULL;  // no parent scope
     DATA_PTR state = o_;
     DATA_PTR address;
-    if (!sponsor_create(sponsor, event, state, behavior, &address)) {
+    //if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
+    if (!sponsor_create(sponsor, scope, state, behavior, &address)) {
         LOG_WARN("run_actor_config: failed to create initial actor!", (WORD)item);
         return 1;  // failure!
     }
