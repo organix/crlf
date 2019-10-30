@@ -731,7 +731,11 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         LOG_DEBUG("actor_exec: become action", (WORD)kind);
         DATA_PTR behavior;
         if (!property_eval(sponsor, event, command, s_behavior, &behavior)) return false;  // evaluation failed!
-        if (!event_update_behavior(sponsor, event, behavior)) return false;  // update failed!
+        if (!sponsor_become(sponsor, behavior)) {
+            LOG_WARN("actor_exec: become failed!", (WORD)command);
+            return false;  // become failed!
+        }
+        //if (!event_update_behavior(sponsor, event, behavior)) return false;  // update failed!
     } else if (value_equiv(kind, k_actor_ignore)) {
         // { "kind":"actor_ignore" }
         LOG_DEBUG("actor_exec: ignore action", (WORD)kind);
@@ -805,6 +809,7 @@ BYTE validate_value(DATA_PTR value) {
 int run_actor_script(sponsor_t * sponsor, event_t * event) {
     LOG_TRACE("run_actor_script: sponsor =", (WORD)sponsor);
     LOG_TRACE("run_actor_script: event =", (WORD)event);
+
     DATA_PTR behavior;
     if (!event_lookup_behavior(sponsor, event, &behavior)) return 1;  // lookup failed!
     DATA_PTR script;
@@ -812,10 +817,24 @@ int run_actor_script(sponsor_t * sponsor, event_t * event) {
         LOG_WARN("run_actor_script: script required!", (WORD)behavior);
         return 1;  // script required!
     }
-    if (!script_exec(sponsor, event, script)) {
-        LOG_WARN("run_actor_script: script failed!", (WORD)script);
-         return 1;  // script failed!
+
+    WORD size = (1 << 12);  // 4k working-memory pool
+    sponsor_t * event_sponsor;
+    if (!sponsor_temp_pool(sponsor, size, &event_sponsor)) {
+        LOG_WARN("run_actor_script: event_sponsor creation failed!", size);
+        return 1;  // sponsor creation failed!
     }
+    event_sponsor = TRACK(event_sponsor);
+
+    if (!script_exec(event_sponsor, event, script)) {
+        LOG_WARN("run_actor_script: script failed!", (WORD)script);
+        return 1;  // script failed!
+    }
+    if (!sponsor_destroy(event_sponsor)) {
+        LOG_WARN("run_actor_script: event_sponsor destroy failed!", (WORD)event_sponsor);
+        return 1;  // reclamation failure!
+    }
+
     return 0;  // success!
 }
 
