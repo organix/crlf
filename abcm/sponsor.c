@@ -5,8 +5,8 @@
 #include <string.h>  // for memcpy, et. al.
 #include <assert.h>
 
-#include "bose.h"
 #include "sponsor.h"
+#include "bose.h"
 #include "pool.h"
 #include "program.h"
 #include "object.h"
@@ -18,74 +18,6 @@
 //#define LOG_INFO
 //#define LOG_WARN
 #include "log.h"
-
-/*
- * BOSE String memoization
- */
-
-#define MEMO_PERSISTENT_DATA 1 // memo data will persist, so we don't have to allocate and copy.
-
-static DATA_PTR memo_table[1<<8] = {};
-static BYTE memo_index = 0;  // index of next memo slot to use
-BYTE memo_freeze = false;  // stop accepting memo table additions
-#if !MEMO_PERSISTENT_DATA
-static sponsor_t * memo_sponsor;  // sponsor for memo table data
-#endif
-
-BYTE memo_reset(sponsor_t * sponsor) {  // reset memo table between top-level values
-    LOG_TRACE("memo_reset", (WORD)sponsor);
-    LOG_DEBUG("memo_reset: index", memo_index);
-#if !MEMO_PERSISTENT_DATA
-    memo_sponsor = sponsor;
-#endif
-    memo_freeze = false;
-    memo_index = 0;
-    do {
-#if !MEMO_PERSISTENT_DATA
-        if (memo_table[memo_index] && (memo_table[memo_index] != s_)) {  // release previously-allocated memo
-            if (!RELEASE(&memo_table[memo_index])) return false;  // reclamation failure!
-        }
-#endif
-        memo_table[memo_index] = s_;  // initialize with safe empty-string
-    } while (++memo_index);  // stop when we wrap-around to 0
-    return true;  // success!
-};
-
-DATA_PTR memo_get(BYTE index) {
-    LOG_LEVEL(LOG_LEVEL_TRACE+2, "memo_get: index", index);
-    return memo_table[index];
-}
-
-BYTE memo_add(parse_t * parse) {
-    LOG_LEVEL(LOG_LEVEL_TRACE+0, "memo_add: index", memo_index);
-    if (memo_freeze) {
-        LOG_WARN("parse_value: attempt to memoize after freeze", memo_index);
-        return false;  // don't call memo_add if memo_freeze is in effect...
-    }
-    WORD size = parse->end - parse->start;
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "memo_add: size", size);
-#if MEMO_PERSISTENT_DATA
-    parse->base[parse->start] &= 0x0E;  // WARNING: THIS CLEARS THE MEMOIZE FLAG IN-PLACE!
-    memo_table[memo_index] = parse->base + parse->start;  // point directly to persistent data...
-#else
-    sponsor_t * sponsor = memo_sponsor;
-    if (memo_table[memo_index] != s_) {
-        if (!RELEASE(&memo_table[memo_index])) return false;  // reclamation failure!
-    }
-    if (!RESERVE(&memo_table[memo_index], size)) return false;  // allocation failure!
-    parse->base[parse->start] &= 0x0E;  // WARNING: THIS CLEARS THE MEMOIZE FLAG IN-PLACE BEFORE THE COPY!
-    memcpy(memo_table[memo_index], parse->base + parse->start, size);
-#endif
-/*
-    print('<');
-    data_dump(memo_table[memo_index], size);
-    prints(" >\n");
-*/
-    if (++memo_index == 0) {  // index wrap-around
-        memo_freeze = true;
-    }
-    return true;  // success!
-};
 
 /**  --FIXME--
 

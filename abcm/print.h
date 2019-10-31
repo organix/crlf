@@ -13,6 +13,7 @@ void newline();
 void hex_print(BYTE b);
 void hex_dump(DATA_PTR data, WORD size);
 void data_dump(DATA_PTR data, WORD size);
+void memo_print(DATA_PTR data, WORD size);
 
 BYTE parse_print(parse_t * parse, WORD indent);
 BYTE value_print(DATA_PTR value, WORD indent);

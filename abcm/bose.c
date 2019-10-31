@@ -67,6 +67,45 @@ BYTE s_[] = { string_0 };  // empty string (encoded)
 BYTE a_[] = { array_0 };  // empty array (encoded)
 BYTE o_[] = { object_0 };  // empty object (encoded)
 
+/*
+ * BOSE String memoization
+ */
+static DATA_PTR memo_table[1<<8] = {};
+static BYTE memo_index = 0;  // index of next memo slot to use
+BYTE memo_freeze = false;  // stop accepting memo table additions
+
+BYTE memo_reset() {  // reset memo table between top-level values
+    LOG_DEBUG("memo_reset: index", memo_index);
+    memo_freeze = false;
+    memo_index = 0;
+    do {
+        memo_table[memo_index] = s_;  // initialize with safe empty-string
+    } while (++memo_index);  // stop when we wrap-around to 0
+    return true;  // success!
+};
+
+DATA_PTR memo_get(BYTE index) {
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "memo_get: index", index);
+    return memo_table[index];
+}
+
+BYTE memo_add(parse_t * parse) {
+    LOG_DEBUG("memo_add: index", memo_index);
+    if (memo_freeze) {
+        LOG_WARN("parse_value: attempt to memoize after freeze", memo_index);
+        return false;  // don't call memo_add if memo_freeze is in effect...
+    }
+    IF_TRACE(WORD size = parse->end - parse->start);
+    LOG_TRACE("memo_add: size", size);
+    parse->base[parse->start] &= 0x0E;  // WARNING: THIS CLEARS THE MEMOIZE FLAG IN-PLACE!
+    memo_table[memo_index] = parse->base + parse->start;  // point directly to persistent data...
+    IF_TRACE(memo_print(memo_table[memo_index], size));
+    if (++memo_index == 0) {  // index wrap-around
+        memo_freeze = true;
+    }
+    return true;  // success!
+};
+
 /**
 Input:
     parse = <parse structure to populate>

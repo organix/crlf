@@ -67,7 +67,7 @@ _A means for requesting more resources is needed, but not yet defined._
 
 ### Memory
 
-During the execution of an ABCM program, additional working storage if often required.
+During the execution of an ABCM program, additional working storage is often required.
 Various policies may apply to storage requests, based on their purpose and intent.
 
 When an _Actor_ is created, it is likely to persist beyond the end of a particular computation.
@@ -77,7 +77,7 @@ Memory for an Actor can be reclaimed when it is no longer reachable,
 either through other Actors or from a pending message.
 
 When a _Message_ is created, it persist beyond the end of the computation, unless the computation throws.
-Asynchronous messages created (send, but not yet received) are a primary _effect_ of an Actor's behavior.
+Asynchronous messages created (sent, but not yet received) are a primary _effect_ of an Actor's behavior.
 Memory for a Message can be reclaimed once the message has been delivered and processed by the target Actor.
 
 Temporary working storage may be needed during Actor message processing.
@@ -88,23 +88,90 @@ An Actor's state persists between message deliveries.
 It can be reclaimed when the Actor is reclaimed.
 Updates to the Actor's persistent state may copy information from temporary working storage, allowing it to persist.
 
+### Structures
+
+Ownership of resources, especially memory, must be carefully managed.
+All computations must be provided a mechanism to access the resources they need.
+
+#### Sponsor
+A root object, providing access to resource-management mechanisms for computations.
+
+Fields:
+  * _Pool_: Working-memory pool
+  * _Configuration_: A collection of _Actors_ and _Events_
+  * _Event_: Current message-delivery event
+
+Methods:
+  * _(none)_
+
+#### Pool
+A pool of persistent managed storage.
+
+Fields:
+  * _Capacity_: Number of `BYTE`s available
+
+Methods:
+  * _Reserve_: Allocate a number of usable `BYTE`s
+  * _Copy_: Make a copy of a Value, possibly from a different pool
+  * _Release_: Mark an allocation for reclamation
+
+#### Configuration
+A collection of _Actors_ and (pending) _Events_.
+
+Fields:
+  * _Actors_: All Actors contained in this Configuration
+  * _Events_: Pending message-delivery Events
+  * _Limits_: Configuration resource limits
+
+Methods:
+  * _Dispatch_: Attempt to deliver a pending _Event_
+  * _Apply_: Apply message-delivery Effects
+
+#### Event
+An Actor message-delivery Event.
+
+Fields
+  * _Actor_: Target of the current event
+  * _Message_: Message content (Object)
+  * _Effect_: Message-delivery outcome
+
+Methods:
+  * _Create_: Create a new Actor
+  * _Send_: Send an asynchronous Message
+  * _Become_: Define subsequent Actor Behavior
+  * _Assign_: Define subsequent Actor State
+  * _Fail_: Signal an Error
+
+### Effect
+Effects of Actor Commands triggered by a message-delivery Event.
+
+Fields:
+  * _Actors_: New Actors created
+  * _Events_: New message-delivery Events
+  * _Behavior_: Actor's behavior for subsequent messages
+  * _State_: Actor's State updates
+  * _Error_: Error value, or `null` if none
+
+Methods:
+  * _(TBD)_
+
 ## Binary Octet-Stream Encoding
 
 For more-efficient network transmission, we propose an octet-stream encoding which is isomorphic to JSON.
 As with ASCII text, there are multiple ways to encode the same abstract JSON value.
-All valid encodings produce valid equivalent JSON values, although some representation details are lost.
+All valid encodings produce equivalent JSON values, although some representation details are lost.
 Every valid JSON value can be represented in Binary Octet-Stream Encoding.
 As far as possible, values may be round-tripped without loss of information.
 Floating-point values are problematic, even in JSON, due to translation between base-10 and base-2.
 Binary Octet-Stream Encoding, by itself, is **not** lossy, since values remain in base-2 representation.
 
 There are six types of abstract data values representable in JSON:
- * Null
- * Boolean
- * Number
- * String
- * Array
- * Object
+  * Null
+  * Boolean
+  * Number
+  * String
+  * Array
+  * Object
 
 A small set of special values are encoded directly in a single octet:
 

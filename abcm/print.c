@@ -151,6 +151,14 @@ void data_dump(DATA_PTR data, WORD size) {
     }
 }
 
+void memo_print(DATA_PTR data, WORD size) {
+    set_color(MEMO_COLOR);
+    print('<');
+    data_dump(data, size);
+    prints(" >\n");
+    clear_color();
+}
+
 static void space(WORD indent) {  // space between values
     if (indent) {
         newline();

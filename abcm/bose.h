@@ -97,6 +97,15 @@ typedef struct {
 } parse_t;
 
 /**
+Manage the memo table during a linear parse of a top-level BOSE value.
+There is no allcation because memoized values are referenced in place.
+This implies that the entire top-level value must persist during parsing.
+**/
+BYTE memo_reset();  // reset memo table between top-level values
+DATA_PTR memo_get(BYTE index);  // get memo table entry at index
+BYTE memo_add(parse_t * parse);  // add parsed String to memo table
+
+/**
 Input:
     parse = <parse structure to populate>
     data = <pointer to octet buffer prefix byte>

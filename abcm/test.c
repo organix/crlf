@@ -838,7 +838,7 @@ static int test_C_language() {
 }
 
 int run_test_suite() {
-    if (!memo_reset(NULL)) return 1;  // memo reset failed!
+    if (!memo_reset()) return 1;  // memo reset failed!
     return test_C_language()
         || test_bytecode_types()
         || test_parse_integer()
