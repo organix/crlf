@@ -6,7 +6,7 @@
 
 #include "bose.h"
 
-#define AUDIT_ALLOCATION 0 /* track reserve/release calls to check for leaks */
+#define AUDIT_ALLOCATION 1 /* track reserve/release calls to check for leaks */
 
 typedef struct pool_struct pool_t;
 extern pool_t * sponsor_pool;  // FIXME: THIS SHOULD BE A MEMBER OF SPONSOR!

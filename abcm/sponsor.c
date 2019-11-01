@@ -131,36 +131,6 @@ BYTE event_revert_effects(sponsor_t * sponsor, event_t * event) {
 }
 
 /*
- * generic sponsor methods
- */
-
-typedef struct {
-    pool_t      pool;           // super-type member
-    sponsor_t * sponsor;        // allocation sponsor
-} sponsor_pool_t;
-
-static BYTE sponsor_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
-    BYTE ok = RESERVE(data, size);
-    if (ok) {
-        LOG_DEBUG("sponsor_pool_reserve: data @", (WORD)*data);
-    }
-    return ok;
-}
-
-static BYTE generic_sponsor_temp_pool(sponsor_t * sponsor, WORD size, sponsor_t ** child) {
-    sponsor_pool_t sponsor_pool = {
-        .sponsor = sponsor,
-        .pool.reserve = sponsor_pool_reserve,
-    };
-    pool_t * pool = new_temp_pool(&sponsor_pool.pool, size);
-    LOG_TRACE("generic_sponsor_temp_pool: pool =", (WORD)pool);
-    if (!pool) return false;  // failed to create temp pool!
-    *child = new_pool_sponsor(sponsor, pool);
-    LOG_DEBUG("generic_sponsor_temp_pool: child =", (WORD)*child);
-    return (*child != NULL);
-}
-
-/*
  * resource-bounded sponsor
  */
 
@@ -311,26 +281,6 @@ static BYTE bounded_sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR 
     return true;  // success!
 }
 
-static BYTE bounded_sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD size) {
-    bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
-    return pool_reserve(THIS->work_pool, data, size);
-}
-
-static BYTE bounded_sponsor_copy(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value) {
-    bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
-    return pool_copy(THIS->work_pool, data, value);
-}
-
-static BYTE bounded_sponsor_release(sponsor_t * sponsor, DATA_PTR * data) {
-    bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
-    return pool_release(THIS->work_pool, data);
-}
-
-static BYTE bounded_sponsor_destroy(sponsor_t * sponsor) {
-    LOG_WARN("bounded_sponsor_destroy: NOT IMPLEMENTED!", (WORD)sponsor);
-    return false;  // failure!
-}
-
 sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * pool) {
     LOG_DEBUG("new_bounded_sponsor: actors =", actors);
     if (actors > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but this code depends on it.
@@ -356,11 +306,6 @@ sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * pool) {
     THIS->sponsor.send = bounded_sponsor_send;
     THIS->sponsor.become = bounded_sponsor_become;
     THIS->sponsor.fail = bounded_sponsor_fail;
-    THIS->sponsor.reserve = bounded_sponsor_reserve;
-    THIS->sponsor.copy = bounded_sponsor_copy;
-    THIS->sponsor.release = bounded_sponsor_release;
-    THIS->sponsor.temp_pool = generic_sponsor_temp_pool;
-    THIS->sponsor.destroy = bounded_sponsor_destroy;
     return (sponsor_t *)THIS;
 }
 
@@ -399,32 +344,6 @@ static BYTE pool_sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR err
     return sponsor_fail(THIS->parent, event, error);
 }
 
-static BYTE pool_sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD size) {
-    pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    return pool_reserve(THIS->work_pool, data, size);
-}
-
-static BYTE pool_sponsor_copy(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value) {
-    pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    return pool_copy(THIS->work_pool, data, value);
-}
-
-static BYTE pool_sponsor_release(sponsor_t * sponsor, DATA_PTR * data) {
-    pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    return pool_release(THIS->work_pool, data);
-}
-
-static BYTE pool_sponsor_destroy(sponsor_t * sponsor) {
-    pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    //if (!pool_close(THIS->work_pool)) return false;  // close failed!
-    sponsor = THIS->parent;  // we were allocated by our parent...
-    if (!RELEASE((DATA_PTR *)&THIS))  {
-        LOG_WARN("pool_sponsor_destroy: release failed!", (WORD)THIS);
-        return false;  // reclamation failure!
-    }
-    return true;  // success!
-}
-
 sponsor_t * new_pool_sponsor(sponsor_t * sponsor, pool_t * pool) {
     DATA_PTR data = NULL;
     if (!RESERVE(&data, sizeof(pool_sponsor_t))) return NULL;  // allocation failure!
@@ -436,11 +355,6 @@ sponsor_t * new_pool_sponsor(sponsor_t * sponsor, pool_t * pool) {
     THIS->sponsor.send = pool_sponsor_send;
     THIS->sponsor.become = pool_sponsor_become;
     THIS->sponsor.fail = pool_sponsor_fail;
-    THIS->sponsor.reserve = pool_sponsor_reserve;
-    THIS->sponsor.copy = pool_sponsor_copy;
-    THIS->sponsor.release = pool_sponsor_release;
-    THIS->sponsor.temp_pool = generic_sponsor_temp_pool;
-    THIS->sponsor.destroy = pool_sponsor_destroy;
     return (sponsor_t *)THIS;
 }
 
@@ -466,24 +380,4 @@ inline BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior) {
 
 inline BYTE sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error) {
     return sponsor->fail(sponsor, event, error);
-}
-
-inline BYTE sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD size) {
-    return sponsor->reserve(sponsor, data, size);
-}
-
-inline BYTE sponsor_copy(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value) {
-    return sponsor->copy(sponsor, data, value);
-}
-
-inline BYTE sponsor_release(sponsor_t * sponsor, DATA_PTR * data) {
-    return sponsor->release(sponsor, data);
-}
-
-inline BYTE sponsor_temp_pool(sponsor_t * sponsor, WORD size, sponsor_t ** child) {
-    return sponsor->temp_pool(sponsor, size, child);
-}
-
-inline BYTE sponsor_destroy(sponsor_t * sponsor) {
-    return sponsor->destroy(sponsor);
 }

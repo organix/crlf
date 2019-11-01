@@ -27,12 +27,6 @@ typedef struct sponsor_struct {
     BYTE        (*send)(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
     BYTE        (*become)(sponsor_t * sponsor, DATA_PTR behavior);
     BYTE        (*fail)(sponsor_t * sponsor, event_t * event, DATA_PTR error);
-    // memory management
-    BYTE        (*reserve)(sponsor_t * sponsor, DATA_PTR * data, WORD size);
-    BYTE        (*copy)(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
-    BYTE        (*release)(sponsor_t * sponsor, DATA_PTR * data);
-    BYTE        (*temp_pool)(sponsor_t * sponsor, WORD size, sponsor_t ** child);
-    BYTE        (*destroy)(sponsor_t * sponsor);
 } sponsor_t;
 
 BYTE sponsor_dispatch(sponsor_t * sponsor);
@@ -41,12 +35,6 @@ BYTE sponsor_create(sponsor_t * sponsor, scope_t * scope, DATA_PTR state, DATA_P
 BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
 BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior);
 BYTE sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error);
-
-BYTE sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD size);
-BYTE sponsor_copy(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
-BYTE sponsor_release(sponsor_t * sponsor, DATA_PTR * data);
-BYTE sponsor_temp_pool(sponsor_t * sponsor, WORD size, sponsor_t ** child);
-BYTE sponsor_destroy(sponsor_t * sponsor);
 
 sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * pool);
 sponsor_t * new_pool_sponsor(sponsor_t * parent, pool_t * pool);

@@ -818,21 +818,11 @@ int run_actor_script(sponsor_t * sponsor, event_t * event) {
         return 1;  // script required!
     }
 
-    WORD size = (1 << 12);  // 4k working-memory pool
-    sponsor_t * event_sponsor;
-    if (!sponsor_temp_pool(sponsor, size, &event_sponsor)) {
-        LOG_WARN("run_actor_script: event_sponsor creation failed!", size);
-        return 1;  // sponsor creation failed!
-    }
-    event_sponsor = TRACK(event_sponsor);
+    //WORD size = (1 << 12);  // 4k working-memory pool
 
-    if (!script_exec(event_sponsor, event, script)) {
+    if (!script_exec(sponsor, event, script)) {
         LOG_WARN("run_actor_script: script failed!", (WORD)script);
         return 1;  // script failed!
-    }
-    if (!sponsor_destroy(event_sponsor)) {
-        LOG_WARN("run_actor_script: event_sponsor destroy failed!", (WORD)event_sponsor);
-        return 1;  // reclamation failure!
     }
 
     return 0;  // success!
