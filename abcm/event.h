@@ -26,16 +26,10 @@ typedef struct actor_struct {
     DATA_PTR    behavior;
 } actor_t;
 
-#define ACTOR_SELF(actor) (&(actor)->capability)  // (actor_t *) -> (DATA_PTR)
+#define ACTOR_SELF(actor) ((actor)->capability)  // (actor_t *) -> (DATA_PTR)
 #define ACTOR_SCOPE(actor) (&(actor)->scope)  // (actor_t *) -> (scope_t *)
 #define ACTOR_BEHAVIOR(actor) ((actor)->behavior)  // (actor_t *) -> (DATA_PTR)
 
-/**
-Instead of storing new actors/events in Effects,
-we create them directly in the Configuration,
-because most-likely they will persist.
-If we have to revert (on failure), we clean up the extra actors/events.
-**/
 typedef struct effect_struct {
     DATA_PTR    behavior;       // behavior for subsequent messages
     WORD        actors;         // snapshot of actor creation limit
@@ -45,9 +39,12 @@ typedef struct effect_struct {
 } effect_t;
 
 #define EFFECT_BEHAVIOR(effect) ((effect)->behavior)  // (effect_t *) -> (DATA_PTR)
+#define EFFECT_ACTORS(effect) ((effect)->actors)  // (effect_t *) -> (WORD)
+#define EFFECT_EVENTS(effect) ((effect)->events)  // (effect_t *) -> (WORD)
 #define EFFECT_SCOPE(effect) (&(effect)->scope)  // (effect_t *) -> (scope_t *)
 #define EFFECT_ERROR(effect) ((effect)->error)  // (effect_t *) -> (DATA_PTR)
 
+BYTE effect_init(effect_t * effect, actor_t * target, WORD actors, WORD events);
 BYTE effect_create(effect_t * effect, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
 BYTE effect_send(effect_t * effect, DATA_PTR address, DATA_PTR message);
 BYTE effect_become(effect_t * effect, DATA_PTR behavior);
@@ -60,8 +57,8 @@ typedef struct event_struct {
     effect_t    effect;         // actor-command effects
 } event_t;
 
-#define EVENT_ACTOR(event) (&(event)->actor)  // (event_t *) -> (actor_t *)
-#define EVENT_MESSAGE(event) (&(event)->message)  // (event_t *) -> (DATA_PTR)
+#define EVENT_ACTOR(event) ((event)->actor)  // (event_t *) -> (actor_t *)
+#define EVENT_MESSAGE(event) ((event)->message)  // (event_t *) -> (DATA_PTR)
 #define EVENT_EFFECT(event) (&(event)->effect)  // (event_t *) -> (effect_t *)
 
 #endif // _EVENT_H_

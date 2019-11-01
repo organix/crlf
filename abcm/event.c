@@ -80,6 +80,26 @@ BYTE scope_update_binding(scope_t * scope, DATA_PTR name, DATA_PTR value) {
 }
 
 /*
+ * Initialize Effects before dispatching a message-event to `target` actor.
+ * Return `true` on success, `false` on failure.
+ */
+BYTE effect_init(effect_t * effect, actor_t * target, WORD actors, WORD events) {
+    // FIXME: maybe this should take `config_t *`, rather than `actors` and `events`...
+    LOG_TRACE("effect_init: effect =", (WORD)effect);
+    //actor_t * actor = event->actor;
+    effect->behavior = NULL;
+    effect->actors = actors;
+    effect->events = events;
+    scope_t * scope = EFFECT_SCOPE(effect);
+    scope->parent = ACTOR_SCOPE(target);
+    if (!COPY(&scope->state, o_)) return false;  // allocation failure!
+    LOG_DEBUG("effect_init: state =", (WORD)SCOPE_STATE(scope));
+    IF_TRACE(value_print(SCOPE_STATE(scope), 1));
+    effect->error = NULL;
+    return true;  // success
+}
+
+/*
  * Create a new Actor with initial `state` and `behavior`.
  * If successful, `*address` is set to the object-capability designating the new actor.
  * Return `true` on success, `false` on failure.

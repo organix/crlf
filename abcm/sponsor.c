@@ -22,6 +22,147 @@
 
 sponsor_t * sponsor;  // WE DECLARE A GLOBAL SPONSOR TO AVOID THREADING IT THROUGH ALL OTHER CALLS...
 
+/*
+ * a configuration is an actor-machine state consisting of actors and pending events
+ */
+
+config_t * sponsor_config;  // FIXME: THIS SHOULD BE A MEMBER OF SPONSOR!
+
+static actor_t * config_find_actor(config_t * config, DATA_PTR address) {
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_find_actor: address =", (WORD)address);
+    IF_NONE(value_print(address, 1));
+    parse_t parse;
+    if (!value_parse(address, &parse)
+    ||  !(parse.type & T_Capability)) {
+        LOG_WARN("config_find_actor: bad address!", (WORD)address);
+        return NULL;  // bad address!
+    }
+    //DUMP_PARSE("config_find_actor: address", &parse);
+    WORD ocap = 0;
+    while (parse.value--) {
+        ocap <<= 8;
+        ocap |= parse.base[--parse.end];
+    }
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_find_actor: ocap =", ocap);
+    actor_t * actor = &config->actor[ocap];
+    LOG_LEVEL(LOG_LEVEL_TRACE, "config_find_actor: actor =", (WORD)actor);
+    return actor;
+}
+
+BYTE config_create(config_t * config, scope_t * parent, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
+    if (config->actors < 1) {
+        LOG_WARN("config_create: no more actors!", (WORD)config);
+        return false;  // no more actors!
+    }
+    LOG_TRACE("config_create: state =", (WORD)state);
+    IF_TRACE(value_print(state, 0));
+    LOG_TRACE("config_create: behavior =", (WORD)behavior);
+    IF_TRACE(value_print(behavior, 0));
+    WORD ocap = --config->actors;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_create: ocap =", ocap);
+    actor_t * actor = &config->actor[ocap];
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_create: actor =", (WORD)actor);
+    actor->capability[0] = octets;      // binary octet data
+    actor->capability[1] = n_3;         // size field (3 bytes)
+    actor->capability[2] = 0x10;        // capability marker (DLE)
+    actor->capability[3] = ocap & 0xFF; // capability (LSB)
+    actor->capability[4] = ocap >> 8;   // capability (MSB)
+    actor->capability[5] = null;        // --unused--
+    actor->capability[6] = null;        // --unused--
+    actor->capability[7] = null;        // --unused--
+    scope_t * scope = ACTOR_SCOPE(actor);
+    scope->parent = parent;  // chain scope to parent
+    if (!COPY(&scope->state, state)) return false;  // allocation failure!
+    if (!COPY(&actor->behavior, behavior)) return false;  // allocation failure!
+    *address = ACTOR_SELF(actor);
+    LOG_DEBUG("config_create: address =", (WORD)*address);
+    IF_TRACE(value_print(*address, 0));
+    return true;  // success!
+}
+
+BYTE config_send(config_t * config, DATA_PTR address, DATA_PTR message) {
+    if (config->events < 1) {
+        LOG_WARN("config_send: no more message-send events!", (WORD)config);
+        return false;  // no more message-send events!
+    }
+    LOG_DEBUG("config_send: address =", (WORD)address);
+    IF_TRACE(value_print(address, 1));
+    actor_t * actor = config_find_actor(config, address);
+    if (!actor) return false;  // bad actor!
+    LOG_DEBUG("config_send: message =", (WORD)message);
+    IF_TRACE(value_print(message, 1));
+    if (value_equiv(address, v_null)) {
+        LOG_WARN("config_send: ignoring message to null.", (WORD)message);
+        // NOTE: this case is usually caught before evaluating the message expression, but just to be sure...
+        return true;  // success!
+    }
+    WORD current = --config->events;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_send: current =", current);
+    event_t * event = &config->event[current];
+    LOG_LEVEL(LOG_LEVEL_TRACE+0, "config_send: event =", (WORD)event);
+    event->actor = actor;
+    COPY(&event->message, message);
+    return true;  // success!
+}
+
+//BYTE bounded_sponsor_dispatch(sponsor_t * sponsor)
+BYTE config_dispatch(config_t * config) {
+    if (CONFIG_EVENTS(config) == CONFIG_CURRENT(config)) {
+        LOG_INFO("config_dispatch: work completed.", (WORD)config);
+        return false;  // work completed.
+    }
+    WORD current = --config->current;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_dispatch: current =", current);
+    event_t * event = &config->event[current];
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_dispatch: event =", (WORD)event);
+    LOG_DEBUG("config_dispatch: message =", (WORD)EVENT_MESSAGE(event));
+    IF_DEBUG(value_print(EVENT_MESSAGE(event), 1));
+    actor_t * actor = EVENT_ACTOR(event);
+    LOG_DEBUG("config_dispatch: actor =", (WORD)actor);
+    IF_DEBUG(value_print(ACTOR_SELF(actor), 1));
+    effect_t * effect = EVENT_EFFECT(event);
+    if (!effect_init(effect, actor, CONFIG_ACTORS(config), CONFIG_EVENTS(config))) return false;  // init failed!
+    DATA_PTR behavior = ACTOR_BEHAVIOR(actor);
+    DATA_PTR script;
+    if (!object_get(behavior, s_script, &script)) {
+        LOG_WARN("config_dispatch: script required!", (WORD)behavior);
+        return 1;  // script required!
+    }
+    //WORD size = (1 << 12);  // 4k working-memory pool
+    if (!script_exec(event, script)) {
+        LOG_WARN("config_dispatch: script failed!", (WORD)script);
+        return 1;  // script failed!
+    }
+
+    if (run_actor_script(sponsor, event) == 0) {
+        LOG_DEBUG("config_dispatch: new actors", (EFFECT_ACTORS(effect) - CONFIG_ACTORS(config)));
+        LOG_DEBUG("config_dispatch: new events", (EFFECT_EVENTS(effect) - CONFIG_EVENTS(config)));
+        if (!event_apply_effects(sponsor, event)) {
+            LOG_WARN("config_dispatch: failed to apply effects!", (WORD)event);
+            return false;  // effects failed!
+        }
+        if (!RELEASE(&event->message)) return false;  // reclamation failure!
+    } else {
+        if (EFFECT_ERROR(effect)) {
+            LOG_WARN("config_dispatch: caught actor FAIL!", (WORD)EFFECT_ERROR(effect));
+            IF_WARN(value_print(EFFECT_ERROR(effect), 1));
+        }
+        LOG_WARN("config_dispatch: actor-script execution failed!", (WORD)event);
+        if (!event_revert_effects(sponsor, event)) {
+            LOG_WARN("config_dispatch: failed to revert effects!", (WORD)event);
+            return false;  // effects failed!
+        }
+        if (!RELEASE(&event->message)) return false;  // reclamation failure!
+        return false;  // execution failed!
+    }
+    LOG_DEBUG("config_dispatch: event completed.", (WORD)event);
+    return true;  // success!
+}
+
+BYTE config_apply(config_t * config, effect_t * effect) {
+    return false;  // NOT IMPLEMENTED!
+}
+
 /**  --FIXME--
 
 Translating from a (capability) address to actual actor-reference is a sponsor-specific operation.

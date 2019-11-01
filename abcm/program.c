@@ -242,14 +242,14 @@ BYTE bootstrap[] = {  // testcase for FAIL! action
 */
 
 // evaluate expression found in named object property
-static BYTE property_eval(sponsor_t * sponsor, event_t * event, DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
+static BYTE property_eval(event_t * event, DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
     LOG_TRACE("property_eval: object =", (WORD)object);
     DATA_PTR expression;
     if (!object_get(object, name, &expression)) {
         LOG_DEBUG("property_eval: missing property", (WORD)name);
         return false;  // missing property
     }
-    if (!actor_eval(sponsor, event, expression, value)) {
+    if (!actor_eval(event, expression, value)) {
         LOG_WARN("property_eval: bad expression!", (WORD)expression);
         return false;  // evaluation failed!
     }
@@ -257,7 +257,7 @@ static BYTE property_eval(sponsor_t * sponsor, event_t * event, DATA_PTR object,
 }
 
 // evaluate array of expressions
-static BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA_PTR * result) {
+static BYTE array_eval(event_t * event, DATA_PTR exprs, DATA_PTR * result) {
     LOG_TRACE("array_eval: exprs", (WORD)exprs);
     WORD length;
     if (!array_length(exprs, &length)) return false;  // exprs array required!
@@ -268,7 +268,7 @@ static BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DAT
         DATA_PTR expression;
         if (!array_get(exprs, i, &expression)) return false;  // expression required!
         DATA_PTR value;
-        if (!actor_eval(sponsor, event, expression, &value)) {
+        if (!actor_eval(event, expression, &value)) {
             LOG_WARN("array_eval: bad expression!", (WORD)expression);
             IF_WARN(value_print(expression, 0));
             return false;  // evaluation failed!
@@ -284,7 +284,7 @@ static BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DAT
 }
 
 // evaluate unary operator expression
-static BYTE op_1_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA_PTR * x) {
+static BYTE op_1_eval(event_t * event, DATA_PTR exprs, DATA_PTR * x) {
     WORD length;
     if (!array_length(exprs, &length)) return false;  // exprs array required!
     if (length != 1) {
@@ -292,7 +292,7 @@ static BYTE op_1_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA
         return false;  // exprs array must have exactly 1 element!
     }
     DATA_PTR result;
-    if (!array_eval(sponsor, event, exprs, &result)) {
+    if (!array_eval(event, exprs, &result)) {
         LOG_WARN("op_1_eval: argument evaluation failed!", (WORD)exprs);
         IF_WARN(value_print(exprs, 0));
         return false;  // evaluation failed!
@@ -304,7 +304,7 @@ static BYTE op_1_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA
 }
 
 // evaluate binary operator expression
-static BYTE op_2_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA_PTR * x, DATA_PTR * y) {
+static BYTE op_2_eval(event_t * event, DATA_PTR exprs, DATA_PTR * x, DATA_PTR * y) {
     WORD length;
     if (!array_length(exprs, &length)) return false;  // exprs array required!
     if (length != 2) {
@@ -312,7 +312,7 @@ static BYTE op_2_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DATA
         return false;  // exprs array must have exactly 2 elements!
     }
     DATA_PTR result;
-    if (!array_eval(sponsor, event, exprs, &result)) {
+    if (!array_eval(event, exprs, &result)) {
         LOG_WARN("op_2_eval: argument evaluation failed!", (WORD)exprs);
         IF_WARN(value_print(exprs, 0));
         return false;  // evaluation failed!
@@ -341,7 +341,7 @@ BYTE op_MULTIPLY_2[] = { utf8, n_11, 'M', 'U', 'L', 'T', 'I', 'P', 'L', 'Y', '['
 BYTE op_DIVIDE_2[] = { utf8, n_9, 'D', 'I', 'V', 'I', 'D', 'E', '[', '2', ']' };
 
 // FIXME: this should be in `number.c`, when it exists...
-BYTE make_integer(sponsor_t * sponsor, WORD integer, DATA_PTR * new) {
+BYTE make_integer(WORD integer, DATA_PTR * new) {
     LOG_TRACE("make_integer: integer", integer);
     long n = (long)integer;  // treat it as a signed value...
     DATA_PTR data;
@@ -360,29 +360,31 @@ BYTE make_integer(sponsor_t * sponsor, WORD integer, DATA_PTR * new) {
 }
 
 // evaluate operation expression
-BYTE operation_eval(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * result) {
+BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * result) {
     LOG_TRACE("operation_eval: name", (WORD)name);
     LOG_TRACE("operation_eval: args", (WORD)args);
     if (value_equiv(name, op_list)) {
-        if (!array_eval(sponsor, event, args, result)) return false;  // evaluation failed!
+        if (!array_eval(event, args, result)) return false;  // evaluation failed!
     } else if (value_equiv(name, op_length)) {
         DATA_PTR x;
-        if (!op_1_eval(sponsor, event, args, &x)) return false;  // bad arg!
+        if (!op_1_eval(event, args, &x)) return false;  // bad arg!
         WORD length;
         if (!string_length(x, &length)) return false;  // bad length!
-        if (!make_integer(sponsor, length, result)) return false;  // bad allocation!
+        if (!make_integer(length, result)) return false;  // bad allocation!
+        *result = TRACK(*result);
     } else if (value_equiv(name, op_charAt)) {
         DATA_PTR s;
         DATA_PTR n;
-        if (!op_2_eval(sponsor, event, args, &s, &n)) return false;  // bad args!
+        if (!op_2_eval(event, args, &s, &n)) return false;  // bad args!
         WORD i;
         if (!value_integer(n, &i)) return false;  // number required!
         --i;  // adjust for 1-based index
         if (!string_get(s, i, &i)) return false;  // get failed!
         // FIXME: Blocky semantics return a single-character String (we return a codepoint)...
-        if (!make_integer(sponsor, i, result)) return false;  // bad allocation!
+        if (!make_integer(i, result)) return false;  // bad allocation!
+        *result = TRACK(*result);
     } else if (value_equiv(name, op_join)) {
-        if (!array_eval(sponsor, event, args, result)) return false;  // evaluation failed!
+        if (!array_eval(event, args, result)) return false;  // evaluation failed!
         // TODO: join the results into a single string...
     } else if (value_equiv(name, op_conditional)) {  // FIXME: "conditional" is a command, but it _could_ be an expression...
         WORD length;
@@ -393,14 +395,14 @@ BYTE operation_eval(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PT
             DATA_PTR if_expr;
             if (!array_get(args, i, &if_expr)) return false;  // if_expr required!
             DATA_PTR value;
-            if (!actor_eval(sponsor, event, if_expr, &value)) {
+            if (!actor_eval(event, if_expr, &value)) {
                 LOG_WARN("operation_eval: bad if_expr!", (WORD)if_expr);
                 return false;  // evaluation failed!
             }
             if (value_equiv(value, b_true)) {
                 DATA_PTR do_expr;
                 if (!array_get(args, i+1, &do_expr)) return false;  // do_expr required!
-                if (!actor_eval(sponsor, event, do_expr, result)) {
+                if (!actor_eval(event, do_expr, result)) {
                     LOG_WARN("operation_eval: bad do_expr!", (WORD)do_expr);
                     return false;  // evaluation failed!
                 }
@@ -411,89 +413,97 @@ BYTE operation_eval(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PT
     } else if (value_equiv(name, op_EQ_2)) {
         DATA_PTR x;
         DATA_PTR y;
-        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
-        *result = (value_equiv(x, y)) ? b_true : b_false;
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
+        if (!COPY(result, value_equiv(x, y) ? b_true : b_false)) return false;  // out of memory!
     } else if (value_equiv(name, op_NEQ_2)) {
         DATA_PTR x;
         DATA_PTR y;
-        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
-        *result = (value_equiv(x, y)) ? b_false : b_true;
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
+        if (!COPY(result, (!value_equiv(x, y)) ? b_true : b_false)) return false;  // out of memory!
     } else if (value_equiv(name, op_LT_2)) {
         DATA_PTR x;
         DATA_PTR y;
-        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
         WORD i;
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
-        *result = ((long)i < (long)j) ? b_true : b_false;  // FIXME: only works for signed `long`...
+        BYTE cond = ((long)i < (long)j);  // FIXME: only works for signed `long`...
+        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
     } else if (value_equiv(name, op_LTE_2)) {
         DATA_PTR x;
         DATA_PTR y;
-        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
         WORD i;
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
-        *result = ((long)i <= (long)j) ? b_true : b_false;  // FIXME: only works for signed `long`...
+        BYTE cond = ((long)i <= (long)j);  // FIXME: only works for signed `long`...
+        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
     } else if (value_equiv(name, op_GT_2)) {
         DATA_PTR x;
         DATA_PTR y;
-        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
         WORD i;
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
-        *result = ((long)i > (long)j) ? b_true : b_false;  // FIXME: only works for signed `long`...
+        BYTE cond = ((long)i > (long)j);  // FIXME: only works for signed `long`...
+        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
     } else if (value_equiv(name, op_GTE_2)) {
         DATA_PTR x;
         DATA_PTR y;
-        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
         WORD i;
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
-        *result = ((long)i >= (long)j) ? b_true : b_false;  // FIXME: only works for signed `long`...
+        BYTE cond = ((long)i >= (long)j);  // FIXME: only works for signed `long`...
+        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
     } else if (value_equiv(name, op_ADD_2)) {
         DATA_PTR x;
         DATA_PTR y;
-        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
         WORD i;
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
         i += j;  // calculate sum...
-        if (!make_integer(sponsor, i, result)) return false;  // bad allocation!
+        if (!make_integer(i, result)) return false;  // bad allocation!
+        *result = TRACK(*result);
     } else if (value_equiv(name, op_MINUS_2)) {
         DATA_PTR x;
         DATA_PTR y;
-        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
         WORD i;
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
         i -= j;  // calculate difference...
-        if (!make_integer(sponsor, i, result)) return false;  // bad allocation!
+        if (!make_integer(i, result)) return false;  // bad allocation!
+        *result = TRACK(*result);
     } else if (value_equiv(name, op_MULTIPLY_2)) {
         DATA_PTR x;
         DATA_PTR y;
-        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
         WORD i;
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
         i *= j;  // calculate product...
-        if (!make_integer(sponsor, i, result)) return false;  // bad allocation!
+        if (!make_integer(i, result)) return false;  // bad allocation!
+        *result = TRACK(*result);
     } else if (value_equiv(name, op_DIVIDE_2)) {
         DATA_PTR x;
         DATA_PTR y;
-        if (!op_2_eval(sponsor, event, args, &x, &y)) return false;  // bad args!
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
         WORD i;
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
         i /= j;  // calculate quotient...
-        if (!make_integer(sponsor, i, result)) return false;  // bad allocation!
+        if (!make_integer(i, result)) return false;  // bad allocation!
+        *result = TRACK(*result);
     } else {
         LOG_WARN("operation_eval: unknown 'name' of operation", (WORD)name);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
@@ -503,7 +513,7 @@ BYTE operation_eval(sponsor_t * sponsor, event_t * event, DATA_PTR name, DATA_PT
 }
 
 // evaluate actor expression (expression -> value)
-BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_PTR * result) {
+BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
     LOG_TRACE("actor_eval: expression", (WORD)expression);
     IF_DEBUG({
         prints("  ");
@@ -522,7 +532,7 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
             LOG_DEBUG("actor_eval: missing 'const' property", (WORD)expression);
             return false;  // missing property
         }
-        *result = constant;
+        if (!COPY(result, constant)) return false;  // out of memory!
     } else if (value_equiv(kind, k_expr_operation)) {
         // { "kind":"expr_operation", "name":<string>, "args":[<expression>, ...] }
         LOG_DEBUG("actor_eval: operation expression", (WORD)kind);
@@ -538,7 +548,7 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
             return false;  // missing property
         }
         // FIXME: make sure `args` is an Array...
-        if (!operation_eval(sponsor, event, name, args, result)) return false;  // operation failed!
+        if (!operation_eval(event, name, args, result)) return false;  // operation failed!
     } else if (value_equiv(kind, k_actor_has_state)) {
         // { "kind":"actor_has_state", "name":<string> }
         LOG_DEBUG("actor_eval: actor_has_state expression", (WORD)kind);
@@ -548,12 +558,10 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
             return false;  // missing property
         }
         // FIXME: make sure `name` is a String...
-        *result = b_false;  // default value is `false`
         scope_t * scope;
         if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
-        if (scope_has_binding(scope, name)) {
-            *result = b_true;  // default value is `true`
-        }
+        BYTE cond = scope_has_binding(scope, name);
+        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
     } else if (value_equiv(kind, k_actor_state)) {
         // { "kind":"actor_state", "name":<string> }
         LOG_DEBUG("actor_eval: actor_state expression", (WORD)kind);
@@ -566,6 +574,7 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         scope_t * scope;
         if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
         if (!scope_lookup_binding(scope, name, result)) return false;  // lookup failed!
+        if (!COPY(result, *result)) return false;  // out of memory!
     } else if (value_equiv(kind, k_dict_has)) {
         // { "kind":"dict_has", "name":<string>, "in":<dictionary> }
         LOG_DEBUG("actor_eval: dict_has expression", (WORD)kind);
@@ -576,12 +585,10 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         }
         // FIXME: make sure `name` is a String...
         DATA_PTR dict;
-        if (!property_eval(sponsor, event, expression, s_in, &dict)) return false;  // evaluation failed!
+        if (!property_eval(event, expression, s_in, &dict)) return false;  // evaluation failed!
         // FIXME: make sure `dict` is an Object...
-        *result = b_false;  // default value is `false`
-        if (object_has(dict, name)) {
-            *result = b_true;  // default value is `true`
-        }
+        BYTE cond = object_has(dict, name);
+        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
     } else if (value_equiv(kind, k_dict_get)) {
         // { "kind":"dict_get", "name":<string>, "in":<dictionary> }
         LOG_DEBUG("actor_eval: dict_get expression", (WORD)kind);
@@ -592,13 +599,14 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         }
         // FIXME: make sure `name` is a String...
         DATA_PTR dict;
-        if (!property_eval(sponsor, event, expression, s_in, &dict)) return false;  // evaluation failed!
+        if (!property_eval(event, expression, s_in, &dict)) return false;  // evaluation failed!
         // FIXME: make sure `dict` is an Object...
-        *result = v_null;  // default value is `null`
-        if (!object_get(dict, name, result)) {
+        BYTE cond = object_get(dict, name, result);
+        if (!cond) {
             LOG_WARN("actor_eval: undefined variable!", (WORD)name);
             // FIXME: we may want to "throw" an exception here...
         }
+        if (!COPY(result, cond ? *result : v_null)) return false;  // out of memory!
     } else if (value_equiv(kind, k_dict_bind)) {
         // { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
         LOG_DEBUG("actor_eval: dict_bind expression", (WORD)kind);
@@ -609,27 +617,28 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         }
         // FIXME: make sure `name` is a String...
         DATA_PTR value;
-        if (!property_eval(sponsor, event, expression, s_value, &value)) return false;  // evaluation failed!
+        if (!property_eval(event, expression, s_value, &value)) return false;  // evaluation failed!
         DATA_PTR dict;
-        if (!property_eval(sponsor, event, expression, s_with, &dict)) return false;  // evaluation failed!
+        if (!property_eval(event, expression, s_with, &dict)) return false;  // evaluation failed!
         // FIXME: make sure `dict` is an Object...
-        *result = v_null;  // default value is `null`
         if (!object_add(dict, name, value, result)) return false;  // allocation failure!
     } else if (value_equiv(kind, k_actor_message)) {
         // { "kind":"actor_message" }
         LOG_DEBUG("actor_eval: actor_message expression", (WORD)kind);
         if (!event_lookup_message(sponsor, event, result)) return false;  // lookup failed!
+        if (!COPY(result, *result)) return false;  // out of memory!
     } else if (value_equiv(kind, k_actor_self)) {
         // { "kind":"actor_self" }
         LOG_DEBUG("actor_eval: actor_self expression", (WORD)kind);
         if (!event_lookup_actor(sponsor, event, result)) return false;  // lookup failed!
+        if (!COPY(result, *result)) return false;  // out of memory!
     } else if (value_equiv(kind, k_actor_create)) {
         // { "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
         LOG_DEBUG("actor_eval: actor_create expression", (WORD)kind);
         DATA_PTR state;
-        if (!property_eval(sponsor, event, expression, s_state, &state)) return false;  // evaluation failed!
+        if (!property_eval(event, expression, s_state, &state)) return false;  // evaluation failed!
         DATA_PTR behavior;
-        if (!property_eval(sponsor, event, expression, s_behavior, &behavior)) return false;  // evaluation failed!
+        if (!property_eval(event, expression, s_behavior, &behavior)) return false;  // evaluation failed!
         scope_t * scope;
         if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
         scope = scope->parent;  // chain to parent actor-scope, not temporary event-scope
@@ -642,11 +651,13 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
     } else if (value_equiv(kind, k_actor_behavior)) {
         // { "kind":"actor_behavior", "name":<string>, "script":[<action>, ...] }
         LOG_DEBUG("actor_eval: actor_behavior expression", (WORD)kind);
-        *result = expression;  // self-evaluating expression
+        // self-evaluating expression
+        if (!COPY(result, expression)) return false;  // out of memory!
     } else {
         LOG_WARN("actor_eval: unknown 'kind' of expression", (WORD)kind);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
         *result = v_null;
+        if (!COPY(result, *result)) return false;  // out of memory!
     }
     LOG_TRACE("actor_eval: result", (WORD)(*result));
     IF_DEBUG({
@@ -657,7 +668,7 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
 }
 
 // execute actor command (action -> effects)
-BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
+BYTE actor_exec(event_t * event, DATA_PTR command) {
     LOG_DEBUG("actor_exec: command", (WORD)command);
     IF_DEBUG(value_print(command, 1));
     DATA_PTR kind;
@@ -675,7 +686,7 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         }
         // FIXME: make sure `name` is a String...
         DATA_PTR value;
-        if (!property_eval(sponsor, event, command, s_value, &value)) return false;  // evaluation failed!
+        if (!property_eval(event, command, s_value, &value)) return false;  // evaluation failed!
         scope_t * scope;
         if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
         if (!scope_update_binding(scope, name, value)) return false;  // update failed!
@@ -695,14 +706,14 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
             DATA_PTR clause;
             if (!array_get(args, i, &clause)) return false;  // clause required!
             DATA_PTR value;
-            if (!property_eval(sponsor, event, clause, s_if, &value)) return false;  // evaluation failed!
+            if (!property_eval(event, clause, s_if, &value)) return false;  // evaluation failed!
             if (value_equiv(value, b_true)) {
                 DATA_PTR do_expr;
                 if (!object_get(clause, s_do, &do_expr)) {
                     LOG_DEBUG("actor_exec: missing 'do' property", (WORD)clause);
                     return false;  // missing property
                 }
-                if (!script_exec(sponsor, event, do_expr)) {
+                if (!script_exec(event, do_expr)) {
                     LOG_WARN("actor_exec: bad do_expr!", (WORD)do_expr);
                     return false;  // execution failed!
                 }
@@ -714,14 +725,14 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         // { "kind":"actor_send", "message":<dictionary>, "actor":<address> }
         LOG_DEBUG("actor_exec: send action", (WORD)kind);
         DATA_PTR address;
-        if (!property_eval(sponsor, event, command, s_actor, &address)) return false;  // evaluation failed!
+        if (!property_eval(event, command, s_actor, &address)) return false;  // evaluation failed!
         if (value_equiv(address, v_null)) {  // shortcut -- if address is null, don't even evaluate message...
             LOG_INFO("actor_exec: ignoring message to null.", null);
             return true;  // success! -- early exit on send-to-null.
         }
         // FIXME: make sure `actor` is a Capability...
         DATA_PTR message;
-        if (!property_eval(sponsor, event, command, s_message, &message)) return false;  // evaluation failed!
+        if (!property_eval(event, command, s_message, &message)) return false;  // evaluation failed!
         if (!sponsor_send(sponsor, address, message)) {
             LOG_WARN("actor_exec: send failed!", (WORD)command);
             return false;  // send failed!
@@ -730,7 +741,7 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         // { "kind":"actor_become", "behavior":<behavior> }
         LOG_DEBUG("actor_exec: become action", (WORD)kind);
         DATA_PTR behavior;
-        if (!property_eval(sponsor, event, command, s_behavior, &behavior)) return false;  // evaluation failed!
+        if (!property_eval(event, command, s_behavior, &behavior)) return false;  // evaluation failed!
         if (!sponsor_become(sponsor, behavior)) {
             LOG_WARN("actor_exec: become failed!", (WORD)command);
             return false;  // become failed!
@@ -743,7 +754,7 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         // { "kind":"actor_fail", "error":<expression> }
         LOG_DEBUG("actor_exec: fail action", (WORD)kind);
         DATA_PTR error;
-        if (!property_eval(sponsor, event, command, s_error, &error)) {
+        if (!property_eval(event, command, s_error, &error)) {
             LOG_INFO("actor_exec: DOUBLE-FAULT!", (WORD)command);
             IF_WARN(value_print(command, 0));
             return false;  // evaluation failed!
@@ -755,7 +766,7 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         // { "kind":"log_print", "level":<number>, "value":<expression> }  // --DEPRECATED--
         LOG_DEBUG("actor_exec: print action", (WORD)kind);
         DATA_PTR value;
-        if (!property_eval(sponsor, event, command, s_value, &value)) return false;  // evaluation failed!
+        if (!property_eval(event, command, s_value, &value)) return false;  // evaluation failed!
         prints("LOG: ");
         if (!value_print(value, 1)) return false;  // print failed
     } else {
@@ -766,7 +777,7 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
 }
 
 // execute actor script (array of commands)
-BYTE script_exec(sponsor_t * sponsor, event_t * event, DATA_PTR script) {
+BYTE script_exec(event_t * event, DATA_PTR script) {
     LOG_TRACE("script_exec: script =", (WORD)script);
     IF_TRACE(value_print(script, 1));
     WORD length;
@@ -783,7 +794,7 @@ BYTE script_exec(sponsor_t * sponsor, event_t * event, DATA_PTR script) {
             LOG_WARN("script_exec: command object required!", (WORD)command);
             return false;  // command object required!
         }
-        if (!actor_exec(sponsor, event, command)) {
+        if (!actor_exec(event, command)) {
             LOG_WARN("script_exec: failed executing command!", (WORD)command);
             return false;  // failed executing command!
         }
@@ -817,10 +828,8 @@ int run_actor_script(sponsor_t * sponsor, event_t * event) {
         LOG_WARN("run_actor_script: script required!", (WORD)behavior);
         return 1;  // script required!
     }
-
     //WORD size = (1 << 12);  // 4k working-memory pool
-
-    if (!script_exec(sponsor, event, script)) {
+    if (!script_exec(event, script)) {
         LOG_WARN("run_actor_script: script failed!", (WORD)script);
         return 1;  // script failed!
     }
@@ -866,14 +875,14 @@ int run_actor_config(DATA_PTR item) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "run_actor_config: behavior =", (WORD)behavior);
     IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(behavior, 1));
     scope_t * scope = NULL;  // no parent scope
-    DATA_PTR state = o_;
+    DATA_PTR state = o_;  // empty initial state
     DATA_PTR address;
     //if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
     if (!sponsor_create(sponsor, scope, state, behavior, &address)) {
         LOG_WARN("run_actor_config: failed to create initial actor!", (WORD)item);
         return 1;  // failure!
     }
-    DATA_PTR message = o_;
+    DATA_PTR message = o_;  // empty initial message
     if (!sponsor_send(sponsor, address, message)) {
         LOG_WARN("run_actor_config: failed sending to initial actor!", (WORD)item);
         return 1;  // failure!
@@ -906,9 +915,10 @@ int run_program(DATA_PTR program) {
             LOG_WARN("run_program: sponsor object required!", (WORD)item);
             return 1;  // sponsor object required!
         }
+        // FIXME: we should create each sponsor, run its boot-script, then round-robin among the sponsors for dispatching
         if (run_actor_config(item) != 0) {
-            LOG_WARN("run_program: failed to start actor configuration!", (WORD)item);
-            return 1;  // failed to start!
+            LOG_WARN("run_program: actor configuration failed!", (WORD)item);
+            return 1;  // configuration failed!
         }
     }
     if (!memo_reset()) return 1;  // memo reset failed!
