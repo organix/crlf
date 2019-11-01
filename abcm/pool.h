@@ -8,10 +8,6 @@
 
 #define AUDIT_ALLOCATION 1 /* track reserve/release calls to check for leaks */
 
-typedef struct pool_struct pool_t;
-extern pool_t * sponsor_pool;  // FIXME: THIS SHOULD BE A MEMBER OF SPONSOR!
-#define SPONSOR_POOL(sponsor) sponsor_pool  // FIXME: this macro will eventually access through sponsor, but for now...
-
 #if AUDIT_ALLOCATION
 #define RESERVE(dpp,size) audit_reserve(__FILE__, __LINE__, SPONSOR_POOL(sponsor), (dpp), (size))
 #define COPY(to_dpp,from_dp) audit_copy(__FILE__, __LINE__, SPONSOR_POOL(sponsor), (to_dpp), (from_dp))
@@ -23,6 +19,8 @@ extern pool_t * sponsor_pool;  // FIXME: THIS SHOULD BE A MEMBER OF SPONSOR!
 #define RELEASE(dpp) pool_release(SPONSOR_POOL(sponsor), (dpp))
 #define TRACK(vp) (vp)
 #endif
+
+typedef struct pool_struct pool_t;
 
 typedef struct {
     BYTE        (*reserve)(pool_t * pool, DATA_PTR * data, WORD size);

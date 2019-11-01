@@ -858,7 +858,7 @@ int run_actor_config(DATA_PTR item) {
     }
     LOG_INFO("run_actor_config: script =", (WORD)script);
     // +1 to account for initial actor and event
-    sponsor_t * config_sponsor = new_bounded_sponsor(actors + 1, events + 1, heap_pool);
+    sponsor_t * config_sponsor = new_sponsor(heap_pool, actors + 1, events + 1);
     assert(config_sponsor);
     sponsor = config_sponsor;  // SET GLOBAL SPONSOR!
     LOG_DEBUG("run_actor_config: sponsor =", (WORD)sponsor);
@@ -894,11 +894,6 @@ int run_actor_config(DATA_PTR item) {
 
 int run_program(DATA_PTR program) {
     LOG_INFO("bootstrap", (WORD)program);
-/*
-    sponsor_t * boot_sponsor = new_bounded_sponsor(0, 0, heap_pool);
-    assert(boot_sponsor);
-    LOG_DEBUG("run_program: boot_sponsor =", (WORD)boot_sponsor);
-*/
     if (!memo_reset()) return 1;  // memo reset failed!
     WORD length;
     if (!array_length(program, &length)) {

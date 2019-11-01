@@ -26,8 +26,6 @@ sponsor_t * sponsor;  // WE DECLARE A GLOBAL SPONSOR TO AVOID THREADING IT THROU
  * a configuration is an actor-machine state consisting of actors and pending events
  */
 
-config_t * sponsor_config;  // FIXME: THIS SHOULD BE A MEMBER OF SPONSOR!
-
 static actor_t * config_find_actor(config_t * config, DATA_PTR address) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_find_actor: address =", (WORD)address);
     IF_NONE(value_print(address, 1));
@@ -101,11 +99,14 @@ BYTE config_send(config_t * config, DATA_PTR address, DATA_PTR message) {
     event_t * event = &config->event[current];
     LOG_LEVEL(LOG_LEVEL_TRACE+0, "config_send: event =", (WORD)event);
     event->actor = actor;
-    COPY(&event->message, message);
+    if (!COPY(&event->message, message)) return false;  // out-of-memory!
     return true;  // success!
 }
 
-//BYTE bounded_sponsor_dispatch(sponsor_t * sponsor)
+/*
+ * Attempt to deliver a pending _Event_.
+ * Return `true` on success, `false` on failure (including no events pending).
+ */
 BYTE config_dispatch(config_t * config) {
     if (CONFIG_EVENTS(config) == CONFIG_CURRENT(config)) {
         LOG_INFO("config_dispatch: work completed.", (WORD)config);
@@ -115,6 +116,7 @@ BYTE config_dispatch(config_t * config) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_dispatch: current =", current);
     event_t * event = &config->event[current];
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_dispatch: event =", (WORD)event);
+    //sponsor->event = event;  // FIXME: maybe we should keep this in `config_t` rather than `sponsor_t`...
     LOG_DEBUG("config_dispatch: message =", (WORD)EVENT_MESSAGE(event));
     IF_DEBUG(value_print(EVENT_MESSAGE(event), 1));
     actor_t * actor = EVENT_ACTOR(event);
@@ -159,8 +161,42 @@ BYTE config_dispatch(config_t * config) {
     return true;  // success!
 }
 
+/*
+ * Apply message-delivery Effects.
+ * Return `true` on success, `false` on failure.
+ */
 BYTE config_apply(config_t * config, effect_t * effect) {
     return false;  // NOT IMPLEMENTED!
+}
+
+config_t * new_config(pool_t * pool, WORD actors, WORD events) {
+    LOG_DEBUG("new_config: actors =", actors);
+    if (actors > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but this code depends on it.
+        LOG_WARN("new_config: too many actors!", 0xFFFF);
+        return NULL;  // too many actors!
+    }
+    LOG_DEBUG("new_config: events =", events);
+    if (events > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but this code depends on it.
+        LOG_WARN("new_config: too many events!", 0xFFFF);
+        return NULL;  // too many events!
+    }
+    config_t * config;
+    if (!pool_reserve(pool, (DATA_PTR *)&config, sizeof(config_t))) return NULL;  // allocation failure!
+    config->actors = actors;
+    if (actors) {
+        if (!pool_reserve(pool, (DATA_PTR *)&config->actor, sizeof(actor_t) * actors)) return NULL;  // allocation failure!
+    } else {
+        config->actor = NULL;  // there are no actors in this config
+    }
+    config->events = events;
+    if (events) {
+        if (!pool_reserve(pool, (DATA_PTR *)&config->event, sizeof(event_t) * events)) return NULL;  // allocation failure!
+    } else {
+        config->event = NULL;  // there are no events in this config
+    }
+    config->current = events;  // event queue is initially empty...
+    LOG_DEBUG("new_config: config =", (WORD)config);
+    return config;
 }
 
 /**  --FIXME--
@@ -275,6 +311,7 @@ BYTE event_revert_effects(sponsor_t * sponsor, event_t * event) {
  * resource-bounded sponsor
  */
 
+#if 0
 typedef struct {
     sponsor_t   sponsor;        // super-type member
     WORD        actors;         // actor creation limit
@@ -421,55 +458,40 @@ static BYTE bounded_sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR 
     IF_TRACE(value_print(error, 0));
     return true;  // success!
 }
-
-sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * pool) {
-    LOG_DEBUG("new_bounded_sponsor: actors =", actors);
-    if (actors > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but this code depends on it.
-        LOG_WARN("new_bounded_sponsor: too many actors!", 0xFFFF);
-        return NULL;  // too many actors!
-    }
-    LOG_DEBUG("new_bounded_sponsor: events =", events);
-    if (events > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but this code depends on it.
-        LOG_WARN("new_bounded_sponsor: too many events!", 0xFFFF);
-        return NULL;  // too many events!
-    }
-    DATA_PTR data = NULL;
-    if (!pool_reserve(heap_pool, &data, sizeof(bounded_sponsor_t))) return NULL;  // allocation failure!
-    bounded_sponsor_t * THIS = (bounded_sponsor_t *)data;
-    THIS->actors = actors;
-    THIS->events = events;
-    THIS->work_pool = pool;
-    if (actors && !pool_reserve(heap_pool, (DATA_PTR *)&THIS->actor, sizeof(actor_t) * actors)) return NULL;  // allocation failure!
-    if (events && !pool_reserve(heap_pool, (DATA_PTR *)&THIS->event, sizeof(event_t) * events)) return NULL;  // allocation failure!
-    THIS->current = events;
-    THIS->sponsor.dispatch = bounded_sponsor_dispatch;
-    THIS->sponsor.create = bounded_sponsor_create;
-    THIS->sponsor.send = bounded_sponsor_send;
-    THIS->sponsor.become = bounded_sponsor_become;
-    THIS->sponsor.fail = bounded_sponsor_fail;
-    return (sponsor_t *)THIS;
-}
+#endif
 
 /*
- * polymorphic dispatch functions
+ * a sponsor is a root object providing access to resource-management mechanisms for computations.
  */
 
-inline BYTE sponsor_dispatch(sponsor_t * sponsor) {
-    return sponsor->dispatch(sponsor);
+sponsor_t * new_sponsor(pool_t * pool, WORD actors, WORD events) {
+    sponsor_t * sponsor;
+    if (!pool_reserve(pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return NULL;  // allocation failure!
+    sponsor->pool = pool;
+    if (!SPONSOR_POOL(sponsor)) return NULL;  // allocation failure!
+    sponsor->config = new_config(pool, actors, events);
+    if (!SPONSOR_CONFIG(sponsor)) return NULL;  // allocation failure!
+    LOG_DEBUG("new_sponsor: sponsor =", (WORD)sponsor);
+    return sponsor;
 }
 
-inline BYTE sponsor_create(sponsor_t * sponsor, scope_t * scope, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
-    return sponsor->create(sponsor, scope, state, behavior, address);
+inline BYTE sponsor_dispatch(sponsor_t * sponsor) {
+    return config_dispatch(SPONSOR_CONFIG(sponsor));
+}
+
+inline BYTE sponsor_create(sponsor_t * sponsor, scope_t * parent, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
+    return config_create(SPONSOR_CONFIG(sponsor), parent, state, behavior, address);
 }
 
 inline BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message) {
-    return sponsor->send(sponsor, address, message);
+    return config_send(SPONSOR_CONFIG(sponsor), address, message);
 }
 
 inline BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior) {
-    return sponsor->become(sponsor, behavior);
+    return effect_become(EVENT_EFFECT(SPONSOR_EVENT(sponsor)), behavior);
 }
 
 inline BYTE sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error) {
-    return sponsor->fail(sponsor, event, error);
+    assert(SPONSOR_EVENT(sponsor) == event);
+    return effect_fail(EVENT_EFFECT(event), error);
 }

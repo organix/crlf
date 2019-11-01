@@ -11,8 +11,6 @@
 //#define LOG_WARN
 #include "log.h"
 
-pool_t * sponsor_pool;  // FIXME: THIS SHOULD BE A MEMBER OF SPONSOR!
-
 /*
  * generic allocator methods
  */
