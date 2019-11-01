@@ -13,35 +13,12 @@ typedef struct scope_struct {
     DATA_PTR    state;
 } scope_t;
 
-typedef struct actor_struct {
-    BYTE        capability[8];
-    scope_t     scope;
-    DATA_PTR    behavior;
-} actor_t;
+#define SCOPE_PARENT(scope) ((scope)->parent)  // (scope_t *) -> (scope_t *)
+#define SCOPE_STATE(scope) ((scope)->state)  // (scope_t *) -> (DATA_PTR)
 
-typedef struct effect_struct {
-    DATA_PTR    behavior;       // behavior for subsequent messages
-    WORD        actors;         // updated actor creation limit
-    WORD        events;         // updated message-send event limit
-    scope_t     scope;          // scope for new bindings
-    DATA_PTR    error;          // error value, or NULL if none
-} effect_t;
-
-typedef struct event_struct {
-    actor_t *   actor;
-    DATA_PTR    message;
-    effect_t    effect;         // actor-command effects
-} event_t;
-
-/*
-typedef struct scope_struct scope_t;
-typedef struct actor_struct actor_t;
-typedef struct event_struct event_t;
-
-typedef struct scope_struct {
-    scope_t *   parent;
-    DATA_PTR    state;
-} scope_t;
+BYTE scope_has_binding(scope_t * scope, DATA_PTR name);
+BYTE scope_lookup_binding(scope_t * scope, DATA_PTR name, DATA_PTR * value);
+BYTE scope_update_binding(scope_t * scope, DATA_PTR name, DATA_PTR value);
 
 typedef struct actor_struct {
     BYTE        capability[8];
@@ -49,13 +26,33 @@ typedef struct actor_struct {
     DATA_PTR    behavior;
 } actor_t;
 
+#define ACTOR_SELF(actor) (&(actor)->capability)  // (actor_t *) -> (DATA_PTR)
+#define ACTOR_SCOPE(actor) (&(actor)->scope)  // (actor_t *) -> (scope_t *)
+#define ACTOR_BEHAVIOR(actor) ((actor)->behavior)  // (actor_t *) -> (DATA_PTR)
+
+/**
+Instead of storing new actors/events in Effects,
+we create them directly in the Configuration,
+because most-likely they will persist.
+If we have to revert (on failure), we clean up the extra actors/events.
+**/
 typedef struct effect_struct {
     DATA_PTR    behavior;       // behavior for subsequent messages
-    WORD        actors;         // actor creation limit
-    WORD        events;         // message-send event limit
+    WORD        actors;         // snapshot of actor creation limit
+    WORD        events;         // snapshot of message-send event limit
     scope_t     scope;          // scope for new bindings
     DATA_PTR    error;          // error value, or NULL if none
 } effect_t;
+
+#define EFFECT_BEHAVIOR(effect) ((effect)->behavior)  // (effect_t *) -> (DATA_PTR)
+#define EFFECT_SCOPE(effect) (&(effect)->scope)  // (effect_t *) -> (scope_t *)
+#define EFFECT_ERROR(effect) ((effect)->error)  // (effect_t *) -> (DATA_PTR)
+
+BYTE effect_create(effect_t * effect, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
+BYTE effect_send(effect_t * effect, DATA_PTR address, DATA_PTR message);
+BYTE effect_become(effect_t * effect, DATA_PTR behavior);
+BYTE effect_assign(effect_t * effect, DATA_PTR name, DATA_PTR value);
+BYTE effect_fail(effect_t * effect, DATA_PTR error);
 
 typedef struct event_struct {
     actor_t *   actor;
@@ -63,20 +60,8 @@ typedef struct event_struct {
     effect_t    effect;         // actor-command effects
 } event_t;
 
-#define PER_MESSAGE_LOCAL_SCOPE 1 // create a new empty scope per message, with the actor state as parent.
-
-BYTE scope_has_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name);
-BYTE scope_lookup_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name, DATA_PTR * value);
-BYTE scope_update_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name, DATA_PTR value);
-
-BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * behavior);
-BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior);
-BYTE event_lookup_actor(sponsor_t * sponsor, event_t * event, DATA_PTR * self);
-BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * message);
-BYTE event_lookup_scope(sponsor_t * sponsor, event_t * event, scope_t ** scope);
-BYTE event_init_effects(sponsor_t * sponsor, event_t * event, WORD actors, WORD events);
-BYTE event_apply_effects(sponsor_t * sponsor, event_t * event);
-BYTE event_revert_effects(sponsor_t * sponsor, event_t * event);
-*/
+#define EVENT_ACTOR(event) (&(event)->actor)  // (event_t *) -> (actor_t *)
+#define EVENT_MESSAGE(event) (&(event)->message)  // (event_t *) -> (DATA_PTR)
+#define EVENT_EFFECT(event) (&(event)->effect)  // (event_t *) -> (effect_t *)
 
 #endif // _EVENT_H_

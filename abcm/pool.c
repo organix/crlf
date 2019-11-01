@@ -57,11 +57,6 @@ static BYTE heap_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
     return ok;
 }
 
-static BYTE heap_pool_share(pool_t * pool, DATA_PTR * data) {
-    LOG_WARN("heap_pool does not reference-count", (WORD)(*data));
-    return false;
-}
-
 static BYTE heap_pool_release(pool_t * pool, DATA_PTR * data) {
     //heap_pool_t * THIS = (heap_pool_t *)pool;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "heap_pool_release: data @", (WORD)(*data));
@@ -80,7 +75,6 @@ static BYTE heap_pool_close(pool_t * pool) {
 
 static heap_pool_t heap_pool_instance = {
     .pool.reserve = heap_pool_reserve,
-    .pool.share = heap_pool_share,
     .pool.copy = generic_pool_copy,
     .pool.release = heap_pool_release,
     .pool.close = heap_pool_close,
@@ -118,11 +112,6 @@ static BYTE temp_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
     return ok;
 }
 
-static BYTE temp_pool_share(pool_t * pool, DATA_PTR * data) {
-    LOG_WARN("temp_pool does not reference-count", (WORD)(*data));
-    return false;
-}
-
 static BYTE temp_pool_release(pool_t * pool, DATA_PTR * data) {
     //temp_pool_t * THIS = (temp_pool_t *)pool;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "temp_pool_release: data @", (WORD)(*data));
@@ -149,7 +138,6 @@ pool_t * new_temp_pool(pool_t * parent, WORD size) {
     THIS->size = size;
     THIS->offset = 0;
     THIS->pool.reserve = temp_pool_reserve;
-    THIS->pool.share = temp_pool_share;
     THIS->pool.copy = generic_pool_copy;
     THIS->pool.release = temp_pool_release;
     THIS->pool.close = temp_pool_close;
@@ -163,10 +151,6 @@ pool_t * new_temp_pool(pool_t * parent, WORD size) {
 
 inline BYTE pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
     return pool->reserve(pool, data, size);
-}
-
-inline BYTE pool_share(pool_t * pool, DATA_PTR * data) {
-    return pool->share(pool, data);
 }
 
 inline BYTE pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {

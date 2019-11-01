@@ -559,7 +559,7 @@ static int test_value_equiv() {
 }
 
 static int test_sponsor() {
-    sponsor_t * sponsor = new_bounded_sponsor(0, 0, heap_pool);
+    sponsor = new_bounded_sponsor(0, 0, heap_pool);
     assert(sponsor);
     LOG_DEBUG("test_sponsor: sponsor =", (WORD)sponsor);
 
@@ -595,11 +595,6 @@ static int test_array() {
     WORD length;
     DATA_PTR value;
 
-/*
-BYTE array_length(DATA_PTR array, WORD * length);
-BYTE array_get(DATA_PTR object, WORD index, DATA_PTR * value);
-BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD index, DATA_PTR * value);
-*/
     IF_TRACE(value_print(data_0, 0));
     assert(array_length(data_0, &length));
     assert(length == 0);
@@ -652,50 +647,47 @@ ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
     BYTE data_13[] = { array, n_4, n_1, n_2, n_0, n_3 };
     BYTE data_14[] = { array, n_4, n_1, n_2, n_3, n_0 };
 
-    sponsor_t * sponsor = new_bounded_sponsor(0, 0, heap_pool);
-    assert(sponsor);
-    LOG_DEBUG("test_array: sponsor =", (WORD)sponsor);
-
-    assert(array_add(sponsor, data_10, i_0, 0, &value));
+    assert(array_add(data_10, i_0, 0, &value));
     assert(value_equiv(value, data_11));
     assert(RELEASE(&value));
 
-    assert(array_add(sponsor, data_10, i_0, 1, &value));
+    assert(array_add(data_10, i_0, 1, &value));
     assert(value_equiv(value, data_12));
     assert(RELEASE(&value));
 
-    assert(array_add(sponsor, data_10, i_0, 2, &value));
+    assert(array_add(data_10, i_0, 2, &value));
     assert(value_equiv(value, data_13));
     assert(RELEASE(&value));
 
-    assert(array_add(sponsor, data_10, i_0, 3, &value));
+    assert(array_add(data_10, i_0, 3, &value));
     assert(value_equiv(value, data_14));
     assert(array_length(value, &length));
     LOG_DEBUG("test_array: value.length =", length);
     assert(length == 4);
     assert(RELEASE(&value));
 
-    assert(!array_add(sponsor, data_10, i_0, 4, &value));
+    assert(!array_add(data_10, i_0, 4, &value));
 
     // start with nothing
+    LOG_DEBUG("test_array: sponsor =", (WORD)sponsor);
     DATA_PTR array;
     assert(COPY(&array, a_));
     // append 1
     assert(array_length(array, &length));
     assert(array_get(data_10, 0, &value));
-    assert(array_add(sponsor, array, value, length, &value));
+    assert(array_add(array, value, length, &value));
     assert(RELEASE(&array));
     array = TRACK(value);
     // append 2
     assert(array_length(array, &length));
     assert(array_get(data_10, 1, &value));
-    assert(array_add(sponsor, array, value, length, &value));
+    assert(array_add(array, value, length, &value));
     assert(RELEASE(&array));
     array = TRACK(value);
     // append 3
     assert(array_length(array, &length));
     assert(array_get(data_10, 2, &value));
-    assert(array_add(sponsor, array, value, length, &value));
+    assert(array_add(array, value, length, &value));
     assert(RELEASE(&array));
     array = TRACK(value);
     // verify result
@@ -773,31 +765,28 @@ BIND "kind" TO 0 WITH {"name":null, "kind":"actor_assign"}
         utf8, n_4, 'n', 'a', 'm', 'e', null,
         utf16, n_8, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd', n_0 };
 
-    sponsor_t * sponsor = new_bounded_sponsor(0, 0, heap_pool);
-    assert(sponsor);
-    LOG_DEBUG("test_array: sponsor =", (WORD)sponsor);
-
     // start with nothing
+    LOG_DEBUG("test_object: sponsor =", (WORD)sponsor);
     DATA_PTR object;
     assert(COPY(&object, o_));
     IF_TRACE(value_print(object, 1));
     // bind "kind"
-    assert(object_add(sponsor, object, s_kind, k_actor_assign, &result));
+    assert(object_add(object, s_kind, k_actor_assign, &result));
     IF_TRACE(value_print(result, 1));
     assert(RELEASE(&object));
     object = result;
     // bind "name"
-    assert(object_add(sponsor, object, s_name, s_actor, &result));
+    assert(object_add(object, s_name, s_actor, &result));
     IF_TRACE(value_print(result, 1));
     assert(RELEASE(&object));
     object = result;
     // re-bind "name"
-    assert(object_add(sponsor, object, s_name, v_null, &result));
+    assert(object_add(object, s_name, v_null, &result));
     IF_TRACE(value_print(result, 1));
     assert(RELEASE(&object));
     object = result;
     // re-bind "kind"
-    assert(object_add(sponsor, object, s_kind, i_0, &result));
+    assert(object_add(object, s_kind, i_0, &result));
     IF_TRACE(value_print(result, 1));
     assert(RELEASE(&object));
     object = result;
@@ -848,7 +837,7 @@ int run_test_suite() {
         || test_parse_object()
         || test_object_property_count()
         || test_value_equiv()
-        || test_sponsor()
+        || test_sponsor()  // WARNING: sets global `sponsor`, which is required by array/object tests...
         || test_array()
         || test_object()
         ;

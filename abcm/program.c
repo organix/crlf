@@ -7,6 +7,8 @@
 #include "program.h"
 #include "bose.h"
 #include "sponsor.h"
+#include "pool.h"
+#include "event.h"
 #include "string.h"
 #include "array.h"
 #include "object.h"
@@ -272,7 +274,7 @@ static BYTE array_eval(sponsor_t * sponsor, event_t * event, DATA_PTR exprs, DAT
             return false;  // evaluation failed!
         }
         DATA_PTR array;
-        if (!array_add(sponsor, *result, value, i, &array)) return false;  // allocation failure!
+        if (!array_add(*result, value, i, &array)) return false;  // allocation failure!
         if (!RELEASE(result)) return false;  // reclamation failure!
         *result = TRACK(array);
     }
@@ -549,7 +551,7 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         *result = b_false;  // default value is `false`
         scope_t * scope;
         if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
-        if (scope_has_binding(sponsor, scope, name)) {
+        if (scope_has_binding(scope, name)) {
             *result = b_true;  // default value is `true`
         }
     } else if (value_equiv(kind, k_actor_state)) {
@@ -563,7 +565,7 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         // FIXME: make sure `name` is a String...
         scope_t * scope;
         if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
-        if (!scope_lookup_binding(sponsor, scope, name, result)) return false;  // lookup failed!
+        if (!scope_lookup_binding(scope, name, result)) return false;  // lookup failed!
     } else if (value_equiv(kind, k_dict_has)) {
         // { "kind":"dict_has", "name":<string>, "in":<dictionary> }
         LOG_DEBUG("actor_eval: dict_has expression", (WORD)kind);
@@ -612,7 +614,7 @@ BYTE actor_eval(sponsor_t * sponsor, event_t * event, DATA_PTR expression, DATA_
         if (!property_eval(sponsor, event, expression, s_with, &dict)) return false;  // evaluation failed!
         // FIXME: make sure `dict` is an Object...
         *result = v_null;  // default value is `null`
-        if (!object_add(sponsor, dict, name, value, result)) return false;  // allocation failure!
+        if (!object_add(dict, name, value, result)) return false;  // allocation failure!
     } else if (value_equiv(kind, k_actor_message)) {
         // { "kind":"actor_message" }
         LOG_DEBUG("actor_eval: actor_message expression", (WORD)kind);
@@ -678,7 +680,7 @@ BYTE actor_exec(sponsor_t * sponsor, event_t * event, DATA_PTR command) {
         if (!property_eval(sponsor, event, command, s_value, &value)) return false;  // evaluation failed!
         scope_t * scope;
         if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
-        if (!scope_update_binding(sponsor, scope, name, value)) return false;  // update failed!
+        if (!scope_update_binding(scope, name, value)) return false;  // update failed!
     } else if (value_equiv(kind, k_conditional)) {
         // { "kind":"conditional", "args":[{ "if":<expression>, "do":[<action>, ...] }, ...] }
         LOG_DEBUG("actor_exec: conditional action", (WORD)kind);
@@ -859,8 +861,9 @@ int run_actor_config(DATA_PTR item) {
     }
     LOG_INFO("run_actor_config: script =", (WORD)script);
     // +1 to account for initial actor and event
-    sponsor_t * sponsor = new_bounded_sponsor(actors + 1, events + 1, heap_pool);
-    assert(sponsor);
+    sponsor_t * config_sponsor = new_bounded_sponsor(actors + 1, events + 1, heap_pool);
+    assert(config_sponsor);
+    sponsor = config_sponsor;  // SET GLOBAL SPONSOR!
     LOG_DEBUG("run_actor_config: sponsor =", (WORD)sponsor);
     /*
      * --WARNING-- THIS CODE HAS INTIMATE KNOWLEDGE OF THE ACTOR AND EVENT STRUCTURES
@@ -870,7 +873,7 @@ int run_actor_config(DATA_PTR item) {
         utf8, n_4, 'n', 'a', 'm', 'e', string_0
     };
     DATA_PTR behavior;
-    if (!object_add(sponsor, behavior_template, s_script, script, &behavior)) return false;  // allocation failure!
+    if (!object_add(behavior_template, s_script, script, &behavior)) return false;  // allocation failure!
     behavior = TRACK(behavior);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "run_actor_config: behavior =", (WORD)behavior);
     IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(behavior, 1));
@@ -894,9 +897,11 @@ int run_actor_config(DATA_PTR item) {
 
 int run_program(DATA_PTR program) {
     LOG_INFO("bootstrap", (WORD)program);
+/*
     sponsor_t * boot_sponsor = new_bounded_sponsor(0, 0, heap_pool);
     assert(boot_sponsor);
     LOG_DEBUG("run_program: boot_sponsor =", (WORD)boot_sponsor);
+*/
     if (!memo_reset()) return 1;  // memo reset failed!
     WORD length;
     if (!array_length(program, &length)) {

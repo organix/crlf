@@ -8,6 +8,7 @@
 #include "sponsor.h"
 #include "bose.h"
 #include "pool.h"
+#include "event.h"
 #include "program.h"
 #include "object.h"
 #include "equiv.h"
@@ -18,6 +19,8 @@
 //#define LOG_INFO
 //#define LOG_WARN
 #include "log.h"
+
+sponsor_t * sponsor;  // WE DECLARE A GLOBAL SPONSOR TO AVOID THREADING IT THROUGH ALL OTHER CALLS...
 
 /**  --FIXME--
 
@@ -38,52 +41,6 @@ These responsibilities include:
 For now we'll make these all responsibilities of the event, with help from the sponsor.
 
 **/
-
-BYTE scope_has_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name) {
-    LOG_TRACE("scope_has_binding @", (WORD)scope);
-    LOG_TRACE("scope_has_binding: name =", (WORD)name);
-    WORD has = object_has(scope->state, name);
-    while (!has) {
-        scope = scope->parent;
-        if (!scope) break;
-        has = object_has(scope->state, name);
-    }
-    LOG_DEBUG("scope_has_binding", has);
-    return has;
-}
-
-BYTE scope_lookup_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name, DATA_PTR * value) {
-    LOG_TRACE("scope_lookup_binding @", (WORD)scope);
-    LOG_TRACE("scope_lookup_binding: name =", (WORD)name);
-    *value = v_null;  // default value is `null`
-    while (!object_get(scope->state, name, value)) {
-        scope = scope->parent;
-        if (!scope) {
-            LOG_WARN("scope_lookup_binding: undefined variable!", (WORD)name);
-            // FIXME: we may want to "throw" an exception here...
-            break;
-        }
-        LOG_TRACE("scope_lookup_binding: searching scope", (WORD)scope->state);
-        IF_TRACE(value_print(scope->state, 1));
-    }
-    LOG_DEBUG("scope_lookup_binding: value =", (WORD)*value);
-    return true;  // success
-}
-
-BYTE scope_update_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name, DATA_PTR value) {
-    LOG_TRACE("scope_update_binding @", (WORD)scope);
-    LOG_TRACE("scope_update_binding: name =", (WORD)name);
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "scope_update_binding: state =", (WORD)scope->state);
-    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(scope->state, 1));
-    DATA_PTR state;
-    if (!object_add(sponsor, scope->state, name, value, &state)) return false;  // allocation failure!
-    if (!RELEASE(&scope->state)) return false;  // reclamation failure!
-    scope->state = TRACK(state);
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "scope_update_binding: state' =", (WORD)state);
-    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(state, 1));
-    LOG_DEBUG("scope_update_binding: value =", (WORD)value);
-    return true;  // success
-}
 
 /*
  * actor-message delivery event
@@ -153,7 +110,7 @@ BYTE event_apply_effects(sponsor_t * sponsor, event_t * event) {
     actor_t * actor = event->actor;
 #if PER_MESSAGE_LOCAL_SCOPE
     DATA_PTR state;
-    if (!object_concat(sponsor, actor->scope.state, event->effect.scope.state, &state)) {
+    if (!object_concat(actor->scope.state, event->effect.scope.state, &state)) {
         LOG_WARN("event_apply_effects: state merge failed!", (WORD)&event->effect.scope);
         return false;  // state merge failed!
     }
@@ -371,11 +328,6 @@ static BYTE bounded_sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD s
     return pool_reserve(THIS->work_pool, data, size);
 }
 
-static BYTE bounded_sponsor_share(sponsor_t * sponsor, DATA_PTR * data) {
-    bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
-    return pool_share(THIS->work_pool, data);
-}
-
 static BYTE bounded_sponsor_copy(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value) {
     bounded_sponsor_t * THIS = (bounded_sponsor_t *)sponsor;
     return pool_copy(THIS->work_pool, data, value);
@@ -417,7 +369,6 @@ sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * pool) {
     THIS->sponsor.become = bounded_sponsor_become;
     THIS->sponsor.fail = bounded_sponsor_fail;
     THIS->sponsor.reserve = bounded_sponsor_reserve;
-    THIS->sponsor.share = bounded_sponsor_share;
     THIS->sponsor.copy = bounded_sponsor_copy;
     THIS->sponsor.release = bounded_sponsor_release;
     THIS->sponsor.temp_pool = generic_sponsor_temp_pool;
@@ -465,11 +416,6 @@ static BYTE pool_sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD size
     return pool_reserve(THIS->work_pool, data, size);
 }
 
-static BYTE pool_sponsor_share(sponsor_t * sponsor, DATA_PTR * data) {
-    pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    return pool_share(THIS->work_pool, data);
-}
-
 static BYTE pool_sponsor_copy(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value) {
     pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
     return pool_copy(THIS->work_pool, data, value);
@@ -503,7 +449,6 @@ sponsor_t * new_pool_sponsor(sponsor_t * sponsor, pool_t * pool) {
     THIS->sponsor.become = pool_sponsor_become;
     THIS->sponsor.fail = pool_sponsor_fail;
     THIS->sponsor.reserve = pool_sponsor_reserve;
-    THIS->sponsor.share = pool_sponsor_share;
     THIS->sponsor.copy = pool_sponsor_copy;
     THIS->sponsor.release = pool_sponsor_release;
     THIS->sponsor.temp_pool = generic_sponsor_temp_pool;
@@ -537,10 +482,6 @@ inline BYTE sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error) {
 
 inline BYTE sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD size) {
     return sponsor->reserve(sponsor, data, size);
-}
-
-inline BYTE sponsor_share(sponsor_t * sponsor, DATA_PTR * data) {
-    return sponsor->share(sponsor, data);
 }
 
 inline BYTE sponsor_copy(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value) {

@@ -136,11 +136,7 @@ Fields
   * _Effect_: Message-delivery outcome
 
 Methods:
-  * _Create_: Create a new Actor
-  * _Send_: Send an asynchronous Message
-  * _Become_: Define subsequent Actor Behavior
-  * _Assign_: Define subsequent Actor State
-  * _Fail_: Signal an Error
+  * _(TBD)_
 
 ### Effect
 Effects of Actor Commands triggered by a message-delivery Event.
@@ -153,7 +149,11 @@ Fields:
   * _Error_: Error value, or `null` if none
 
 Methods:
-  * _(TBD)_
+  * _Create_: Create a new Actor
+  * _Send_: Send an asynchronous Message
+  * _Become_: Define subsequent Actor Behavior
+  * _Assign_: Define subsequent Actor State
+  * _Fail_: Signal an Error
 
 ## Binary Octet-Stream Encoding
 

@@ -5,7 +5,6 @@
 #define _ARRAY_H_
 
 #include "bose.h"
-#include "sponsor.h"
 
 /*
     { "kind":"list_get", "at":<number>, "from":<list> }
@@ -16,6 +15,6 @@
 
 BYTE array_length(DATA_PTR array, WORD * length);
 BYTE array_get(DATA_PTR array, WORD offset, DATA_PTR * value);
-BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD offset, DATA_PTR * new);
+BYTE array_add(DATA_PTR array, DATA_PTR item, WORD offset, DATA_PTR * new);
 
 #endif // _ARRAY_H_

@@ -116,7 +116,7 @@ BYTE object_get(DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
     return false;  // not found.
 };
 
-BYTE object_add(sponsor_t * sponsor, DATA_PTR object, DATA_PTR name, DATA_PTR value, DATA_PTR * new) {
+BYTE object_add(DATA_PTR object, DATA_PTR name, DATA_PTR value, DATA_PTR * new) {
     LOG_TRACE("object_add @", (WORD)object);
     LOG_TRACE("object_add: name @", (WORD)name);
     LOG_TRACE("object_add: value @", (WORD)value);
@@ -236,7 +236,7 @@ BYTE object_add(sponsor_t * sponsor, DATA_PTR object, DATA_PTR name, DATA_PTR va
     return true;  // success!
 };
 
-BYTE object_concat(sponsor_t * sponsor, DATA_PTR left, DATA_PTR right, DATA_PTR * new) {
+BYTE object_concat(DATA_PTR left, DATA_PTR right, DATA_PTR * new) {
     LOG_TRACE("object_concat: left @", (WORD)left);
     LOG_TRACE("object_concat: right @", (WORD)right);
     parse_t left_parse = {

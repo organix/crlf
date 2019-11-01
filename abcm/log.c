@@ -21,6 +21,14 @@ uint64_t log_time();    // log-event timestamp
 #include <stdio.h>
 #include <string.h>
 
+static inline char * basename(char * pathname) {
+    char *s = strrchr(pathname, '/');
+    if (s) {
+        pathname = s + 1;  // use just the basename
+    }
+    return pathname;
+}
+
 void log_event(         // log event synchronously
     char * _file_,
     int _line_,
@@ -31,10 +39,7 @@ void log_event(         // log event synchronously
     static char * level_name[] = { "NONE", "INFO", "WARN", "DEBUG", "TRACE" };
 
     if (level > log_config.level) return;  // ignore logging above configured threshold
-    char *s = strrchr(_file_, '/');
-    if (s) {
-        _file_ = s + 1;  // use just the basename
-    }
+    _file_ = basename(_file_);
     if (level > LOG_LEVEL_TRACE) {
         int plus = level - LOG_LEVEL_TRACE;
         fprintf(stdout, "%s:%d %s%+d %s (%p)\n",

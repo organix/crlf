@@ -118,7 +118,7 @@ ADD x AT 1 TO [a, b, c] --> [a, x, b, c]
 ADD x AT 2 TO [a, b, c] --> [a, b, x, c]
 ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
 */
-BYTE array_add(sponsor_t * sponsor, DATA_PTR array, DATA_PTR item, WORD offset, DATA_PTR * new) {
+BYTE array_add(DATA_PTR array, DATA_PTR item, WORD offset, DATA_PTR * new) {
     LOG_TRACE("array_add @", (WORD)array);
     LOG_DEBUG("array_add: item @", (WORD)item);
     LOG_DEBUG("array_add: offset =", offset);

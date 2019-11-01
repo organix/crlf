@@ -6,6 +6,7 @@
 
 #include "bose.h"
 #include "pool.h"
+#include "event.h"
 
 /*
  * The following convenience macros make it easy to inject auditing information to track/debug memory leaks
@@ -25,40 +26,9 @@
 #endif
 
 typedef struct sponsor_struct sponsor_t;
-typedef struct scope_struct scope_t;
-typedef struct actor_struct actor_t;
-typedef struct event_struct event_t;
-
-typedef struct scope_struct {
-    scope_t *   parent;
-    DATA_PTR    state;
-} scope_t;
-
-typedef struct actor_struct {
-    BYTE        capability[8];
-    scope_t     scope;
-    DATA_PTR    behavior;
-} actor_t;
-
-typedef struct effect_struct {
-    DATA_PTR    behavior;       // behavior for subsequent messages
-    WORD        actors;         // actor creation limit
-    WORD        events;         // message-send event limit
-    scope_t     scope;          // scope for new bindings
-    DATA_PTR    error;          // error value, or NULL if none
-} effect_t;
-
-typedef struct event_struct {
-    actor_t *   actor;
-    DATA_PTR    message;
-    effect_t    effect;         // actor-command effects
-} event_t;
+extern sponsor_t * sponsor;  // WE DECLARE A GLOBAL SPONSOR TO AVOID THREADING IT THROUGH ALL OTHER CALLS...
 
 #define PER_MESSAGE_LOCAL_SCOPE 1 // create a new empty scope per message, with the actor state as parent.
-
-BYTE scope_has_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name);
-BYTE scope_lookup_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name, DATA_PTR * value);
-BYTE scope_update_binding(sponsor_t * sponsor, scope_t * scope, DATA_PTR name, DATA_PTR value);
 
 BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * behavior);
 BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior);
@@ -78,7 +48,6 @@ typedef struct sponsor_struct {
     BYTE        (*fail)(sponsor_t * sponsor, event_t * event, DATA_PTR error);
     // memory management
     BYTE        (*reserve)(sponsor_t * sponsor, DATA_PTR * data, WORD size);
-    BYTE        (*share)(sponsor_t * sponsor, DATA_PTR * data);
     BYTE        (*copy)(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
     BYTE        (*release)(sponsor_t * sponsor, DATA_PTR * data);
     BYTE        (*temp_pool)(sponsor_t * sponsor, WORD size, sponsor_t ** child);
@@ -93,7 +62,6 @@ BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior);
 BYTE sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error);
 
 BYTE sponsor_reserve(sponsor_t * sponsor, DATA_PTR * data, WORD size);
-BYTE sponsor_share(sponsor_t * sponsor, DATA_PTR * data);
 BYTE sponsor_copy(sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
 BYTE sponsor_release(sponsor_t * sponsor, DATA_PTR * data);
 BYTE sponsor_temp_pool(sponsor_t * sponsor, WORD size, sponsor_t ** child);
