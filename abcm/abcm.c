@@ -7,6 +7,7 @@
 #include "bose.h"
 #include "test.h"
 #include "sponsor.h"
+#include "pool.h"
 #include "program.h"
 
 #define LOG_ALL // enable all logging
@@ -98,6 +99,9 @@ int start_abcm() {  // ok == 0, fail != 0
 
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
     LOG_INFO(_semver, (WORD)_semver);
+
+    sponsor = new_bounded_sponsor(0, 0, heap_pool);  // establish default sponsor
+    sponsor_pool = heap_pool;  // establish default memory pool (should be in sponsor)
 
     result = run_test_suite();  // pass == 0, fail != 0
     if (result) return result;

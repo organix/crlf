@@ -559,7 +559,6 @@ static int test_value_equiv() {
 }
 
 static int test_sponsor() {
-    sponsor = new_bounded_sponsor(0, 0, heap_pool);
     assert(sponsor);
     LOG_DEBUG("test_sponsor: sponsor =", (WORD)sponsor);
 

@@ -76,11 +76,7 @@ BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * messa
 }
 
 BYTE event_lookup_scope(sponsor_t * sponsor, event_t * event, scope_t ** scope) {
-#if PER_MESSAGE_LOCAL_SCOPE
     *scope = &event->effect.scope;
-#else
-    *scope = &event->actor->scope;
-#endif
     LOG_TRACE("event_lookup_scope: scope =", (WORD)*scope);
     return true;  // success
 }
@@ -91,12 +87,10 @@ BYTE event_init_effects(sponsor_t * sponsor, event_t * event, WORD actors, WORD 
     event->effect.behavior = NULL;
     event->effect.actors = actors;
     event->effect.events = events;
-#if PER_MESSAGE_LOCAL_SCOPE
     event->effect.scope.parent = &event->actor->scope;
     if (!COPY(&event->effect.scope.state, o_)) return false;  // allocation failure!
     LOG_DEBUG("event_init_effects: state =", (WORD)event->effect.scope.state);
     IF_TRACE(value_print(event->effect.scope.state, 1));
-#endif
     event->effect.error = NULL;
     return true;  // success
 }
@@ -108,7 +102,6 @@ BYTE event_apply_effects(sponsor_t * sponsor, event_t * event) {
         return false;  // apply failed!
     }
     actor_t * actor = event->actor;
-#if PER_MESSAGE_LOCAL_SCOPE
     DATA_PTR state;
     if (!object_concat(actor->scope.state, event->effect.scope.state, &state)) {
         LOG_WARN("event_apply_effects: state merge failed!", (WORD)&event->effect.scope);
@@ -118,7 +111,6 @@ BYTE event_apply_effects(sponsor_t * sponsor, event_t * event) {
     actor->scope.state = TRACK(state);
     LOG_DEBUG("event_apply_effects: state =", (WORD)event->effect.scope.state);
     IF_TRACE(value_print(event->effect.scope.state, 1));
-#endif
     if (event->effect.behavior) {
         LOG_DEBUG("event_apply_effects: becoming", (WORD)event->effect.behavior);
         if (!RELEASE(&actor->behavior)) return false;  // reclamation failure!
@@ -148,9 +140,6 @@ typedef struct {
 } sponsor_pool_t;
 
 static BYTE sponsor_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
-    sponsor_pool_t * THIS = (sponsor_pool_t *)pool;
-    sponsor_t * sponsor = THIS->sponsor;
-    // NOTE: this circuitous technique is needed to avoid pool/sponsor circular dependencies!
     BYTE ok = RESERVE(data, size);
     if (ok) {
         LOG_DEBUG("sponsor_pool_reserve: data @", (WORD)*data);
@@ -166,7 +155,6 @@ static BYTE generic_sponsor_temp_pool(sponsor_t * sponsor, WORD size, sponsor_t 
     pool_t * pool = new_temp_pool(&sponsor_pool.pool, size);
     LOG_TRACE("generic_sponsor_temp_pool: pool =", (WORD)pool);
     if (!pool) return false;  // failed to create temp pool!
-    pool = TRACK(pool);
     *child = new_pool_sponsor(sponsor, pool);
     LOG_DEBUG("generic_sponsor_temp_pool: child =", (WORD)*child);
     return (*child != NULL);
@@ -239,7 +227,7 @@ static BYTE bounded_sponsor_dispatch(sponsor_t * sponsor) {
         }
         LOG_WARN("bounded_sponsor_dispatch: actor-script execution failed!", (WORD)event);
         if (!event_revert_effects(sponsor, event)) {
-            LOG_WARN("bounded_sponsor_dispatch: failed to rever effects!", (WORD)event);
+            LOG_WARN("bounded_sponsor_dispatch: failed to revert effects!", (WORD)event);
             return false;  // effects failed!
         }
         if (!RELEASE(&event->message)) return false;  // reclamation failure!
@@ -428,7 +416,7 @@ static BYTE pool_sponsor_release(sponsor_t * sponsor, DATA_PTR * data) {
 
 static BYTE pool_sponsor_destroy(sponsor_t * sponsor) {
     pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    if (!pool_close(THIS->work_pool)) return false;  // close failed!
+    //if (!pool_close(THIS->work_pool)) return false;  // close failed!
     sponsor = THIS->parent;  // we were allocated by our parent...
     if (!RELEASE((DATA_PTR *)&THIS))  {
         LOG_WARN("pool_sponsor_destroy: release failed!", (WORD)THIS);
@@ -498,137 +486,4 @@ inline BYTE sponsor_temp_pool(sponsor_t * sponsor, WORD size, sponsor_t ** child
 
 inline BYTE sponsor_destroy(sponsor_t * sponsor) {
     return sponsor->destroy(sponsor);
-}
-
-/*
- * allocation auditing support
- */
-
-#include <stdio.h>  // FIXME!
-
-typedef struct {
-    sponsor_t * sponsor;        // sponsor for resources
-    DATA_PTR    address;        // memory address
-    WORD        size;           // allocation size
-    struct {
-        char *      _file_;         // source file name
-        int         _line_;         // source line number
-    }           reserve;        // reserve information
-    struct {
-        char *      _file_;         // source file name
-        int         _line_;         // source line number
-    }           release;        // release information
-} alloc_audit_t;
-
-#define MAX_AUDIT (1024)
-static alloc_audit_t audit_history[MAX_AUDIT];
-static int audit_index = 0;
-
-static void record_allocation(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR address, WORD size) {
-    assert(audit_index < MAX_AUDIT);
-    alloc_audit_t * history = &audit_history[audit_index++];
-    history->sponsor = sponsor;
-    history->address = address;
-    history->size = size;
-    history->reserve._file_ = _file_;
-    history->reserve._line_ = _line_;
-    history->release._file_ = NULL;
-    history->release._line_ = 0;
-}
-
-BYTE audit_reserve(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, WORD size) {
-    BYTE ok = sponsor_reserve(sponsor, data, size);
-    if (ok) {
-        record_allocation(_file_, _line_, sponsor, *data, size);
-    }
-    return ok;
-}
-
-static WORD value_size(DATA_PTR value) {
-    parse_t parse = {
-        .base = value,
-        .size = MAX_WORD,  // don't know how big value will be
-        .start = 0
-    };
-    assert(parse_value(&parse));
-    WORD size = parse.end - parse.start;  // parse_value determines the span of the value
-    return size;
-}
-
-BYTE audit_copy(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value) {
-    BYTE ok = sponsor_copy(sponsor, data, value);
-    if (ok) {
-        WORD size = value_size(*data);
-        record_allocation(_file_, _line_, sponsor, *data, size);
-    }
-    return ok;
-}
-
-BYTE audit_release(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data) {
-    DATA_PTR address = *data;
-    /* find most-recent allocation of address */
-    int index = audit_index;
-    while (index > 0) {
-        alloc_audit_t * history = &audit_history[--index];
-        if (history->address == address) {
-            if (history->sponsor != sponsor) {
-                LOG_WARN("audit_release: WRONG SPONSOR!", (WORD)sponsor);
-                IF_WARN(fprintf(stdout, "%p[%d] from %p %s:%d\n",
-                    history->address, (int)history->size, history->sponsor, history->reserve._file_, history->reserve._line_));
-                return false;
-            }
-            history->release._file_ = _file_;
-            history->release._line_ = _line_;
-            BYTE ok = sponsor_release(sponsor, data);  // (*data == NULL) on return from sponsor_release!
-            return ok;  // found it!
-        }
-    }
-    LOG_WARN("audit_release: NO ALLOCATION @", (WORD)address);
-    return false;
-}
-
-VOID_PTR audit_track(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR address) {
-    /* find most-recent allocation of address */
-    int index = audit_index;
-    while (index > 0) {
-        alloc_audit_t * history = &audit_history[--index];
-        if (history->address == address) {
-            if (history->sponsor != sponsor) {
-                LOG_WARN("audit_track: WRONG SPONSOR!", (WORD)sponsor);
-                IF_WARN(fprintf(stdout, "%p[%d] from %p %s:%d\n",
-                    history->address, (int)history->size, history->sponsor, history->reserve._file_, history->reserve._line_));
-                return address;  // leave history unchanged!
-            }
-            history->reserve._file_ = _file_;  // update source file name
-            history->reserve._line_ = _line_;  // update source line number
-            return address;  // found it!
-        }
-    }
-    log_event(_file_, _line_, LOG_LEVEL_WARN, "audit_track: NO ALLOCATION @", (WORD)address);
-    return address;
-}
-
-int audit_show_leaks() {
-    WORD count = 0;
-#if AUDIT_ALLOCATION
-    WORD total = 0;
-    LOG_INFO("audit_show_leaks: allocations", (WORD)audit_index);
-    for (int index = 0; index < audit_index; ++index) {
-        alloc_audit_t * history = &audit_history[index];
-        if (history->release._file_ == NULL) {
-            fprintf(stdout, "LEAK! %p[%d] from %p %s:%d\n",
-                history->address, (int)history->size, history->sponsor, history->reserve._file_, history->reserve._line_);
-            ++count;
-        }
-        total += history->size;
-    }
-    LOG_INFO("audit_show_leaks: total size", total);
-    if (count == 0) {  // if there were no leaks...
-        audit_index = 0;  // ...clear the audit history and start again.
-    }
-    LOG_INFO("audit_show_leaks: leaks found", count);
-#else
-    /* can't check for leaks if we're not auditing! */
-#endif
-    return count;
 }

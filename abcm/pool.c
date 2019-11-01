@@ -11,6 +11,8 @@
 //#define LOG_WARN
 #include "log.h"
 
+pool_t * sponsor_pool;  // FIXME: THIS SHOULD BE A MEMBER OF SPONSOR!
+
 /*
  * generic allocator methods
  */
@@ -68,16 +70,10 @@ static BYTE heap_pool_release(pool_t * pool, DATA_PTR * data) {
     return true;
 }
 
-static BYTE heap_pool_close(pool_t * pool) {
-    LOG_WARN("heap_pool does not close", (WORD)(pool));
-    return false;
-}
-
 static heap_pool_t heap_pool_instance = {
     .pool.reserve = heap_pool_reserve,
     .pool.copy = generic_pool_copy,
     .pool.release = heap_pool_release,
-    .pool.close = heap_pool_close,
 };
 pool_t * heap_pool = (pool_t *)&heap_pool_instance;
 
@@ -121,14 +117,6 @@ static BYTE temp_pool_release(pool_t * pool, DATA_PTR * data) {
     return true;
 }
 
-static BYTE temp_pool_close(pool_t * pool) {
-    // FIXME: WE CAN'T RELEASE THE POOL ITESELF BECAUSE WE DON'T KNOW WHO ALLOCATED IT!!
-    temp_pool_t * THIS = (temp_pool_t *)pool;
-    LOG_DEBUG("temp_pool_close: offset =", THIS->offset);
-    LOG_DEBUG("temp_pool_close: size =", THIS->size);
-    return true;
-}
-
 pool_t * new_temp_pool(pool_t * parent, WORD size) {
     temp_pool_t * THIS;
     if (!pool_reserve(parent, (DATA_PTR *)&THIS, sizeof(temp_pool_t) + size)) {
@@ -140,7 +128,6 @@ pool_t * new_temp_pool(pool_t * parent, WORD size) {
     THIS->pool.reserve = temp_pool_reserve;
     THIS->pool.copy = generic_pool_copy;
     THIS->pool.release = temp_pool_release;
-    THIS->pool.close = temp_pool_close;
     LOG_DEBUG("new_temp_pool: created", size);
     return (pool_t *)THIS;
 }
@@ -161,6 +148,135 @@ inline BYTE pool_release(pool_t * pool, DATA_PTR * data) {
     return pool->release(pool, data);
 }
 
-inline BYTE pool_close(pool_t * pool) {
-    return pool->close(pool);
+/*
+ * allocation auditing support
+ */
+
+#include <stdio.h>  // FIXME!
+
+typedef struct {
+    pool_t *    pool;           // allocation pool
+    DATA_PTR    address;        // memory address
+    WORD        size;           // allocation size
+    struct {
+        char *      _file_;         // source file name
+        int         _line_;         // source line number
+    }           reserve;        // reserve information
+    struct {
+        char *      _file_;         // source file name
+        int         _line_;         // source line number
+    }           release;        // release information
+} alloc_audit_t;
+
+#define MAX_AUDIT (1024)
+static alloc_audit_t audit_history[MAX_AUDIT];
+static int audit_index = 0;
+
+static void record_allocation(char * _file_, int _line_, pool_t * pool, DATA_PTR address, WORD size) {
+    assert(audit_index < MAX_AUDIT);
+    alloc_audit_t * history = &audit_history[audit_index++];
+    history->pool = pool;
+    history->address = address;
+    history->size = size;
+    history->reserve._file_ = _file_;
+    history->reserve._line_ = _line_;
+    history->release._file_ = NULL;
+    history->release._line_ = 0;
+}
+
+BYTE audit_reserve(char * _file_, int _line_, pool_t * pool, DATA_PTR * data, WORD size) {
+    BYTE ok = pool_reserve(pool, data, size);
+    if (ok) {
+        record_allocation(_file_, _line_, pool, *data, size);
+    }
+    return ok;
+}
+
+static WORD value_size(DATA_PTR value) {
+    parse_t parse = {
+        .base = value,
+        .size = MAX_WORD,  // don't know how big value will be
+        .start = 0
+    };
+    assert(parse_value(&parse));
+    WORD size = parse.end - parse.start;  // parse_value determines the span of the value
+    return size;
+}
+
+BYTE audit_copy(char * _file_, int _line_, pool_t * pool, DATA_PTR * data, DATA_PTR value) {
+    BYTE ok = pool_copy(pool, data, value);
+    if (ok) {
+        WORD size = value_size(*data);
+        record_allocation(_file_, _line_, pool, *data, size);
+    }
+    return ok;
+}
+
+BYTE audit_release(char * _file_, int _line_, pool_t * pool, DATA_PTR * data) {
+    DATA_PTR address = *data;
+    /* find most-recent allocation of address */
+    int index = audit_index;
+    while (index > 0) {
+        alloc_audit_t * history = &audit_history[--index];
+        if (history->address == address) {
+            if (history->pool != pool) {
+                LOG_WARN("audit_release: WRONG POOL!", (WORD)pool);
+                IF_WARN(fprintf(stdout, "%p[%d] from %p %s:%d\n",
+                    history->address, (int)history->size, history->pool, history->reserve._file_, history->reserve._line_));
+                return false;
+            }
+            history->release._file_ = _file_;
+            history->release._line_ = _line_;
+            BYTE ok = pool_release(pool, data);  // (*data == NULL) on return from pool_release!
+            return ok;  // found it!
+        }
+    }
+    LOG_WARN("audit_release: NO ALLOCATION @", (WORD)address);
+    return false;
+}
+
+VOID_PTR audit_track(char * _file_, int _line_, pool_t * pool, VOID_PTR address) {
+    /* find most-recent allocation of address */
+    int index = audit_index;
+    while (index > 0) {
+        alloc_audit_t * history = &audit_history[--index];
+        if (history->address == address) {
+            if (history->pool != pool) {
+                LOG_WARN("audit_track: WRONG POOL!", (WORD)pool);
+                IF_WARN(fprintf(stdout, "%p[%d] from %p %s:%d\n",
+                    history->address, (int)history->size, history->pool, history->reserve._file_, history->reserve._line_));
+                return address;  // leave history unchanged!
+            }
+            history->reserve._file_ = _file_;  // update source file name
+            history->reserve._line_ = _line_;  // update source line number
+            return address;  // found it!
+        }
+    }
+    log_event(_file_, _line_, LOG_LEVEL_WARN, "audit_track: NO ALLOCATION @", (WORD)address);
+    return address;
+}
+
+int audit_show_leaks() {
+    WORD count = 0;
+#if AUDIT_ALLOCATION
+    WORD total = 0;
+    LOG_INFO("audit_show_leaks: allocations", (WORD)audit_index);
+    for (int index = 0; index < audit_index; ++index) {
+        alloc_audit_t * history = &audit_history[index];
+        if (history->release._file_ == NULL) {
+            fprintf(stdout, "LEAK! %p[%d] from %p %s:%d\n",
+                history->address, (int)history->size, history->pool, history->reserve._file_, history->reserve._line_);
+            ++count;
+        }
+        total += history->size;
+    }
+    LOG_INFO("audit_show_leaks: total size", total);
+    if (count == 0) {  // if there were no leaks...
+        audit_index = 0;  // ...clear the audit history and start again.
+    }
+    LOG_INFO("audit_show_leaks: leaks found", count);
+#else
+    /* can't check for leaks if we're not auditing! */
+#endif
+    return count;
 }

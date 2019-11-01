@@ -6,21 +6,42 @@
 
 #include "bose.h"
 
+#define AUDIT_ALLOCATION 0 /* track reserve/release calls to check for leaks */
+
 typedef struct pool_struct pool_t;
+extern pool_t * sponsor_pool;  // FIXME: THIS SHOULD BE A MEMBER OF SPONSOR!
+#define SPONSOR_POOL(sponsor) sponsor_pool  // FIXME: this macro will eventually access through sponsor, but for now...
+
+#if AUDIT_ALLOCATION
+#define RESERVE(dpp,size) audit_reserve(__FILE__, __LINE__, SPONSOR_POOL(sponsor), (dpp), (size))
+#define COPY(to_dpp,from_dp) audit_copy(__FILE__, __LINE__, SPONSOR_POOL(sponsor), (to_dpp), (from_dp))
+#define RELEASE(dpp) audit_release(__FILE__, __LINE__, SPONSOR_POOL(sponsor), (dpp))
+#define TRACK(vp) audit_track(__FILE__, __LINE__, SPONSOR_POOL(sponsor), (vp))
+#else
+#define RESERVE(dpp,size) pool_reserve(SPONSOR_POOL(sponsor), (dpp), (size))
+#define COPY(to_dpp,from_dp) pool_copy(SPONSOR_POOL(sponsor), (to_dpp), (from_dp))
+#define RELEASE(dpp) pool_release(SPONSOR_POOL(sponsor), (dpp))
+#define TRACK(vp) (vp)
+#endif
+
 typedef struct pool_struct {
     BYTE        (*reserve)(pool_t * pool, DATA_PTR * data, WORD size);
     BYTE        (*copy)(pool_t * pool, DATA_PTR * data, DATA_PTR value);
     BYTE        (*release)(pool_t * pool, DATA_PTR * data);
-    BYTE        (*close)(pool_t * pool);
 } pool_t;
 
 BYTE pool_reserve(pool_t * pool, DATA_PTR * data, WORD size);
 BYTE pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value);
 BYTE pool_release(pool_t * pool, DATA_PTR * data);
-BYTE pool_close(pool_t * pool);
 
 extern pool_t * heap_pool;  // explicit reserve/release pool
 
 pool_t * new_temp_pool(pool_t * parent, WORD size);  // create temporary working-memory pool
+
+BYTE audit_reserve(char * _file_, int _line_, pool_t * pool, DATA_PTR * data, WORD size);
+BYTE audit_copy(char * _file_, int _line_, pool_t * pool, DATA_PTR * data, DATA_PTR value);
+BYTE audit_release(char * _file_, int _line_, pool_t * pool, DATA_PTR * data);
+VOID_PTR audit_track(char * _file_, int _line_, pool_t * pool, VOID_PTR address);
+int audit_show_leaks();
 
 #endif // _POOL_H_

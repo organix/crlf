@@ -8,27 +8,8 @@
 #include "pool.h"
 #include "event.h"
 
-/*
- * The following convenience macros make it easy to inject auditing information to track/debug memory leaks
- */
-#define AUDIT_ALLOCATION 0 /* track reserve/release calls to check for leaks */
-
-#if AUDIT_ALLOCATION
-#define RESERVE(dpp,size) audit_reserve(__FILE__, __LINE__, (sponsor), (dpp), (size))
-#define COPY(to_dpp,from_dp) audit_copy(__FILE__, __LINE__, (sponsor), (to_dpp), (from_dp))
-#define RELEASE(dpp) audit_release(__FILE__, __LINE__, (sponsor), (dpp))
-#define TRACK(dp) audit_track(__FILE__, __LINE__, (sponsor), (DATA_PTR)(dp))
-#else
-#define RESERVE(dpp,size) sponsor_reserve(sponsor, (dpp), (size))
-#define COPY(to_dpp,from_dp) sponsor_copy(sponsor, (to_dpp), (from_dp))
-#define RELEASE(dpp) sponsor_release(sponsor, (dpp))
-#define TRACK(dp) (dp)
-#endif
-
 typedef struct sponsor_struct sponsor_t;
 extern sponsor_t * sponsor;  // WE DECLARE A GLOBAL SPONSOR TO AVOID THREADING IT THROUGH ALL OTHER CALLS...
-
-#define PER_MESSAGE_LOCAL_SCOPE 1 // create a new empty scope per message, with the actor state as parent.
 
 BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * behavior);
 BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior);
@@ -69,11 +50,5 @@ BYTE sponsor_destroy(sponsor_t * sponsor);
 
 sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * pool);
 sponsor_t * new_pool_sponsor(sponsor_t * parent, pool_t * pool);
-
-BYTE audit_reserve(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, WORD size);
-BYTE audit_copy(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data, DATA_PTR value);
-BYTE audit_release(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR * data);
-VOID_PTR audit_track(char * _file_, int _line_, sponsor_t * sponsor, DATA_PTR address);
-int audit_show_leaks();
 
 #endif // _SPONSOR_H_
