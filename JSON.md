@@ -340,10 +340,6 @@ Hi \ Lo   | `2#_000` | `2#_001` | `2#_010` | `2#_011` | `2#_100` | `2#_101` | `2
 `2#11110_`| `112`    | `113`    | `114`    | `115`    | `116`    | `117`    | `118`    | `119`
 `2#11111_`| `120`    | `121`    | `122`    | `123`    | `124`    | `125`    | `126`    | `null`
 
-### Canonical Encoding
-
-It is desirable to define a canonical encoding such that digital signatures will match for equivalent values. Canonicalization rules may include using the smallest possible encoding for each value and ordering object properties by name.
-
 ### Comparison to CBOR
 
 The [Concise Binary Object Representation](https://tools.ietf.org/html/rfc7049) (CBOR) is a data format whose design goals include the possibility of extremely small code size, fairly small message size, and extensibility without the need for version negotiation. It has similar design goals, but makes different implementation decisions.
