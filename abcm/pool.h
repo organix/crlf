@@ -24,15 +24,19 @@ extern pool_t * sponsor_pool;  // FIXME: THIS SHOULD BE A MEMBER OF SPONSOR!
 #define TRACK(vp) (vp)
 #endif
 
-typedef struct pool_struct {
+typedef struct {
     BYTE        (*reserve)(pool_t * pool, DATA_PTR * data, WORD size);
     BYTE        (*copy)(pool_t * pool, DATA_PTR * data, DATA_PTR value);
     BYTE        (*release)(pool_t * pool, DATA_PTR * data);
-} pool_t;
+} pool_vt;
 
 BYTE pool_reserve(pool_t * pool, DATA_PTR * data, WORD size);
 BYTE pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value);
 BYTE pool_release(pool_t * pool, DATA_PTR * data);
+
+typedef struct pool_struct {
+    pool_vt *   vtable;
+} pool_t;
 
 extern pool_t * heap_pool;  // explicit reserve/release pool
 

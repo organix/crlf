@@ -70,12 +70,15 @@ static BYTE heap_pool_release(pool_t * pool, DATA_PTR * data) {
     return true;
 }
 
-static heap_pool_t heap_pool_instance = {
-    .pool.reserve = heap_pool_reserve,
-    .pool.copy = generic_pool_copy,
-    .pool.release = heap_pool_release,
+static pool_vt heap_pool_vtable = {
+    .reserve = heap_pool_reserve,
+    .copy = generic_pool_copy,
+    .release = heap_pool_release,
 };
-pool_t * heap_pool = (pool_t *)&heap_pool_instance;
+static heap_pool_t heap_pool_instance = {
+    .pool.vtable = &heap_pool_vtable
+};
+pool_t * heap_pool = &heap_pool_instance.pool;
 
 /*
  * simple linear allocator
@@ -117,19 +120,23 @@ static BYTE temp_pool_release(pool_t * pool, DATA_PTR * data) {
     return true;
 }
 
+static pool_vt temp_pool_vtable = {
+    .reserve = temp_pool_reserve,
+    .copy = generic_pool_copy,
+    .release = temp_pool_release,
+};
+
 pool_t * new_temp_pool(pool_t * parent, WORD size) {
     temp_pool_t * THIS;
     if (!pool_reserve(parent, (DATA_PTR *)&THIS, sizeof(temp_pool_t) + size)) {
         LOG_WARN("new_temp_pool: could not reserve memory for pool", size);
     }
+    THIS->pool.vtable = &temp_pool_vtable;
     THIS->base = (DATA_PTR)(THIS + 1);  // managed memory starts after pool structure
     THIS->size = size;
     THIS->offset = 0;
-    THIS->pool.reserve = temp_pool_reserve;
-    THIS->pool.copy = generic_pool_copy;
-    THIS->pool.release = temp_pool_release;
     LOG_DEBUG("new_temp_pool: created", size);
-    return (pool_t *)THIS;
+    return &THIS->pool;
 }
 
 /*
@@ -137,15 +144,15 @@ pool_t * new_temp_pool(pool_t * parent, WORD size) {
  */
 
 inline BYTE pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
-    return pool->reserve(pool, data, size);
+    return pool->vtable->reserve(pool, data, size);
 }
 
 inline BYTE pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
-    return pool->copy(pool, data, value);
+    return pool->vtable->copy(pool, data, value);
 }
 
 inline BYTE pool_release(pool_t * pool, DATA_PTR * data) {
-    return pool->release(pool, data);
+    return pool->vtable->release(pool, data);
 }
 
 /*
