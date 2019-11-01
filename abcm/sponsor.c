@@ -310,55 +310,6 @@ sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * pool) {
 }
 
 /*
- * delegated pool-sponsor
- */
-
-typedef struct {
-    sponsor_t   sponsor;        // super-type member
-    sponsor_t * parent;         // parent sponsor (for delegation)
-    pool_t *    work_pool;      // temporary working-memory pool
-} pool_sponsor_t;
-
-static BYTE pool_sponsor_dispatch(sponsor_t * sponsor) {
-    pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    return sponsor_dispatch(THIS->parent);
-}
-
-static BYTE pool_sponsor_create(sponsor_t * sponsor, scope_t * scope, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
-    pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    return sponsor_create(THIS->parent, scope, state, behavior, address);
-}
-
-static BYTE pool_sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message) {
-    pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    return sponsor_send(THIS->parent, address, message);
-}
-
-static BYTE pool_sponsor_become(sponsor_t * sponsor, DATA_PTR behavior) {
-    pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    return sponsor_become(THIS->parent, behavior);
-}
-
-static BYTE pool_sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error) {
-    pool_sponsor_t * THIS = (pool_sponsor_t *)sponsor;
-    return sponsor_fail(THIS->parent, event, error);
-}
-
-sponsor_t * new_pool_sponsor(sponsor_t * sponsor, pool_t * pool) {
-    DATA_PTR data = NULL;
-    if (!RESERVE(&data, sizeof(pool_sponsor_t))) return NULL;  // allocation failure!
-    pool_sponsor_t * THIS = (pool_sponsor_t *)data;
-    THIS->parent = sponsor;
-    THIS->work_pool = pool;
-    THIS->sponsor.dispatch = pool_sponsor_dispatch;
-    THIS->sponsor.create = pool_sponsor_create;
-    THIS->sponsor.send = pool_sponsor_send;
-    THIS->sponsor.become = pool_sponsor_become;
-    THIS->sponsor.fail = pool_sponsor_fail;
-    return (sponsor_t *)THIS;
-}
-
-/*
  * polymorphic dispatch functions
  */
 

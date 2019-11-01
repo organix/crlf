@@ -37,6 +37,5 @@ BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior);
 BYTE sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error);
 
 sponsor_t * new_bounded_sponsor(WORD actors, WORD events, pool_t * pool);
-sponsor_t * new_pool_sponsor(sponsor_t * parent, pool_t * pool);
 
 #endif // _SPONSOR_H_
