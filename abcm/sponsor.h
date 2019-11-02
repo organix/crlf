@@ -56,12 +56,6 @@ typedef struct sponsor_struct {
 #define SPONSOR_CONFIG(sponsor) ((sponsor)->config)  // (sponsor_t *) -> (config_t *)
 #define SPONSOR_EVENT(sponsor) CONFIG_EVENT(SPONSOR_CONFIG(sponsor))  // (sponsor_t *) -> (event_t *)
 
-BYTE sponsor_dispatch(sponsor_t * sponsor);
-BYTE sponsor_create(sponsor_t * sponsor, scope_t * parent, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address);
-BYTE sponsor_send(sponsor_t * sponsor, DATA_PTR address, DATA_PTR message);
-BYTE sponsor_become(sponsor_t * sponsor, DATA_PTR behavior);
-BYTE sponsor_fail(sponsor_t * sponsor, event_t * event, DATA_PTR error);
-
 sponsor_t * new_sponsor(pool_t * pool, WORD actors, WORD events);
 
 #endif // _SPONSOR_H_

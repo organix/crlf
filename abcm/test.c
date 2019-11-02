@@ -573,10 +573,12 @@ static int test_sponsor() {
     assert(RELEASE(&copy));
     assert(!copy);
 
+    config_t * config = SPONSOR_CONFIG(sponsor);
+    LOG_DEBUG("test_sponsor: config =", (WORD)config);
     DATA_PTR actor;
-    assert(!sponsor_create(sponsor, NULL, o_, v_null, &actor));  // no budget for actors
-    assert(!sponsor_send(sponsor, actor, o_));  // no budget for message-events
-    assert(!sponsor_dispatch(sponsor));  // no message-events to deliver
+    assert(!config_create(config, NULL, o_, v_null, &actor));  // no budget for actors
+    assert(!config_send(config, actor, o_));  // no budget for message-events
+    assert(!config_dispatch(config));  // no message-events to deliver
 
     return 0;
 }

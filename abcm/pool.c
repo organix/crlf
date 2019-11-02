@@ -138,7 +138,7 @@ pool_t * new_temp_pool(pool_t * parent, WORD size) {
 }
 
 /*
- * polymorphic dispatch functions
+ * polymorphic method calls
  */
 
 inline BYTE pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {

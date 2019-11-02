@@ -637,11 +637,8 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
         if (!property_eval(event, expression, s_state, &state)) return false;  // evaluation failed!
         DATA_PTR behavior;
         if (!property_eval(event, expression, s_behavior, &behavior)) return false;  // evaluation failed!
-        scope_t * parent = ACTOR_SCOPE(EVENT_ACTOR(event));
-        scope_t * scope = EFFECT_SCOPE(EVENT_EFFECT(event));
-        assert(SCOPE_PARENT(scope) == parent);
         DATA_PTR address;
-        if (!sponsor_create(sponsor, parent, state, behavior, &address)) {
+        if (!effect_create(EVENT_EFFECT(event), state, behavior, &address)) {
             LOG_WARN("actor_eval: create failed!", (WORD)expression);
             return false;  // create failed!
         }
@@ -730,7 +727,7 @@ BYTE actor_exec(event_t * event, DATA_PTR command) {
         // FIXME: make sure `actor` is a Capability...
         DATA_PTR message;
         if (!property_eval(event, command, s_message, &message)) return false;  // evaluation failed!
-        if (!sponsor_send(sponsor, address, message)) {
+        if (!effect_send(EVENT_EFFECT(event), address, message)) {
             LOG_WARN("actor_exec: send failed!", (WORD)command);
             return false;  // send failed!
         }
@@ -739,11 +736,10 @@ BYTE actor_exec(event_t * event, DATA_PTR command) {
         LOG_DEBUG("actor_exec: become action", (WORD)kind);
         DATA_PTR behavior;
         if (!property_eval(event, command, s_behavior, &behavior)) return false;  // evaluation failed!
-        if (!sponsor_become(sponsor, behavior)) {
+        if (!effect_become(EVENT_EFFECT(event), behavior)) {
             LOG_WARN("actor_exec: become failed!", (WORD)command);
             return false;  // become failed!
         }
-        //if (!event_update_behavior(sponsor, event, behavior)) return false;  // update failed!
     } else if (value_equiv(kind, k_actor_ignore)) {
         // { "kind":"actor_ignore" }
         LOG_DEBUG("actor_exec: ignore action", (WORD)kind);
@@ -757,7 +753,7 @@ BYTE actor_exec(event_t * event, DATA_PTR command) {
             return false;  // evaluation failed!
         }
         LOG_WARN("actor_exec: FAIL!", (WORD)error);
-        if (!sponsor_fail(sponsor, event, error)) return false;  // double fault!?
+        if (!effect_fail(EVENT_EFFECT(event), error)) return false;  // double fault!?
         return false;  // stop script execution...
     } else if (value_equiv(kind, k_log_print)) {
         // { "kind":"log_print", "level":<number>, "value":<expression> }  // --DEPRECATED--
@@ -839,6 +835,8 @@ int run_actor_config(DATA_PTR item) {
     assert(config_sponsor);
     sponsor = config_sponsor;  // SET GLOBAL SPONSOR!
     LOG_DEBUG("run_actor_config: sponsor =", (WORD)sponsor);
+    config_t * config = SPONSOR_CONFIG(sponsor);
+    LOG_DEBUG("run_actor_config: config =", (WORD)config);
     /*
      * --WARNING-- THIS CODE HAS INTIMATE KNOWLEDGE OF THE ACTOR AND EVENT STRUCTURES
      */
@@ -854,17 +852,16 @@ int run_actor_config(DATA_PTR item) {
     scope_t * scope = NULL;  // no parent scope
     DATA_PTR state = o_;  // empty initial state
     DATA_PTR address;
-    //if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
-    if (!sponsor_create(sponsor, scope, state, behavior, &address)) {
+    if (!config_create(config, scope, state, behavior, &address)) {
         LOG_WARN("run_actor_config: failed to create initial actor!", (WORD)item);
         return 1;  // failure!
     }
     DATA_PTR message = o_;  // empty initial message
-    if (!sponsor_send(sponsor, address, message)) {
+    if (!config_send(config, address, message)) {
         LOG_WARN("run_actor_config: failed sending to initial actor!", (WORD)item);
         return 1;  // failure!
     }
-    while (sponsor_dispatch(sponsor))  // dispatch message-events
+    while (config_dispatch(config))  // dispatch message-events
         ;
     return 0;  // success!
 }

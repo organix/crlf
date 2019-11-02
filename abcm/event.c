@@ -107,8 +107,8 @@ BYTE effect_init(effect_t * effect, actor_t * target, WORD actors, WORD events) 
 BYTE effect_create(effect_t * effect, DATA_PTR state, DATA_PTR behavior, DATA_PTR * address) {
     LOG_TRACE("effect_create: state =", (WORD)state);
     LOG_TRACE("effect_create: behavior =", (WORD)behavior);
-    scope_t * scope = SCOPE_PARENT(EFFECT_SCOPE(effect));  // inherit from parent actor's scope
-    BYTE ok = sponsor_create(sponsor, scope, state, behavior, address);
+    scope_t * parent = SCOPE_PARENT(EFFECT_SCOPE(effect));  // inherit from parent actor's scope
+    BYTE ok = config_create(SPONSOR_CONFIG(sponsor), parent, state, behavior, address);
     if (ok) {
         LOG_DEBUG("effect_create: address =", (WORD)*address);
         IF_TRACE(value_print(*address, 1));
@@ -122,7 +122,7 @@ BYTE effect_create(effect_t * effect, DATA_PTR state, DATA_PTR behavior, DATA_PT
  * Return `true` on success, `false` on failure.
  */
 BYTE effect_send(effect_t * effect, DATA_PTR address, DATA_PTR message) {
-    BYTE ok = sponsor_send(sponsor, address, message);
+    BYTE ok = config_send(SPONSOR_CONFIG(sponsor), address, message);
     if (ok) {
         LOG_DEBUG("effect_send: address =", (WORD)address);
         IF_TRACE(value_print(address, 1));
