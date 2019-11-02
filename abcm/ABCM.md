@@ -125,7 +125,8 @@ Fields:
 
 Methods:
   * _Dispatch_: Attempt to deliver a pending _Event_
-  * _Apply_: Apply message-delivery Effects
+  * _Commit_: Apply message-delivery Effects
+  * _Rollback_: Abort message-delivery and clean up Effects
 
 #### Event
 An Actor message-delivery Event.

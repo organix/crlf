@@ -19,7 +19,7 @@
 #define LOG_ALL // enable all logging
 #include "log.h"
 
-/**/
+/*
 BYTE bootstrap[] = {  // non-memoized 2-actor, 2-event testcase
     0x06, 0x10, 0x82, 0xd8, 0x04, 0x81, 0x07, 0x10, 0x82, 0xd2, 0x04, 0x84, 0x0a, 0x84, 0x6b, 0x69,  // ···Ø·····Ò····ki
     0x6e, 0x64, 0x0a, 0x8d, 0x61, 0x63, 0x74, 0x6f, 0x72, 0x5f, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x6f,  // nd··actor_sponso
@@ -100,7 +100,8 @@ BYTE bootstrap[] = {  // non-memoized 2-actor, 2-event testcase
     0x0a, 0x84, 0x6b, 0x69, 0x6e, 0x64, 0x0a, 0x8b, 0x61, 0x63, 0x74, 0x6f, 0x72, 0x5f, 0x73, 0x74,  // ··kind··actor_st
     0x61, 0x74, 0x65, 0x0a, 0x84, 0x6e, 0x61, 0x6d, 0x65, 0x0a, 0x82, 0x6f, 0x6b,                    // ate··name··ok
 };
-/*
+*/
+/**/
 BYTE bootstrap[] = {  // stateless stream reader (from PEG example)
     0x06, 0x10, 0x82, 0xb8, 0x05, 0x81, 0x07, 0x10, 0x82, 0xb2, 0x05, 0x84, 0x0b, 0x84, 0x6b, 0x69,  // ···¸·····²····ki
     0x6e, 0x64, 0x0b, 0x8d, 0x61, 0x63, 0x74, 0x6f, 0x72, 0x5f, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x6f,  // nd··actor_sponso
@@ -195,7 +196,6 @@ BYTE bootstrap[] = {  // stateless stream reader (from PEG example)
     0x09, 0x2c, 0x07, 0x8c, 0x83, 0x09, 0x00, 0x09, 0x0b, 0x09, 0x0c, 0x09, 0x0d, 0x09, 0x0e, 0x03,  // ·,··············
     0x09, 0x19, 0x07, 0x89, 0x82, 0x09, 0x00, 0x09, 0x17, 0x09, 0x06, 0x09, 0x31,                    // ············1
 };
-*/
 /*
 BYTE bootstrap[] = {  // testcase for FAIL! action
     0x06, 0x10, 0x82, 0x7a, 0x02, 0x81, 0x07, 0x10, 0x82, 0x74, 0x02, 0x84, 0x0b, 0x84, 0x6b, 0x69,  // ···z·····t····ki
@@ -558,8 +558,7 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
             return false;  // missing property
         }
         // FIXME: make sure `name` is a String...
-        scope_t * scope;
-        if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
+        scope_t * scope = EFFECT_SCOPE(EVENT_EFFECT(event));
         BYTE cond = scope_has_binding(scope, name);
         if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
     } else if (value_equiv(kind, k_actor_state)) {
@@ -571,8 +570,7 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
             return false;  // missing property
         }
         // FIXME: make sure `name` is a String...
-        scope_t * scope;
-        if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
+        scope_t * scope = EFFECT_SCOPE(EVENT_EFFECT(event));
         if (!scope_lookup_binding(scope, name, result)) return false;  // lookup failed!
         if (!COPY(result, *result)) return false;  // out of memory!
     } else if (value_equiv(kind, k_dict_has)) {
@@ -625,13 +623,13 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
     } else if (value_equiv(kind, k_actor_message)) {
         // { "kind":"actor_message" }
         LOG_DEBUG("actor_eval: actor_message expression", (WORD)kind);
-        if (!event_lookup_message(sponsor, event, result)) return false;  // lookup failed!
-        if (!COPY(result, *result)) return false;  // out of memory!
+        DATA_PTR message = EVENT_MESSAGE(event);
+        if (!COPY(result, message)) return false;  // out of memory!
     } else if (value_equiv(kind, k_actor_self)) {
         // { "kind":"actor_self" }
         LOG_DEBUG("actor_eval: actor_self expression", (WORD)kind);
-        if (!event_lookup_actor(sponsor, event, result)) return false;  // lookup failed!
-        if (!COPY(result, *result)) return false;  // out of memory!
+        DATA_PTR self = ACTOR_SELF(EVENT_ACTOR(event));
+        if (!COPY(result, self)) return false;  // out of memory!
     } else if (value_equiv(kind, k_actor_create)) {
         // { "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
         LOG_DEBUG("actor_eval: actor_create expression", (WORD)kind);
@@ -639,11 +637,11 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
         if (!property_eval(event, expression, s_state, &state)) return false;  // evaluation failed!
         DATA_PTR behavior;
         if (!property_eval(event, expression, s_behavior, &behavior)) return false;  // evaluation failed!
-        scope_t * scope;
-        if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
-        scope = scope->parent;  // chain to parent actor-scope, not temporary event-scope
+        scope_t * parent = ACTOR_SCOPE(EVENT_ACTOR(event));
+        scope_t * scope = EFFECT_SCOPE(EVENT_EFFECT(event));
+        assert(SCOPE_PARENT(scope) == parent);
         DATA_PTR address;
-        if (!sponsor_create(sponsor, scope, state, behavior, &address)) {
+        if (!sponsor_create(sponsor, parent, state, behavior, &address)) {
             LOG_WARN("actor_eval: create failed!", (WORD)expression);
             return false;  // create failed!
         }
@@ -687,8 +685,7 @@ BYTE actor_exec(event_t * event, DATA_PTR command) {
         // FIXME: make sure `name` is a String...
         DATA_PTR value;
         if (!property_eval(event, command, s_value, &value)) return false;  // evaluation failed!
-        scope_t * scope;
-        if (!event_lookup_scope(sponsor, event, &scope)) return false;  // bad scope!
+        scope_t * scope = EFFECT_SCOPE(EVENT_EFFECT(event));
         if (!scope_update_binding(scope, name, value)) return false;  // update failed!
     } else if (value_equiv(kind, k_conditional)) {
         // { "kind":"conditional", "args":[{ "if":<expression>, "do":[<action>, ...] }, ...] }
@@ -816,26 +813,6 @@ BYTE validate_value(DATA_PTR value) {
 /*
  * WARNING! All the `run_...` procedures return 0 on success, and 1 on failure. (not true/false)
  */
-
-int run_actor_script(sponsor_t * sponsor, event_t * event) {
-    LOG_TRACE("run_actor_script: sponsor =", (WORD)sponsor);
-    LOG_TRACE("run_actor_script: event =", (WORD)event);
-
-    DATA_PTR behavior;
-    if (!event_lookup_behavior(sponsor, event, &behavior)) return 1;  // lookup failed!
-    DATA_PTR script;
-    if (!object_get(behavior, s_script, &script)) {
-        LOG_WARN("run_actor_script: script required!", (WORD)behavior);
-        return 1;  // script required!
-    }
-    //WORD size = (1 << 12);  // 4k working-memory pool
-    if (!script_exec(event, script)) {
-        LOG_WARN("run_actor_script: script failed!", (WORD)script);
-        return 1;  // script failed!
-    }
-
-    return 0;  // success!
-}
 
 int run_actor_config(DATA_PTR item) {
     LOG_TRACE("run_actor_config @", (WORD)item);

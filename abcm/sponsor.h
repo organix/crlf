@@ -27,7 +27,8 @@ typedef struct config_struct {
 #define CONFIG_EVENT(config) (&(config)->event[CONFIG_CURRENT(config)])  // (config_t *) -> (event_t *)
 
 BYTE config_dispatch(config_t * config);
-BYTE config_apply(config_t * config, effect_t * effect);
+BYTE config_commit(config_t * config, effect_t * effect);
+BYTE config_rollback(config_t * config, effect_t * effect);
 /**
 Instead of storing new actors/events in Effects,
 we create them directly in the Configuration,
@@ -45,15 +46,6 @@ config_t * new_config(pool_t * pool, WORD actors, WORD events);
 
 typedef struct sponsor_struct sponsor_t;
 extern sponsor_t * sponsor;  // WE DECLARE A GLOBAL SPONSOR TO AVOID THREADING IT THROUGH ALL OTHER CALLS...
-
-BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * behavior);
-BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior);
-BYTE event_lookup_actor(sponsor_t * sponsor, event_t * event, DATA_PTR * self);
-BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * message);
-BYTE event_lookup_scope(sponsor_t * sponsor, event_t * event, scope_t ** scope);
-BYTE event_init_effects(sponsor_t * sponsor, event_t * event, WORD actors, WORD events);
-BYTE event_apply_effects(sponsor_t * sponsor, event_t * event);
-BYTE event_revert_effects(sponsor_t * sponsor, event_t * event);
 
 typedef struct sponsor_struct {
     pool_t *    pool;

@@ -116,7 +116,6 @@ BYTE config_dispatch(config_t * config) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_dispatch: current =", current);
     event_t * event = &config->event[current];
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_dispatch: event =", (WORD)event);
-    //sponsor->event = event;  // FIXME: maybe we should keep this in `config_t` rather than `sponsor_t`...
     LOG_DEBUG("config_dispatch: message =", (WORD)EVENT_MESSAGE(event));
     IF_DEBUG(value_print(EVENT_MESSAGE(event), 1));
     actor_t * actor = EVENT_ACTOR(event);
@@ -128,46 +127,97 @@ BYTE config_dispatch(config_t * config) {
     DATA_PTR script;
     if (!object_get(behavior, s_script, &script)) {
         LOG_WARN("config_dispatch: script required!", (WORD)behavior);
-        return 1;  // script required!
+        return false;  // script required!
     }
-    //WORD size = (1 << 12);  // 4k working-memory pool
+    //WORD size = (1 << 12);  // 4k working-memory pool?
     if (!script_exec(event, script)) {
-        LOG_WARN("config_dispatch: script failed!", (WORD)script);
-        return 1;  // script failed!
-    }
-
-    if (run_actor_script(sponsor, event) == 0) {
-        LOG_DEBUG("config_dispatch: new actors", (EFFECT_ACTORS(effect) - CONFIG_ACTORS(config)));
-        LOG_DEBUG("config_dispatch: new events", (EFFECT_EVENTS(effect) - CONFIG_EVENTS(config)));
-        if (!event_apply_effects(sponsor, event)) {
-            LOG_WARN("config_dispatch: failed to apply effects!", (WORD)event);
-            return false;  // effects failed!
-        }
-        if (!RELEASE(&event->message)) return false;  // reclamation failure!
-    } else {
         if (EFFECT_ERROR(effect)) {
             LOG_WARN("config_dispatch: caught actor FAIL!", (WORD)EFFECT_ERROR(effect));
             IF_WARN(value_print(EFFECT_ERROR(effect), 1));
+        } else {
+            LOG_WARN("config_dispatch: script failed!", (WORD)script);
         }
-        LOG_WARN("config_dispatch: actor-script execution failed!", (WORD)event);
-        if (!event_revert_effects(sponsor, event)) {
-            LOG_WARN("config_dispatch: failed to revert effects!", (WORD)event);
-            return false;  // effects failed!
+        if (!config_rollback(config, effect)) {
+            LOG_WARN("config_dispatch: rollback failed!", (WORD)effect);
+            return false;
         }
-        if (!RELEASE(&event->message)) return false;  // reclamation failure!
-        return false;  // execution failed!
+    } else if (!config_commit(config, effect)) {
+        LOG_WARN("config_dispatch: commit failed!", (WORD)effect);
+        return false;
     }
+    if (!RELEASE(&event->message)) return false;  // reclamation failure!
     LOG_DEBUG("config_dispatch: event completed.", (WORD)event);
     return true;  // success!
 }
 
 /*
- * Apply message-delivery Effects.
+ * Apply message-delivery Effects to Configuration state.
  * Return `true` on success, `false` on failure.
  */
-BYTE config_apply(config_t * config, effect_t * effect) {
+BYTE config_commit(config_t * config, effect_t * effect) {
+    LOG_TRACE("config_commit: config =", (WORD)config);
+    event_t * event = CONFIG_EVENT(config);
+    LOG_DEBUG("config_commit: event =", (WORD)event);
+    actor_t * actor = EVENT_ACTOR(event);
+    LOG_TRACE("config_commit: actor =", (WORD)actor);
+    LOG_DEBUG("config_commit: effect =", (WORD)effect);
+    DATA_PTR error = EFFECT_ERROR(effect);
+    if (error) {
+        LOG_DEBUG("config_commit: error =", (WORD)error);
+        IF_TRACE(value_print(error, 0));
+        LOG_WARN("CAN'T COMMMIT ERROR EFFECT!", (WORD)effect);
+        return false;  // commit failure!
+    }
+    LOG_DEBUG("config_commit: new actors =", (EFFECT_ACTORS(effect) - CONFIG_ACTORS(config)));
+    LOG_DEBUG("config_commit: new events =", (EFFECT_EVENTS(effect) - CONFIG_EVENTS(config)));
+    scope_t * scope = EFFECT_SCOPE(effect);
+    LOG_DEBUG("config_commit: state' =", (WORD)SCOPE_STATE(scope));
+    IF_TRACE(value_print(SCOPE_STATE(scope), 1));
+    // merge state update effects into actor state
+    scope_t * parent = ACTOR_SCOPE(actor);
+    DATA_PTR state;
+    if (!object_concat(SCOPE_STATE(parent), SCOPE_STATE(scope), &state)) {
+        LOG_WARN("event_apply_effects: state merge failed!", (WORD)actor);
+        return false;  // state merge failed!
+    }
+    if (!RELEASE(&scope->state)) return false;  // reclamation failure!
+    parent->state = TRACK(state);
+    // update actor behavior, if requested
+    DATA_PTR behavior = EFFECT_BEHAVIOR(effect);
+    if (behavior) {
+        LOG_DEBUG("config_commit: behavior' =", (WORD)behavior);
+        IF_TRACE(value_print(behavior, 0));
+        if (!RELEASE(&actor->behavior)) return false;  // reclamation failure!
+        if (!COPY(&actor->behavior, behavior)) return false;  // allocation failure!
+        // FIXME: RELEASE behavior in Effect?
+        //if (!RELEASE(&behavior)) return false;  // reclamation failure!
+    }
+    // commit completed.
+    return true;  // success!
+}
+
+/*
+ * Abort message-delivery and undo any partial Effects on Configuration state.
+ * Return `true` on success, `false` on failure.
+ */
+BYTE config_rollback(config_t * config, effect_t * effect) {
+    LOG_TRACE("config_commit: config =", (WORD)config);
+    event_t * event = CONFIG_EVENT(config);
+    LOG_DEBUG("config_commit: event =", (WORD)event);
+    LOG_DEBUG("config_commit: effect =", (WORD)effect);
     return false;  // NOT IMPLEMENTED!
 }
+#if 0
+BYTE event_revert_effects(sponsor_t * sponsor, event_t * event) {
+    LOG_TRACE("event_revert_effects: event =", (WORD)event);
+    if (event->effect.error) {
+        if (!RELEASE(&event->effect.error)) return false;  // reclamation failure!
+    }
+    // FIXME: reclaim new actors and events...
+    // event->effect.behavior is either static or an alias, so don't RELEASE it....
+    return true;  // success
+}
+#endif
 
 config_t * new_config(pool_t * pool, WORD actors, WORD events) {
     LOG_DEBUG("new_config: actors =", actors);
@@ -197,114 +247,6 @@ config_t * new_config(pool_t * pool, WORD actors, WORD events) {
     config->current = events;  // event queue is initially empty...
     LOG_DEBUG("new_config: config =", (WORD)config);
     return config;
-}
-
-/**  --FIXME--
-
-Translating from a (capability) address to actual actor-reference is a sponsor-specific operation.
-I am uncomfortable with the implied exposure of the actor's implementation structure.
-How can we avoid that exposure? Does the sponsor become responsible for all the actor and event state?
-
-These responsibilities include:
-  * check for binding of actor-scope variables
-  * lookup bindings for actor-scope variables
-  * update bindings for actor-scope variables
-  * lookup an actor's behavior script
-  * update an actor's behavior script (become)
-  * lookup an actor's address (self)
-  * lookup bindings in message contents
-  * manage message-dispatch effects
-
-For now we'll make these all responsibilities of the event, with help from the sponsor.
-
-**/
-
-/*
- * actor-message delivery event
- */
-
-BYTE event_lookup_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR * behavior) {
-    actor_t * actor = event->actor;
-    LOG_TRACE("event_lookup_behavior: state =", (WORD)actor->scope.state);
-    IF_TRACE(value_print(actor->scope.state, 1));
-    *behavior = actor->behavior;
-    LOG_DEBUG("event_lookup_behavior: behavior =", (WORD)*behavior);
-    return true;  // success
-}
-
-BYTE event_update_behavior(sponsor_t * sponsor, event_t * event, DATA_PTR behavior) {
-    LOG_TRACE("event_update_behavior: behavior =", (WORD)behavior);
-    event->effect.behavior = behavior;
-    IF_TRACE(value_print(behavior, 0));
-    return true;  // success
-}
-
-BYTE event_lookup_actor(sponsor_t * sponsor, event_t * event, DATA_PTR * self) {
-    actor_t * actor = event->actor;
-    *self = actor->capability;
-    LOG_TRACE("event_lookup_actor: self =", (WORD)*self);
-    return true;  // success
-}
-
-BYTE event_lookup_message(sponsor_t * sponsor, event_t * event, DATA_PTR * message) {
-    *message = event->message;
-    LOG_TRACE("event_lookup_message: message =", (WORD)*message);
-    return true;  // success
-}
-
-BYTE event_lookup_scope(sponsor_t * sponsor, event_t * event, scope_t ** scope) {
-    *scope = &event->effect.scope;
-    LOG_TRACE("event_lookup_scope: scope =", (WORD)*scope);
-    return true;  // success
-}
-
-BYTE event_init_effects(sponsor_t * sponsor, event_t * event, WORD actors, WORD events) {
-    LOG_TRACE("event_init_effects: event =", (WORD)event);
-    //actor_t * actor = event->actor;
-    event->effect.behavior = NULL;
-    event->effect.actors = actors;
-    event->effect.events = events;
-    event->effect.scope.parent = &event->actor->scope;
-    if (!COPY(&event->effect.scope.state, o_)) return false;  // allocation failure!
-    LOG_DEBUG("event_init_effects: state =", (WORD)event->effect.scope.state);
-    IF_TRACE(value_print(event->effect.scope.state, 1));
-    event->effect.error = NULL;
-    return true;  // success
-}
-
-BYTE event_apply_effects(sponsor_t * sponsor, event_t * event) {
-    LOG_TRACE("event_apply_effects: event =", (WORD)event);
-    if (event->effect.error) {
-        LOG_WARN("event_apply_effects: can't apply error effect!", (WORD)event->effect.error);
-        return false;  // apply failed!
-    }
-    actor_t * actor = event->actor;
-    DATA_PTR state;
-    if (!object_concat(actor->scope.state, event->effect.scope.state, &state)) {
-        LOG_WARN("event_apply_effects: state merge failed!", (WORD)&event->effect.scope);
-        return false;  // state merge failed!
-    }
-    if (!RELEASE(&actor->scope.state)) return false;  // reclamation failure!
-    actor->scope.state = TRACK(state);
-    LOG_DEBUG("event_apply_effects: state =", (WORD)event->effect.scope.state);
-    IF_TRACE(value_print(event->effect.scope.state, 1));
-    if (event->effect.behavior) {
-        LOG_DEBUG("event_apply_effects: becoming", (WORD)event->effect.behavior);
-        if (!RELEASE(&actor->behavior)) return false;  // reclamation failure!
-        if (!COPY(&actor->behavior, event->effect.behavior)) return false;  // allocation failure!
-        // event->effect.behavior is either static or an alias, so don't RELEASE it....
-    }
-    return true;  // success
-}
-
-BYTE event_revert_effects(sponsor_t * sponsor, event_t * event) {
-    LOG_TRACE("event_revert_effects: event =", (WORD)event);
-    if (event->effect.error) {
-        if (!RELEASE(&event->effect.error)) return false;  // reclamation failure!
-    }
-    // FIXME: reclaim new actors and events...
-    // event->effect.behavior is either static or an alias, so don't RELEASE it....
-    return true;  // success
 }
 
 /*

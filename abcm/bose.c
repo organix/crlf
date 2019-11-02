@@ -157,6 +157,10 @@ Output:
 **/
 BYTE parse_prefix(parse_t * parse) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_prefix: base", (WORD)parse->base);
+    if (!parse->base) {
+        LOG_WARN("parse_prefix: NULL base pointer!", (WORD)parse);
+        return false;  // NULL base pointer!
+    }
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_prefix: start", parse->start);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "parse_prefix: size", parse->size);
 /*
@@ -165,8 +169,8 @@ BYTE parse_prefix(parse_t * parse) {
     print('\n');
 */
     if (parse->start >= parse->size) {
-        LOG_WARN("parse_prefix: out-of-bounds", parse->size);
-        return false;  // out of bounds
+        LOG_WARN("parse_prefix: out-of-bounds!", parse->size);
+        return false;  // out of bounds!
     }
     parse->end = parse->start;
     parse->prefix = parse->base[parse->end++];
