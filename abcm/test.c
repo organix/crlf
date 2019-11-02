@@ -804,12 +804,14 @@ BIND "kind" TO 0 WITH {"name":null, "kind":"actor_assign"}
     return 0;
 }
 
-static int test_C_language() {
+static int test_C_platform() {
+    BYTE b;
+
     LOG_INFO("sizeof(WORD)", sizeof(WORD));
     assert(sizeof(WORD) >= 4);  // require at least 32-bit machine words
-    //LOG_INFO("sizeof(int)", sizeof(int));
-    //LOG_INFO("sizeof(long)", sizeof(long));
-    BYTE b = 0;
+    LOG_DEBUG("sizeof(int)", sizeof(int));
+    LOG_DEBUG("sizeof(long)", sizeof(long));
+    b = 0;
     assert((BYTE)(b + 1) == 0x01);
     assert((BYTE)(b - 1) == 0xFF);
     b = -1;
@@ -818,6 +820,7 @@ static int test_C_language() {
     assert((--b) == 0xFF);
     assert((MAX_WORD + 1) == 0);
     assert((MAX_BYTE + 1) == 256);
+
     // report big-endian or small-endian integer representation
     BYTE utf16_BOM[] = { 0xFE, 0xFF };
     assert(sizeof(utf16_BOM) == sizeof(uint16_t));
@@ -829,7 +832,7 @@ static int test_C_language() {
 
 int run_test_suite() {
     if (!memo_reset()) return 1;  // memo reset failed!
-    return test_C_language()
+    return test_C_platform()
         || test_bytecode_types()
         || test_parse_integer()
         || test_parse_string()

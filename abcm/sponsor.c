@@ -190,7 +190,7 @@ BYTE config_commit(config_t * config, effect_t * effect) {
         IF_TRACE(value_print(behavior, 0));
         if (!RELEASE(&actor->behavior)) return false;  // reclamation failure!
         if (!COPY(&actor->behavior, behavior)) return false;  // allocation failure!
-        if (!RELEASE(&behavior)) return false;  // reclamation failure!
+        if (!RELEASE(&effect->behavior)) return false;  // reclamation failure!
     }
     // commit completed.
     return true;  // success!
@@ -201,23 +201,31 @@ BYTE config_commit(config_t * config, effect_t * effect) {
  * Return `true` on success, `false` on failure.
  */
 BYTE config_rollback(config_t * config, effect_t * effect) {
-    LOG_TRACE("config_commit: config =", (WORD)config);
+    LOG_TRACE("config_rollback: config =", (WORD)config);
     event_t * event = CONFIG_EVENT(config);
-    LOG_DEBUG("config_commit: event =", (WORD)event);
-    LOG_DEBUG("config_commit: effect =", (WORD)effect);
-    return false;  // NOT IMPLEMENTED!
-}
-#if 0
-BYTE event_revert_effects(sponsor_t * sponsor, event_t * event) {
-    LOG_TRACE("event_revert_effects: event =", (WORD)event);
-    if (event->effect.error) {
-        if (!RELEASE(&event->effect.error)) return false;  // reclamation failure!
+    LOG_DEBUG("config_rollback: event =", (WORD)event);
+    actor_t * actor = EVENT_ACTOR(event);
+    LOG_TRACE("config_rollback: actor =", (WORD)actor);
+    LOG_DEBUG("config_rollback: effect =", (WORD)effect);
+    // FIXME: RELEASE doomed actors and events...
+    LOG_TRACE("config_rollback: actors =", CONFIG_ACTORS(config));
+    LOG_TRACE("config_rollback: events =", CONFIG_EVENTS(config));
+    config->actors = EFFECT_ACTORS(effect);
+    config->events = EFFECT_EVENTS(effect);
+    LOG_DEBUG("config_rollback: actors reset to", CONFIG_ACTORS(config));
+    LOG_DEBUG("config_rollback: events reset to", CONFIG_EVENTS(config));
+    scope_t * scope = EFFECT_SCOPE(effect);
+    if (!RELEASE(&scope->state)) return false;  // reclamation failure!
+    if (EFFECT_BEHAVIOR(effect)) {
+        if (!RELEASE(&effect->behavior)) return false;  // reclamation failure!
     }
-    // FIXME: reclaim new actors and events...
-    // event->effect.behavior is either static or an alias, so don't RELEASE it....
-    return true;  // success
+    if (EFFECT_ERROR(effect)) {
+        if (!RELEASE(&effect->error)) return false;  // reclamation failure!
+    }
+    // rollback completed.
+    LOG_WARN("config_rollback: rollback completed.", (WORD)effect);
+    return true;  // success!
 }
-#endif
 
 config_t * new_config(pool_t * pool, WORD actors, WORD events) {
     LOG_DEBUG("new_config: actors =", actors);
