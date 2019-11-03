@@ -218,33 +218,53 @@ BYTE config_commit(config_t * config, effect_t * effect) {
     return true;  // success!
 }
 
+static BYTE config_release_actors(config_t * config, WORD final_actors) {
+    LOG_TRACE("config_release_actors: config =", (WORD)config);
+    pool_t * pool = CONFIG_POOL(config);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_release_actors: pool =", (WORD)pool);
+    // release actors
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_release_actors: config->actor =", (WORD)config->actor);
+    while (CONFIG_ACTORS(config) < final_actors) {
+        LOG_TRACE("config_release_actors: releasing actor #", CONFIG_ACTORS(config));
+        actor_t * actor = &config->actor[config->actors++];
+        LOG_TRACE("config_release_actors: actor =", (WORD)actor);
+        IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(ACTOR_SELF(actor), 1));
+        if (!RELEASE_FROM(pool, &actor->behavior)) return false;  // reclamation failure!
+        if (!RELEASE_FROM(pool, &ACTOR_SCOPE(actor)->state)) return false;  // reclamation failure!
+    }
+    return true;  // success!
+}
+static BYTE config_release_events(config_t * config, WORD final_events) {
+    assert(final_events <= CONFIG_CURRENT(config));  // can only release un-delivered events...
+    LOG_TRACE("config_release_events: config =", (WORD)config);
+    pool_t * pool = CONFIG_POOL(config);
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_release_events: pool =", (WORD)pool);
+    // release events (if any)
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_release_events: config->event =", (WORD)config->event);
+    while (CONFIG_EVENTS(config) < final_events) {
+        LOG_TRACE("config_release_events: releasing event #", CONFIG_EVENTS(config));
+        event_t * event = &config->event[config->events++];
+        LOG_TRACE("config_release_events: event =", (WORD)event);
+        if (!RELEASE_FROM(pool, &event->message)) return false;  // reclamation failure!
+    }
+    LOG_DEBUG("config_release_events: final_events =", CONFIG_EVENTS(config));
+    return true;  // success!
+}
 /*
  * Abort message-delivery and undo any partial Effects on Configuration state.
  * Return `true` on success, `false` on failure.
  */
 BYTE config_rollback(config_t * config, effect_t * effect) {
     LOG_TRACE("config_rollback: config =", (WORD)config);
-    event_t * event = CONFIG_EVENT(config);
-    LOG_DEBUG("config_rollback: event =", (WORD)event);
-    actor_t * actor = EVENT_ACTOR(event);
-    LOG_TRACE("config_rollback: actor =", (WORD)actor);
     LOG_DEBUG("config_rollback: effect =", (WORD)effect);
-    // FIXME: RELEASE doomed actors and events...
+    // release actors
     LOG_TRACE("config_rollback: actors =", CONFIG_ACTORS(config));
-    LOG_TRACE("config_rollback: events =", CONFIG_EVENTS(config));
-    config->actors = EFFECT_ACTORS(effect);
-    config->events = EFFECT_EVENTS(effect);
+    if (!config_release_actors(config, EFFECT_ACTORS(effect))) return false;  // release failure!
     LOG_DEBUG("config_rollback: actors reset to", CONFIG_ACTORS(config));
+    // release events
+    LOG_TRACE("config_rollback: events =", CONFIG_EVENTS(config));
+    if (!config_release_events(config, EFFECT_EVENTS(effect))) return false;  // release failure!
     LOG_DEBUG("config_rollback: events reset to", CONFIG_EVENTS(config));
-    scope_t * scope = EFFECT_SCOPE(effect);
-    if (!RELEASE(&scope->state)) return false;  // reclamation failure!
-    if (EFFECT_BEHAVIOR(effect)) {
-        // FIXME: the behavior in Effect should be allocated from the temp_pool, so we don't need to release it...
-        //if (!RELEASE(&effect->behavior)) return false;  // reclamation failure!
-    }
-    if (EFFECT_ERROR(effect)) {
-        if (!RELEASE(&effect->error)) return false;  // reclamation failure!
-    }
     // rollback completed.
     LOG_WARN("config_rollback: rollback completed.", (WORD)effect);
     return true;  // success!
@@ -286,33 +306,18 @@ BYTE config_shutdown(config_t ** config_ref, WORD actors, WORD events) {
     LOG_DEBUG("config_shutdown: config =", (WORD)config);
     pool_t * pool = CONFIG_POOL(config);
     LOG_TRACE("config_shutdown: pool =", (WORD)pool);
-
-    // release events (if any)
-    LOG_TRACE("config_shutdown: config->event =", (WORD)config->event);
-    if (config->event) {
-        while (CONFIG_EVENTS(config) < CONFIG_CURRENT(config)) {  // only release un-delivered events
-            LOG_TRACE("config_shutdown: releasing event #", CONFIG_EVENTS(config));
-            event_t * event = &config->event[config->events++];
-            LOG_TRACE("config_shutdown: event =", (WORD)event);
-            if (!RELEASE_FROM(pool, &event->message)) return false;  // reclamation failure!
-        }
-        if (!RELEASE_FROM(pool, (DATA_PTR *)&config->event)) return false;  // reclamation failure!
-    }
-
     // release actors
     LOG_TRACE("config_shutdown: config->actor =", (WORD)config->actor);
     if (config->actor) {
-        while (CONFIG_ACTORS(config) < actors) {
-            LOG_TRACE("config_shutdown: releasing actor #", CONFIG_ACTORS(config));
-            actor_t * actor = &config->actor[config->actors++];
-            LOG_TRACE("config_shutdown: actor =", (WORD)actor);
-            IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(ACTOR_SELF(actor), 1));
-            if (!RELEASE_FROM(pool, &actor->behavior)) return false;  // reclamation failure!
-            if (!RELEASE_FROM(pool, &ACTOR_SCOPE(actor)->state)) return false;  // reclamation failure!
-        }
+        if (!config_release_actors(config, actors)) return false;  // release failure!
         if (!RELEASE_FROM(pool, (DATA_PTR *)&config->actor)) return false;  // reclamation failure!
     }
-
+    // release events (if any)
+    LOG_TRACE("config_shutdown: config->event =", (WORD)config->event);
+    if (config->event) {
+        if (!config_release_events(config, CONFIG_CURRENT(config))) return false;  // release failure!
+        if (!RELEASE_FROM(pool, (DATA_PTR *)&config->event)) return false;  // reclamation failure!
+    }
     // release config
     LOG_TRACE("config_shutdown: releasing config", (WORD)*config_ref);
     if (!RELEASE_FROM(pool, (DATA_PTR *)config_ref)) return false;  // reclamation failure!
