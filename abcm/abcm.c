@@ -101,21 +101,23 @@ int run_abcm() {  // ok == 0, fail != 0
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
     LOG_INFO(_semver, (WORD)_semver);
 
-    sponsor = new_sponsor(heap_pool, 0, 0);  // establish bootstrap sponsor
-
+    sponsor = new_sponsor(heap_pool, 0, 0);  // establish testing sponsor
     result = run_test_suite();  // pass == 0, fail != 0
     if (result) return result;
+    if (!sponsor_shutdown(&sponsor, 0, 0)) return 1;  // failure!
     assert(audit_check_leaks() == 0);  // the test suite should not leak memory.
 
+    sponsor = new_sponsor(heap_pool, 0, 0);  // establish bootstrap sponsor
     if (!device_startup()) return -1;  // device startup failed!
     result = run_program(bootstrap);  // pass == 0, fail != 0
     if (result) return result;
+    if (!device_shutdown()) return -1;  // device shutdown failed!
+    if (!sponsor_shutdown(&sponsor, 0, 0)) return 1;  // failure!
 #if 0
     assert(audit_check_leaks() == 0);  // FIXME: the runtime has systemic leaks which may require a new strategy...
 #else
     audit_check_leaks();
 #endif
-    if (!device_shutdown()) return -1;  // device shutdown failed!
 
     return result;
 }

@@ -239,7 +239,8 @@ BYTE audit_release(char * _file_, int _line_, pool_t * pool, DATA_PTR * data) {
             return ok;  // found it!
         }
     }
-    LOG_WARN("audit_release: NO ALLOCATION @", (WORD)address);
+    log_event(_file_, _line_, LOG_LEVEL_WARN, "audit_release: NO ALLOCATION @", (WORD)address);
+    //IF_WARN(fprintf(stdout, "%p[?] from %p ?:? -> %s:%d\n", address, pool, _file_, _line_));
     return false;
 }
 
@@ -263,6 +264,7 @@ VOID_PTR audit_track(char * _file_, int _line_, pool_t * pool, VOID_PTR address)
         }
     }
     log_event(_file_, _line_, LOG_LEVEL_WARN, "audit_track: NO ALLOCATION @", (WORD)address);
+    //IF_WARN(fprintf(stdout, "%p[?] from %p ?:? -> %s:%d\n", address, pool, _file_, _line_));
     return address;
 }
 
@@ -284,6 +286,7 @@ int audit_release_all(char * _file_, int _line_, pool_t * pool) {  // bulk-remov
             }
             history->release._file_ = _file_;
             history->release._line_ = _line_;
+            history->pool = NULL;  // malloc reuse can cause multiple counting of deadpools...
             ++count;
             total += history->size;
         }

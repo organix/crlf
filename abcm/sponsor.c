@@ -203,7 +203,6 @@ BYTE config_commit(config_t * config, effect_t * effect) {
             return false;  // state merge failed!
         }
         if (!RELEASE(&scope->state)) return false;  // reclamation failure!
-        // FIXME: if EFFECT_SCOPE is (still) empty, no need to merge/copy...
         if (!RELEASE_FROM(CONFIG_POOL(config), &parent->state)) return false;  // reclamation failure!
         if (!COPY_INTO(CONFIG_POOL(config), &parent->state, state)) return false;  // allocation failure!
     }
@@ -214,8 +213,6 @@ BYTE config_commit(config_t * config, effect_t * effect) {
         IF_TRACE(value_print(behavior, 0));
         if (!RELEASE_FROM(CONFIG_POOL(config), &actor->behavior)) return false;  // reclamation failure!
         if (!COPY_INTO(CONFIG_POOL(config), &actor->behavior, behavior)) return false;  // allocation failure!
-        // FIXME: the behavior in Effect should be allocated from the temp_pool, so we don't need to release it...
-        //if (!RELEASE(&effect->behavior)) return false;  // reclamation failure!
     }
     // commit completed.
     return true;  // success!
@@ -265,17 +262,17 @@ config_t * new_config(pool_t * pool, WORD actors, WORD events) {
         return NULL;  // too many events!
     }
     config_t * config;
-    if (!pool_reserve(pool, (DATA_PTR *)&config, sizeof(config_t))) return NULL;  // allocation failure!
+    if (!RESERVE_FROM(pool, (DATA_PTR *)&config, sizeof(config_t))) return NULL;  // allocation failure!
     config->pool = pool;
     config->actors = actors;
     if (actors) {
-        if (!pool_reserve(pool, (DATA_PTR *)&config->actor, sizeof(actor_t) * actors)) return NULL;  // allocation failure!
+        if (!RESERVE_FROM(pool, (DATA_PTR *)&config->actor, sizeof(actor_t) * actors)) return NULL;  // allocation failure!
     } else {
         config->actor = NULL;  // there are no actors in this config
     }
     config->events = events;
     if (events) {
-        if (!pool_reserve(pool, (DATA_PTR *)&config->event, sizeof(event_t) * events)) return NULL;  // allocation failure!
+        if (!RESERVE_FROM(pool, (DATA_PTR *)&config->event, sizeof(event_t) * events)) return NULL;  // allocation failure!
     } else {
         config->event = NULL;  // there are no events in this config
     }
@@ -284,17 +281,69 @@ config_t * new_config(pool_t * pool, WORD actors, WORD events) {
     return config;
 }
 
+BYTE config_shutdown(config_t ** config_ref, WORD actors, WORD events) {
+    config_t * config = *config_ref;
+    LOG_TRACE("config_shutdown: config =", (WORD)config);
+    pool_t * pool = CONFIG_POOL(config);
+    LOG_DEBUG("config_shutdown: pool =", (WORD)pool);
+
+    // release events (if any)
+    LOG_TRACE("config_shutdown: config->event =", (WORD)config->event);
+    if (config->event) {
+        while (CONFIG_EVENTS(config) < CONFIG_CURRENT(config)) {  // only release un-delivered events
+            LOG_TRACE("config_shutdown: releasing event #", CONFIG_EVENTS(config));
+            event_t * event = &config->event[config->events++];
+            LOG_TRACE("config_shutdown: event =", (WORD)event);
+            if (!RELEASE_FROM(pool, &event->message)) return false;  // reclamation failure!
+        }
+        if (!RELEASE_FROM(pool, (DATA_PTR *)&config->event)) return false;  // reclamation failure!
+    }
+
+    // release actors
+    LOG_TRACE("config_shutdown: config->actor =", (WORD)config->actor);
+    if (config->actor) {
+        while (CONFIG_ACTORS(config) < actors) {
+            LOG_TRACE("config_shutdown: releasing actor #", CONFIG_ACTORS(config));
+            actor_t * actor = &config->actor[config->actors++];
+            LOG_TRACE("config_shutdown: actor =", (WORD)actor);
+            IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(ACTOR_SELF(actor), 1));
+            if (!RELEASE_FROM(pool, &actor->behavior)) return false;  // reclamation failure!
+            if (!RELEASE_FROM(pool, &ACTOR_SCOPE(actor)->state)) return false;  // reclamation failure!
+        }
+        if (!RELEASE_FROM(pool, (DATA_PTR *)&config->actor)) return false;  // reclamation failure!
+    }
+
+    // release config
+    LOG_TRACE("config_shutdown: releasing config", (WORD)*config_ref);
+    if (!RELEASE_FROM(pool, (DATA_PTR *)config_ref)) return false;  // reclamation failure!
+    LOG_WARN("config_shutdown: shutdown completed.", (WORD)*config_ref);
+    return true;  // success!
+}
+
 /*
  * a sponsor is a root object providing access to resource-management mechanisms for computations.
  */
 
 sponsor_t * new_sponsor(pool_t * pool, WORD actors, WORD events) {
     sponsor_t * sponsor;
-    if (!pool_reserve(pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return NULL;  // allocation failure!
+    if (!RESERVE_FROM(pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return NULL;  // allocation failure!
     sponsor->pool = pool;
     if (!SPONSOR_POOL(sponsor)) return NULL;  // allocation failure!
     sponsor->config = new_config(pool, actors, events);
     if (!SPONSOR_CONFIG(sponsor)) return NULL;  // allocation failure!
     LOG_DEBUG("new_sponsor: sponsor =", (WORD)sponsor);
     return sponsor;
+}
+
+BYTE sponsor_shutdown(sponsor_t ** sponsor_ref, WORD actors, WORD events) {
+    sponsor_t * sponsor = *sponsor_ref;
+    LOG_TRACE("sponsor_shutdown: sponsor =", (WORD)sponsor);
+    pool_t * pool = SPONSOR_POOL(sponsor);
+    LOG_DEBUG("sponsor_shutdown: pool =", (WORD)pool);
+    if (!config_shutdown(&sponsor->config, actors, events)) return false;  // reclamation failure!
+    // release sponsor
+    LOG_TRACE("sponsor_shutdown: releasing sponsor", (WORD)*sponsor_ref);
+    if (!RELEASE_FROM(pool, (DATA_PTR *)sponsor_ref)) return false;  // reclamation failure!
+    LOG_WARN("sponsor_shutdown: shutdown completed.", (WORD)*sponsor_ref);
+    return true;  // success!
 }

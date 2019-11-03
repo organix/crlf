@@ -841,7 +841,7 @@ int run_test_suite() {
         || test_parse_object()
         || test_object_property_count()
         || test_value_equiv()
-        || test_sponsor()  // WARNING: sets global `sponsor`, which is required by array/object tests...
+        || test_sponsor()
         || test_array()
         || test_object()
         ;

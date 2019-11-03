@@ -43,6 +43,7 @@ BYTE config_create(config_t * config, scope_t * parent, DATA_PTR state, DATA_PTR
 BYTE config_send(config_t * config, DATA_PTR address, DATA_PTR message);
 
 config_t * new_config(pool_t * pool, WORD actors, WORD events);
+BYTE config_shutdown(config_t ** config, WORD actors, WORD events);
 
 /*
  * Sponsor
@@ -61,5 +62,6 @@ typedef struct sponsor_struct {
 #define SPONSOR_EVENT(sponsor) CONFIG_EVENT(SPONSOR_CONFIG(sponsor))  // (sponsor_t *) -> (event_t *)
 
 sponsor_t * new_sponsor(pool_t * pool, WORD actors, WORD events);
+BYTE sponsor_shutdown(sponsor_t ** sponsor, WORD actors, WORD events);
 
 #endif // _SPONSOR_H_

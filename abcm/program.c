@@ -832,6 +832,7 @@ int run_actor_config(DATA_PTR item) {
     // +1 to account for initial actor and event
     sponsor_t * config_sponsor = new_sponsor(heap_pool, actors + 1, events + 1);
     assert(config_sponsor);
+    sponsor_t * boot_sponsor = sponsor;  // save current global sponsor
     sponsor = config_sponsor;  // SET GLOBAL SPONSOR!
     LOG_DEBUG("run_actor_config: sponsor =", (WORD)sponsor);
     config_t * config = SPONSOR_CONFIG(sponsor);
@@ -862,7 +863,12 @@ int run_actor_config(DATA_PTR item) {
     }
     while (config_dispatch(config))  // dispatch message-events
         ;
-    // FIXME: explicitly clean up bootstrap objects (including behavior)...
+    // explicitly clean up bootstrap allocations...
+    if (!RELEASE(&behavior)) return 1;  // failure!
+    if (!sponsor_shutdown(&sponsor, actors + 1, events + 1)) return 1;  // failure!
+    assert(sponsor == 0);
+    sponsor = boot_sponsor;  // restore previous global sponsor
+    LOG_DEBUG("run_actor_config: boot_sponsor =", (WORD)sponsor);
     return 0;  // success!
 }
 
