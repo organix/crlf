@@ -262,7 +262,11 @@ static BYTE array_eval(event_t * event, DATA_PTR exprs, DATA_PTR * result) {
     WORD length;
     if (!array_length(exprs, &length)) return false;  // exprs array required!
     LOG_TRACE("array_eval: exprs.length", length);
+#if TEMP_POOL_NEEDS_NO_RELEASE
+    *result = a_;  // start with an empty array
+#else
     if (!COPY(result, a_)) return false;  // allocation failure!
+#endif
     WORD i;
     for (i = 0; i < length; ++i) {
         DATA_PTR expression;
@@ -273,10 +277,14 @@ static BYTE array_eval(event_t * event, DATA_PTR exprs, DATA_PTR * result) {
             IF_WARN(value_print(expression, 0));
             return false;  // evaluation failed!
         }
+#if TEMP_POOL_NEEDS_NO_RELEASE
+        if (!array_add(*result, value, i, result)) return false;  // allocation failure!
+#else
         DATA_PTR array;
         if (!array_add(*result, value, i, &array)) return false;  // allocation failure!
         if (!RELEASE(result)) return false;  // reclamation failure!
         *result = TRACK(array);
+#endif
     }
     LOG_DEBUG("array_eval: result @", (WORD)*result);
     IF_DEBUG(value_print(*result, 0));
@@ -414,12 +422,12 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         DATA_PTR x;
         DATA_PTR y;
         if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
-        if (!COPY(result, value_equiv(x, y) ? b_true : b_false)) return false;  // out of memory!
+        *result = value_equiv(x, y) ? b_true : b_false;
     } else if (value_equiv(name, op_NEQ_2)) {
         DATA_PTR x;
         DATA_PTR y;
         if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
-        if (!COPY(result, (!value_equiv(x, y)) ? b_true : b_false)) return false;  // out of memory!
+        *result = !value_equiv(x, y) ? b_true : b_false;
     } else if (value_equiv(name, op_LT_2)) {
         DATA_PTR x;
         DATA_PTR y;
@@ -428,8 +436,7 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
-        BYTE cond = ((long)i < (long)j);  // FIXME: only works for signed `long`...
-        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
+        *result = ((long)i < (long)j) ? b_true : b_false;
     } else if (value_equiv(name, op_LTE_2)) {
         DATA_PTR x;
         DATA_PTR y;
@@ -438,8 +445,7 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
-        BYTE cond = ((long)i <= (long)j);  // FIXME: only works for signed `long`...
-        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
+        *result = ((long)i <= (long)j) ? b_true : b_false;
     } else if (value_equiv(name, op_GT_2)) {
         DATA_PTR x;
         DATA_PTR y;
@@ -448,8 +454,7 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
-        BYTE cond = ((long)i > (long)j);  // FIXME: only works for signed `long`...
-        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
+        *result = ((long)i > (long)j) ? b_true : b_false;
     } else if (value_equiv(name, op_GTE_2)) {
         DATA_PTR x;
         DATA_PTR y;
@@ -458,8 +463,7 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         if (!value_integer(x, &i)) return false;  // number required!
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
-        BYTE cond = ((long)i >= (long)j);  // FIXME: only works for signed `long`...
-        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
+        *result = ((long)i >= (long)j) ? b_true : b_false;
     } else if (value_equiv(name, op_ADD_2)) {
         DATA_PTR x;
         DATA_PTR y;
@@ -532,7 +536,7 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
             LOG_DEBUG("actor_eval: missing 'const' property", (WORD)expression);
             return false;  // missing property
         }
-        if (!COPY(result, constant)) return false;  // out of memory!
+        *result = constant;
     } else if (value_equiv(kind, k_expr_operation)) {
         // { "kind":"expr_operation", "name":<string>, "args":[<expression>, ...] }
         LOG_DEBUG("actor_eval: operation expression", (WORD)kind);
@@ -559,8 +563,7 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
         }
         // FIXME: make sure `name` is a String...
         scope_t * scope = EFFECT_SCOPE(EVENT_EFFECT(event));
-        BYTE cond = scope_has_binding(scope, name);
-        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
+        *result = scope_has_binding(scope, name) ? b_true : b_false;
     } else if (value_equiv(kind, k_actor_state)) {
         // { "kind":"actor_state", "name":<string> }
         LOG_DEBUG("actor_eval: actor_state expression", (WORD)kind);
@@ -572,7 +575,6 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
         // FIXME: make sure `name` is a String...
         scope_t * scope = EFFECT_SCOPE(EVENT_EFFECT(event));
         if (!scope_lookup_binding(scope, name, result)) return false;  // lookup failed!
-        if (!COPY(result, *result)) return false;  // out of memory!
     } else if (value_equiv(kind, k_dict_has)) {
         // { "kind":"dict_has", "name":<string>, "in":<dictionary> }
         LOG_DEBUG("actor_eval: dict_has expression", (WORD)kind);
@@ -585,8 +587,7 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
         DATA_PTR dict;
         if (!property_eval(event, expression, s_in, &dict)) return false;  // evaluation failed!
         // FIXME: make sure `dict` is an Object...
-        BYTE cond = object_has(dict, name);
-        if (!COPY(result, cond ? b_true : b_false)) return false;  // out of memory!
+        *result = object_has(dict, name) ? b_true : b_false;
     } else if (value_equiv(kind, k_dict_get)) {
         // { "kind":"dict_get", "name":<string>, "in":<dictionary> }
         LOG_DEBUG("actor_eval: dict_get expression", (WORD)kind);
@@ -603,8 +604,8 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
         if (!cond) {
             LOG_WARN("actor_eval: undefined variable!", (WORD)name);
             // FIXME: we may want to "throw" an exception here...
+            *result = v_null;  // ...instead we return the `null` value.
         }
-        if (!COPY(result, cond ? *result : v_null)) return false;  // out of memory!
     } else if (value_equiv(kind, k_dict_bind)) {
         // { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
         LOG_DEBUG("actor_eval: dict_bind expression", (WORD)kind);
@@ -623,13 +624,11 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
     } else if (value_equiv(kind, k_actor_message)) {
         // { "kind":"actor_message" }
         LOG_DEBUG("actor_eval: actor_message expression", (WORD)kind);
-        DATA_PTR message = EVENT_MESSAGE(event);
-        if (!COPY(result, message)) return false;  // out of memory!
+        *result = EVENT_MESSAGE(event);
     } else if (value_equiv(kind, k_actor_self)) {
         // { "kind":"actor_self" }
         LOG_DEBUG("actor_eval: actor_self expression", (WORD)kind);
-        DATA_PTR self = ACTOR_SELF(EVENT_ACTOR(event));
-        if (!COPY(result, self)) return false;  // out of memory!
+        *result = ACTOR_SELF(EVENT_ACTOR(event));
     } else if (value_equiv(kind, k_actor_create)) {
         // { "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
         LOG_DEBUG("actor_eval: actor_create expression", (WORD)kind);
@@ -642,17 +641,16 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
             LOG_WARN("actor_eval: create failed!", (WORD)expression);
             return false;  // create failed!
         }
-        *result = address;  // no copy needed...
+        *result = address;
     } else if (value_equiv(kind, k_actor_behavior)) {
         // { "kind":"actor_behavior", "name":<string>, "script":[<action>, ...] }
         LOG_DEBUG("actor_eval: actor_behavior expression", (WORD)kind);
         // self-evaluating expression
-        *result = expression;  // no copy needed...
+        *result = expression;
     } else {
         LOG_WARN("actor_eval: unknown 'kind' of expression", (WORD)kind);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
         *result = v_null;
-        if (!COPY(result, *result)) return false;  // out of memory!
     }
     LOG_TRACE("actor_eval: result", (WORD)(*result));
     IF_DEBUG({
@@ -837,6 +835,7 @@ int run_actor_config(DATA_PTR item) {
     LOG_DEBUG("run_actor_config: sponsor =", (WORD)sponsor);
     config_t * config = SPONSOR_CONFIG(sponsor);
     LOG_DEBUG("run_actor_config: config =", (WORD)config);
+
     /*
      * --WARNING-- THIS CODE HAS INTIMATE KNOWLEDGE OF THE ACTOR AND EVENT STRUCTURES
      */
@@ -856,15 +855,18 @@ int run_actor_config(DATA_PTR item) {
         LOG_WARN("run_actor_config: failed to create initial actor!", (WORD)item);
         return 1;  // failure!
     }
+    if (!RELEASE(&behavior)) return 1;  // failure!
     DATA_PTR message = o_;  // empty initial message
     if (!config_send(config, address, message)) {
         LOG_WARN("run_actor_config: failed sending to initial actor!", (WORD)item);
         return 1;  // failure!
     }
-    while (config_dispatch(config))  // dispatch message-events
+
+    // dispatch message-events
+    while (config_dispatch(config))
         ;
-    // explicitly clean up bootstrap allocations...
-    if (!RELEASE(&behavior)) return 1;  // failure!
+
+    // shut down and clean up...
     if (!sponsor_shutdown(&sponsor, actors + 1, events + 1)) return 1;  // failure!
     assert(sponsor == 0);
     sponsor = boot_sponsor;  // restore previous global sponsor

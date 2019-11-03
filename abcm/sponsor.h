@@ -8,7 +8,7 @@
 #include "pool.h"
 #include "event.h"
 
-#define EVENT_TEMP_POOL_SIZE (1 << 14)  // if this is 0, temp_pool is not used.
+#define EVENT_TEMP_POOL_SIZE (1 << 14)  /* if this is 0, temp_pool is not used. */
 
 /*
  * Configuration

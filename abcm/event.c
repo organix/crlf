@@ -69,12 +69,16 @@ BYTE scope_update_binding(scope_t * scope, DATA_PTR name, DATA_PTR value) {
     LOG_TRACE("scope_update_binding: name =", (WORD)name);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "scope_update_binding: state =", (WORD)SCOPE_STATE(scope));
     IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(SCOPE_STATE(scope), 1));
+#if TEMP_POOL_NEEDS_NO_RELEASE
+    if (!object_add(SCOPE_STATE(scope), name, value, &scope->state)) return false;  // allocation failure!
+#else
     DATA_PTR state;
     if (!object_add(SCOPE_STATE(scope), name, value, &state)) return false;  // allocation failure!
     if (!RELEASE(&scope->state)) return false;  // reclamation failure!
     scope->state = TRACK(state);
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "scope_update_binding: state' =", (WORD)state);
-    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(state, 1));
+#endif
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "scope_update_binding: state' =", (WORD)SCOPE_STATE(scope));
+    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(SCOPE_STATE(scope), 1));
     LOG_DEBUG("scope_update_binding: value =", (WORD)value);
     return true;  // success
 }
@@ -92,7 +96,11 @@ BYTE effect_init(effect_t * effect, actor_t * target, WORD actors, WORD events) 
     effect->events = events;
     scope_t * scope = EFFECT_SCOPE(effect);
     scope->parent = ACTOR_SCOPE(target);
+#if TEMP_POOL_NEEDS_NO_RELEASE
+    scope->state = o_;
+#else
     if (!COPY(&scope->state, o_)) return false;  // allocation failure!
+#endif
     LOG_DEBUG("effect_init: state =", (WORD)SCOPE_STATE(scope));
     IF_TRACE(value_print(SCOPE_STATE(scope), 1));
     effect->error = NULL;

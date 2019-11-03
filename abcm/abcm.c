@@ -93,9 +93,9 @@ BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };
 
 int run_abcm() {  // ok == 0, fail != 0
     int result = 0;
-    //log_config.level = LOG_LEVEL_WARN;
+    log_config.level = LOG_LEVEL_WARN;
     //log_config.level = LOG_LEVEL_DEBUG;
-    log_config.level = LOG_LEVEL_TRACE;
+    //log_config.level = LOG_LEVEL_TRACE;
     //log_config.level = LOG_LEVEL_TRACE+2;
 
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
@@ -113,10 +113,10 @@ int run_abcm() {  // ok == 0, fail != 0
     if (result) return result;
     if (!device_shutdown()) return -1;  // device shutdown failed!
     if (!sponsor_shutdown(&sponsor, 0, 0)) return 1;  // failure!
-#if 0
-    assert(audit_check_leaks() == 0);  // FIXME: the runtime has systemic leaks which may require a new strategy...
+#if 1
+    assert(audit_check_leaks() == 0);
 #else
-    audit_check_leaks();
+    audit_check_leaks();  // FIXME: the runtime has leaks, fix them...
 #endif
 
     return result;

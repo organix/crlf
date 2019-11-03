@@ -202,7 +202,9 @@ BYTE config_commit(config_t * config, effect_t * effect) {
             LOG_WARN("event_apply_effects: state merge failed!", (WORD)actor);
             return false;  // state merge failed!
         }
+#if !TEMP_POOL_NEEDS_NO_RELEASE
         if (!RELEASE(&scope->state)) return false;  // reclamation failure!
+#endif
         if (!RELEASE_FROM(CONFIG_POOL(config), &parent->state)) return false;  // reclamation failure!
         if (!COPY_INTO(CONFIG_POOL(config), &parent->state, state)) return false;  // allocation failure!
     }
@@ -283,9 +285,9 @@ config_t * new_config(pool_t * pool, WORD actors, WORD events) {
 
 BYTE config_shutdown(config_t ** config_ref, WORD actors, WORD events) {
     config_t * config = *config_ref;
-    LOG_TRACE("config_shutdown: config =", (WORD)config);
+    LOG_DEBUG("config_shutdown: config =", (WORD)config);
     pool_t * pool = CONFIG_POOL(config);
-    LOG_DEBUG("config_shutdown: pool =", (WORD)pool);
+    LOG_TRACE("config_shutdown: pool =", (WORD)pool);
 
     // release events (if any)
     LOG_TRACE("config_shutdown: config->event =", (WORD)config->event);
@@ -337,9 +339,9 @@ sponsor_t * new_sponsor(pool_t * pool, WORD actors, WORD events) {
 
 BYTE sponsor_shutdown(sponsor_t ** sponsor_ref, WORD actors, WORD events) {
     sponsor_t * sponsor = *sponsor_ref;
-    LOG_TRACE("sponsor_shutdown: sponsor =", (WORD)sponsor);
+    LOG_DEBUG("sponsor_shutdown: sponsor =", (WORD)sponsor);
     pool_t * pool = SPONSOR_POOL(sponsor);
-    LOG_DEBUG("sponsor_shutdown: pool =", (WORD)pool);
+    LOG_TRACE("sponsor_shutdown: pool =", (WORD)pool);
     if (!config_shutdown(&sponsor->config, actors, events)) return false;  // reclamation failure!
     // release sponsor
     LOG_TRACE("sponsor_shutdown: releasing sponsor", (WORD)*sponsor_ref);

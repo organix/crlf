@@ -7,6 +7,8 @@
 #include "bose.h"
 #include "pool.h"
 
+#define TEMP_POOL_NEEDS_NO_RELEASE 1 /* avoid extra COPY/TRACK/RELEASE when using temp_pool allocation */
+
 typedef struct scope_struct scope_t;
 typedef struct scope_struct {
     scope_t *   parent;

@@ -269,30 +269,34 @@ VOID_PTR audit_track(char * _file_, int _line_, pool_t * pool, VOID_PTR address)
 }
 
 int audit_release_all(char * _file_, int _line_, pool_t * pool) {  // bulk-remove all allocation in `pool`
-    LOG_INFO("audit_release_all: pool", (WORD)pool);
+    LOG_DEBUG("audit_release_all: pool", (WORD)pool);
     WORD count = 0;
 #if AUDIT_ALLOCATION
     WORD total = 0;
     WORD gone = 0;
-    LOG_INFO("audit_release_all: allocations", (WORD)audit_index);
+    LOG_TRACE("audit_release_all: allocations", (WORD)audit_index);
     for (int index = 0; index < audit_index; ++index) {
         alloc_audit_t * history = &audit_history[index];
         if (history->pool == pool) {
-            if (history->release._file_ != NULL) {
-                IF_NONE(fprintf(stdout, "GONE! %p[%d] from %p %s:%d\n",
+            if (history->release._file_ == NULL) {
+                history->release._file_ = _file_;
+                history->release._line_ = _line_;
+            } else {
+                IF_WARN(fprintf(stdout, "GONE! %p[%d] from %p %s:%d -> %s:%d\n",
                     history->address, (int)history->size, history->pool,
-                    history->reserve._file_, history->reserve._line_));
+                    history->reserve._file_, history->reserve._line_,
+                    history->release._file_, history->release._line_));
                 gone += history->size;
             }
-            history->release._file_ = _file_;
-            history->release._line_ = _line_;
             history->pool = NULL;  // malloc reuse can cause multiple counting of deadpools...
             ++count;
             total += history->size;
         }
     }
-    LOG_INFO("audit_release_all: size already gone", gone);
-    LOG_INFO("audit_release_all: total size released", total);
+    if (gone) {
+        LOG_WARN("audit_release_all: size already gone", gone);
+    }
+    LOG_WARN("audit_release_all: total size released", total);
     LOG_INFO("audit_release_all: allocations released", count);
 #else
     /* can't bulk-remove if we're not auditing! */
