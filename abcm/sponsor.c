@@ -9,7 +9,7 @@
 #include "bose.h"
 #include "pool.h"
 #include "event.h"
-#include "program.h"
+#include "runtime.h"
 #include "object.h"
 #include "equiv.h"
 #include "print.h"
