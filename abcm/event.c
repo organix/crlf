@@ -112,7 +112,6 @@ BYTE effect_create(effect_t * effect, DATA_PTR state, DATA_PTR behavior, DATA_PT
     if (ok) {
         LOG_DEBUG("effect_create: address =", (WORD)*address);
         IF_TRACE(value_print(*address, 1));
-        *address = TRACK(*address);
     }
     return ok;
 }

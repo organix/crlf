@@ -8,12 +8,15 @@
 #include "pool.h"
 #include "event.h"
 
+#define EVENT_TEMP_POOL_SIZE (1 << 14)  // if this is 0, temp_pool is not used.
+
 /*
  * Configuration
  */
 
 //typedef struct config_struct config_t;
 typedef struct config_struct {
+    pool_t *    pool;           // memory allocation pool
     actor_t *   actor;          // actor roster
     event_t *   event;          // event queue
     WORD        actors;         // actor creation limit
@@ -21,6 +24,7 @@ typedef struct config_struct {
     WORD        current;        // current-event index
 } config_t;
 
+#define CONFIG_POOL(config) ((config)->pool)  // (config_t *) -> (pool_t *)
 #define CONFIG_ACTORS(config) ((config)->actors)  // (config_t *) -> (WORD)
 #define CONFIG_EVENTS(config) ((config)->events)  // (config_t *) -> (WORD)
 #define CONFIG_CURRENT(config) ((config)->current)  // (config_t *) -> (WORD)

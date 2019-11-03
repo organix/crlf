@@ -126,7 +126,7 @@ static pool_vt temp_pool_vtable = {
 
 pool_t * new_temp_pool(pool_t * parent, WORD size) {
     temp_pool_t * THIS;
-    if (!pool_reserve(parent, (DATA_PTR *)&THIS, sizeof(temp_pool_t) + size)) {
+    if (!RESERVE_FROM(parent, (DATA_PTR *)&THIS, sizeof(temp_pool_t) + size)) {
         LOG_WARN("new_temp_pool: could not reserve memory for pool", size);
     }
     THIS->pool.vtable = &temp_pool_vtable;
@@ -226,12 +226,15 @@ BYTE audit_release(char * _file_, int _line_, pool_t * pool, DATA_PTR * data) {
         if (history->address == address) {
             if (history->pool != pool) {
                 LOG_WARN("audit_release: WRONG POOL!", (WORD)pool);
-                IF_WARN(fprintf(stdout, "%p[%d] from %p %s:%d\n",
-                    history->address, (int)history->size, history->pool, history->reserve._file_, history->reserve._line_));
+                IF_WARN(fprintf(stdout, "%p[%d] from %p %s:%d -> %s:%d\n",
+                    history->address, (int)history->size, history->pool,
+                    history->reserve._file_, history->reserve._line_,
+                    _file_, _line_));
                 return false;
             }
             history->release._file_ = _file_;
             history->release._line_ = _line_;
+            memset(address, null, history->size);  // FIXME: should memory scribbling be optional?
             BYTE ok = pool_release(pool, data);  // (*data == NULL) on return from pool_release!
             return ok;  // found it!
         }
@@ -248,8 +251,10 @@ VOID_PTR audit_track(char * _file_, int _line_, pool_t * pool, VOID_PTR address)
         if (history->address == address) {
             if (history->pool != pool) {
                 LOG_WARN("audit_track: WRONG POOL!", (WORD)pool);
-                IF_WARN(fprintf(stdout, "%p[%d] from %p %s:%d\n",
-                    history->address, (int)history->size, history->pool, history->reserve._file_, history->reserve._line_));
+                IF_WARN(fprintf(stdout, "%p[%d] from %p %s:%d -> %s:%d\n",
+                    history->address, (int)history->size, history->pool,
+                    history->reserve._file_, history->reserve._line_,
+                    _file_, _line_));
                 return address;  // leave history unchanged!
             }
             history->reserve._file_ = _file_;  // update source file name
@@ -261,23 +266,59 @@ VOID_PTR audit_track(char * _file_, int _line_, pool_t * pool, VOID_PTR address)
     return address;
 }
 
+int audit_release_all(char * _file_, int _line_, pool_t * pool) {  // bulk-remove all allocation in `pool`
+    LOG_INFO("audit_release_all: pool", (WORD)pool);
+    WORD count = 0;
+#if AUDIT_ALLOCATION
+    WORD total = 0;
+    WORD gone = 0;
+    LOG_INFO("audit_release_all: allocations", (WORD)audit_index);
+    for (int index = 0; index < audit_index; ++index) {
+        alloc_audit_t * history = &audit_history[index];
+        if (history->pool == pool) {
+            if (history->release._file_ != NULL) {
+                fprintf(stdout, "GONE! %p[%d] from %p %s:%d\n",
+                    history->address, (int)history->size, history->pool,
+                    history->reserve._file_, history->reserve._line_);
+                gone += history->size;
+            }
+            history->release._file_ = _file_;
+            history->release._line_ = _line_;
+            ++count;
+            total += history->size;
+        }
+    }
+    LOG_INFO("audit_release_all: size already gone", gone);
+    LOG_INFO("audit_release_all: total size released", total);
+    LOG_INFO("audit_release_all: allocations released", count);
+#else
+    /* can't bulk-remove if we're not auditing! */
+#endif
+    return count;
+}
+
 int audit_show_leaks() {
     WORD count = 0;
 #if AUDIT_ALLOCATION
     WORD total = 0;
+    WORD leaked = 0;
     LOG_INFO("audit_show_leaks: allocations", (WORD)audit_index);
     for (int index = 0; index < audit_index; ++index) {
         alloc_audit_t * history = &audit_history[index];
         if (history->release._file_ == NULL) {
             fprintf(stdout, "LEAK! %p[%d] from %p %s:%d\n",
-                history->address, (int)history->size, history->pool, history->reserve._file_, history->reserve._line_);
+                history->address, (int)history->size, history->pool,
+                history->reserve._file_, history->reserve._line_);
             ++count;
+            leaked += history->size;
         }
         total += history->size;
     }
     LOG_INFO("audit_show_leaks: total size", total);
     if (count == 0) {  // if there were no leaks...
         audit_index = 0;  // ...clear the audit history and start again.
+    } else {
+        LOG_WARN("audit_show_leaks: total leaked", leaked);
     }
     LOG_INFO("audit_show_leaks: leaks found", count);
 #else

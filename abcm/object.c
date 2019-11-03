@@ -14,6 +14,33 @@
 #define LOG_WARN
 #include "log.h"
 
+BYTE object_length(DATA_PTR object, WORD * length) {
+    LOG_TRACE("object_length @", (WORD)object);
+    parse_t parse = {
+        .base = object,
+        .size = MAX_WORD,  // don't know how big object will be
+        .start = 0
+    };
+    if (!parse_object(&parse)) {
+        LOG_WARN("object_length: bad object", (WORD)object);
+        return false;  // bad object
+    }
+    if (parse.value == 0) {  // empty object short-cut
+        LOG_DEBUG("object_length: empty object", (WORD)object);
+        *length = 0;
+        return true;  // success!
+    }
+    WORD count = parse.count;
+    if (!(parse.type & T_Counted)) {
+        parse.size = parse.end;  // limit to object contents
+        parse.start = (parse.end - parse.value);  // adjust to start of properties
+        if (!object_property_count(&parse, &count)) return false;  // property count failed!
+    }
+    *length = count;
+    LOG_TRACE("object_length: count =", count);
+    return true;  // success!
+}
+
 BYTE object_has(DATA_PTR object, DATA_PTR name) {
     LOG_TRACE("object_has @", (WORD)object);
     parse_t parse = {
@@ -266,8 +293,8 @@ BYTE object_concat(DATA_PTR left, DATA_PTR right, DATA_PTR * new) {
     WORD count = right_parse.count;  // count all properties from right
     if (!(right_parse.type & T_Counted)) {
         parse_t prop_parse = right_parse;
-        prop_parse.start = (prop_parse.end - prop_parse.value);  // adjust to start of properties
         prop_parse.size = prop_parse.end;  // limit to object contents
+        prop_parse.start = (prop_parse.end - prop_parse.value);  // adjust to start of properties
         if (!object_property_count(&prop_parse, &count)) return false;  // property count failed!
     }
     LOG_TRACE("object_concat: right count =", count);

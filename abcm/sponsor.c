@@ -70,10 +70,10 @@ BYTE config_create(config_t * config, scope_t * parent, DATA_PTR state, DATA_PTR
     actor->capability[7] = null;        // --unused--
     scope_t * scope = ACTOR_SCOPE(actor);
     scope->parent = parent;  // chain scope to parent
-    if (!COPY(&scope->state, state)) return false;  // allocation failure!
-    if (!COPY(&actor->behavior, behavior)) return false;  // allocation failure!
-    //*address = ACTOR_SELF(actor);
-    if (!COPY(address, ACTOR_SELF(actor))) return false;  // allocation failure!
+    if (!COPY_INTO(CONFIG_POOL(config), &scope->state, state)) return false;  // allocation failure!
+    if (!COPY_INTO(CONFIG_POOL(config), &actor->behavior, behavior)) return false;  // allocation failure!
+    *address = ACTOR_SELF(actor);
+    //if (!COPY_INTO(CONFIG_POOL(config), address, ACTOR_SELF(actor))) return false;  // allocation failure!
     LOG_DEBUG("config_create: address =", (WORD)*address);
     IF_TRACE(value_print(*address, 0));
     return true;  // success!
@@ -100,7 +100,7 @@ BYTE config_send(config_t * config, DATA_PTR address, DATA_PTR message) {
     event_t * event = &config->event[current];
     LOG_LEVEL(LOG_LEVEL_TRACE+0, "config_send: event =", (WORD)event);
     event->actor = actor;
-    if (!COPY(&event->message, message)) return false;  // out-of-memory!
+    if (!COPY_INTO(CONFIG_POOL(config), &event->message, message)) return false;  // out-of-memory!
     return true;  // success!
 }
 
@@ -108,6 +108,26 @@ BYTE config_send(config_t * config, DATA_PTR address, DATA_PTR message) {
  * Attempt to deliver a pending _Event_.
  * Return `true` on success, `false` on failure (including no events pending).
  */
+static BYTE config_script_exec(config_t * config, event_t * event, DATA_PTR script) {
+    effect_t * effect = EVENT_EFFECT(event);
+    if (!effect_init(effect, EVENT_ACTOR(event), CONFIG_ACTORS(config), CONFIG_EVENTS(config))) return false;  // init failed!
+    if (!script_exec(event, script)) {
+        if (EFFECT_ERROR(effect)) {
+            LOG_WARN("config_script_exec: caught actor FAIL!", (WORD)EFFECT_ERROR(effect));
+            IF_WARN(value_print(EFFECT_ERROR(effect), 1));
+        } else {
+            LOG_WARN("config_script_exec: script failed!", (WORD)script);
+        }
+        if (!config_rollback(config, effect)) {
+            LOG_WARN("config_script_exec: rollback failed!", (WORD)effect);
+            return false;
+        }
+    } else if (!config_commit(config, effect)) {
+        LOG_WARN("config_script_exec: commit failed!", (WORD)effect);
+        return false;
+    }
+    return true;  // success!
+}
 BYTE config_dispatch(config_t * config) {
     if (CONFIG_EVENTS(config) == CONFIG_CURRENT(config)) {
         LOG_INFO("config_dispatch: work completed.", (WORD)config);
@@ -115,40 +135,38 @@ BYTE config_dispatch(config_t * config) {
     }
     WORD current = --config->current;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_dispatch: current =", current);
-    event_t * event = &config->event[current];
+    event_t * event = CONFIG_EVENT(config);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_dispatch: event =", (WORD)event);
     LOG_DEBUG("config_dispatch: message =", (WORD)EVENT_MESSAGE(event));
     IF_DEBUG(value_print(EVENT_MESSAGE(event), 1));
     actor_t * actor = EVENT_ACTOR(event);
     LOG_DEBUG("config_dispatch: actor =", (WORD)actor);
     IF_DEBUG(value_print(ACTOR_SELF(actor), 1));
-    effect_t * effect = EVENT_EFFECT(event);
-    if (!effect_init(effect, actor, CONFIG_ACTORS(config), CONFIG_EVENTS(config))) return false;  // init failed!
     DATA_PTR behavior = ACTOR_BEHAVIOR(actor);
     DATA_PTR script;
     if (!object_get(behavior, s_script, &script)) {
         LOG_WARN("config_dispatch: script required!", (WORD)behavior);
         return false;  // script required!
     }
-    //WORD size = (1 << 12);  // 4k working-memory pool?
-    if (!script_exec(event, script)) {
-        if (EFFECT_ERROR(effect)) {
-            LOG_WARN("config_dispatch: caught actor FAIL!", (WORD)EFFECT_ERROR(effect));
-            IF_WARN(value_print(EFFECT_ERROR(effect), 1));
-        } else {
-            LOG_WARN("config_dispatch: script failed!", (WORD)script);
-        }
-        if (!config_rollback(config, effect)) {
-            LOG_WARN("config_dispatch: rollback failed!", (WORD)effect);
-            return false;
-        }
-    } else if (!config_commit(config, effect)) {
-        LOG_WARN("config_dispatch: commit failed!", (WORD)effect);
-        return false;
+    // execute script using temporary memory pool
+    assert(SPONSOR_POOL(sponsor) == CONFIG_POOL(config));
+#if EVENT_TEMP_POOL_SIZE
+    sponsor->pool = new_temp_pool(CONFIG_POOL(config), EVENT_TEMP_POOL_SIZE);
+#endif
+    LOG_DEBUG("config_dispatch: temp_pool =", (WORD)SPONSOR_POOL(sponsor));
+    if (!SPONSOR_POOL(sponsor)) {
+        sponsor->pool = CONFIG_POOL(config);
+        return false;  // out-of-memory
     }
+    BYTE ok = config_script_exec(config, event, script);
+#if EVENT_TEMP_POOL_SIZE
+    RELEASE_ALL(sponsor->pool);
+    RELEASE_FROM(CONFIG_POOL(config), (DATA_PTR *)&sponsor->pool);
+#endif
+    sponsor->pool = CONFIG_POOL(config);
     if (!RELEASE(&event->message)) return false;  // reclamation failure!
     LOG_DEBUG("config_dispatch: event completed.", (WORD)event);
-    return true;  // success!
+    return ok;
 }
 
 /*
@@ -171,26 +189,33 @@ BYTE config_commit(config_t * config, effect_t * effect) {
     }
     LOG_DEBUG("config_commit: new actors =", (EFFECT_ACTORS(effect) - CONFIG_ACTORS(config)));
     LOG_DEBUG("config_commit: new events =", (EFFECT_EVENTS(effect) - CONFIG_EVENTS(config)));
+    // merge state update effects, if any, into actor state
     scope_t * scope = EFFECT_SCOPE(effect);
-    LOG_DEBUG("config_commit: state' =", (WORD)SCOPE_STATE(scope));
-    IF_TRACE(value_print(SCOPE_STATE(scope), 1));
-    // merge state update effects into actor state
-    scope_t * parent = ACTOR_SCOPE(actor);
-    DATA_PTR state;
-    if (!object_concat(SCOPE_STATE(parent), SCOPE_STATE(scope), &state)) {
-        LOG_WARN("event_apply_effects: state merge failed!", (WORD)actor);
-        return false;  // state merge failed!
+    WORD length;
+    if (!object_length(SCOPE_STATE(scope), &length)) return false;  // failed to get object length!
+    if (length > 0) {
+        LOG_DEBUG("config_commit: state' =", (WORD)SCOPE_STATE(scope));
+        IF_TRACE(value_print(SCOPE_STATE(scope), 1));
+        scope_t * parent = ACTOR_SCOPE(actor);
+        DATA_PTR state;
+        if (!object_concat(SCOPE_STATE(parent), SCOPE_STATE(scope), &state)) {
+            LOG_WARN("event_apply_effects: state merge failed!", (WORD)actor);
+            return false;  // state merge failed!
+        }
+        if (!RELEASE(&scope->state)) return false;  // reclamation failure!
+        // FIXME: if EFFECT_SCOPE is (still) empty, no need to merge/copy...
+        if (!RELEASE_FROM(CONFIG_POOL(config), &parent->state)) return false;  // reclamation failure!
+        if (!COPY_INTO(CONFIG_POOL(config), &parent->state, state)) return false;  // allocation failure!
     }
-    if (!RELEASE(&scope->state)) return false;  // reclamation failure!
-    parent->state = TRACK(state);
     // update actor behavior, if requested
     DATA_PTR behavior = EFFECT_BEHAVIOR(effect);
     if (behavior) {
         LOG_DEBUG("config_commit: behavior' =", (WORD)behavior);
         IF_TRACE(value_print(behavior, 0));
-        if (!RELEASE(&actor->behavior)) return false;  // reclamation failure!
-        if (!COPY(&actor->behavior, behavior)) return false;  // allocation failure!
+        if (!RELEASE_FROM(CONFIG_POOL(config), &actor->behavior)) return false;  // reclamation failure!
+        if (!COPY_INTO(CONFIG_POOL(config), &actor->behavior, behavior)) return false;  // allocation failure!
         if (!RELEASE(&effect->behavior)) return false;  // reclamation failure!
+        // FIXME: behaviors value should never be pool-allocated, so no need to copy/release...
     }
     // commit completed.
     return true;  // success!
@@ -240,6 +265,7 @@ config_t * new_config(pool_t * pool, WORD actors, WORD events) {
     }
     config_t * config;
     if (!pool_reserve(pool, (DATA_PTR *)&config, sizeof(config_t))) return NULL;  // allocation failure!
+    config->pool = pool;
     config->actors = actors;
     if (actors) {
         if (!pool_reserve(pool, (DATA_PTR *)&config->actor, sizeof(actor_t) * actors)) return NULL;  // allocation failure!
