@@ -9,24 +9,22 @@
 #define AUDIT_ALLOCATION 1 /* track reserve/release calls to check for leaks */
 
 #if AUDIT_ALLOCATION
-#define RESERVE(dpp,size) audit_reserve(__FILE__, __LINE__, SPONSOR_POOL(sponsor), (dpp), (size))
 #define RESERVE_FROM(pool,dpp,size) audit_reserve(__FILE__, __LINE__, (pool), (dpp), (size))
-#define COPY(to_dpp,from_dp) audit_copy(__FILE__, __LINE__, SPONSOR_POOL(sponsor), (to_dpp), (from_dp))
 #define COPY_INTO(pool,to_dpp,from_dp) audit_copy(__FILE__, __LINE__, (pool), (to_dpp), (from_dp))
-#define RELEASE(dpp) audit_release(__FILE__, __LINE__, SPONSOR_POOL(sponsor), (dpp))
 #define RELEASE_FROM(pool,dpp) audit_release(__FILE__, __LINE__, (pool), (dpp))
 #define RELEASE_ALL(pool) audit_release_all(__FILE__, __LINE__, (pool))
-#define TRACK(vp) audit_track(__FILE__, __LINE__, SPONSOR_POOL(sponsor), (vp))
+#define TRACK_IN(pool,vp) audit_track(__FILE__, __LINE__, (pool), (vp))
 #else
-#define RESERVE(dpp,size) pool_reserve(SPONSOR_POOL(sponsor), (dpp), (size))
 #define RESERVE_FROM(pool,dpp,size) pool_reserve((pool), (dpp), (size))
-#define COPY(to_dpp,from_dp) pool_copy(SPONSOR_POOL(sponsor), (to_dpp), (from_dp))
 #define COPY_INTO(pool,to_dpp,from_dp) pool_copy((pool), (to_dpp), (from_dp))
-#define RELEASE(dpp) pool_release(SPONSOR_POOL(sponsor), (dpp))
 #define RELEASE_FROM(pool,dpp) pool_release((pool), (dpp))
 #define RELEASE_ALL(pool) (0)
-#define TRACK(vp) (vp)
+#define TRACK_IN(pool,vp) (vp)
 #endif
+#define RESERVE(dpp,size) RESERVE_FROM(SPONSOR_POOL(sponsor),dpp,size)
+#define COPY(to_dpp,from_dp) COPY_INTO(SPONSOR_POOL(sponsor),to_dpp,from_dp)
+#define RELEASE(dpp) RELEASE_FROM(SPONSOR_POOL(sponsor),dpp)
+#define TRACK(vp) TRACK_IN(SPONSOR_POOL(sponsor),vp)
 
 typedef struct pool_struct pool_t;
 
@@ -54,6 +52,6 @@ BYTE audit_release(char * _file_, int _line_, pool_t * pool, DATA_PTR * data);
 VOID_PTR audit_track(char * _file_, int _line_, pool_t * pool, VOID_PTR address);
 
 int audit_release_all(char * _file_, int _line_, pool_t * pool);
-int audit_show_leaks();
+int audit_check_leaks();
 
 #endif // _POOL_H_

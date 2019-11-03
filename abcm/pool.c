@@ -277,9 +277,9 @@ int audit_release_all(char * _file_, int _line_, pool_t * pool) {  // bulk-remov
         alloc_audit_t * history = &audit_history[index];
         if (history->pool == pool) {
             if (history->release._file_ != NULL) {
-                fprintf(stdout, "GONE! %p[%d] from %p %s:%d\n",
+                IF_NONE(fprintf(stdout, "GONE! %p[%d] from %p %s:%d\n",
                     history->address, (int)history->size, history->pool,
-                    history->reserve._file_, history->reserve._line_);
+                    history->reserve._file_, history->reserve._line_));
                 gone += history->size;
             }
             history->release._file_ = _file_;
@@ -297,7 +297,7 @@ int audit_release_all(char * _file_, int _line_, pool_t * pool) {  // bulk-remov
     return count;
 }
 
-int audit_show_leaks() {
+int audit_check_leaks() {
     WORD count = 0;
 #if AUDIT_ALLOCATION
     WORD total = 0;
@@ -306,9 +306,9 @@ int audit_show_leaks() {
     for (int index = 0; index < audit_index; ++index) {
         alloc_audit_t * history = &audit_history[index];
         if (history->release._file_ == NULL) {
-            fprintf(stdout, "LEAK! %p[%d] from %p %s:%d\n",
+            IF_WARN(fprintf(stdout, "LEAK! %p[%d] from %p %s:%d\n",
                 history->address, (int)history->size, history->pool,
-                history->reserve._file_, history->reserve._line_);
+                history->reserve._file_, history->reserve._line_));
             ++count;
             leaked += history->size;
         }

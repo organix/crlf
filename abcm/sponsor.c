@@ -214,8 +214,8 @@ BYTE config_commit(config_t * config, effect_t * effect) {
         IF_TRACE(value_print(behavior, 0));
         if (!RELEASE_FROM(CONFIG_POOL(config), &actor->behavior)) return false;  // reclamation failure!
         if (!COPY_INTO(CONFIG_POOL(config), &actor->behavior, behavior)) return false;  // allocation failure!
-        if (!RELEASE(&effect->behavior)) return false;  // reclamation failure!
-        // FIXME: behaviors value should never be pool-allocated, so no need to copy/release...
+        // FIXME: the behavior in Effect should be allocated from the temp_pool, so we don't need to release it...
+        //if (!RELEASE(&effect->behavior)) return false;  // reclamation failure!
     }
     // commit completed.
     return true;  // success!
@@ -242,7 +242,8 @@ BYTE config_rollback(config_t * config, effect_t * effect) {
     scope_t * scope = EFFECT_SCOPE(effect);
     if (!RELEASE(&scope->state)) return false;  // reclamation failure!
     if (EFFECT_BEHAVIOR(effect)) {
-        if (!RELEASE(&effect->behavior)) return false;  // reclamation failure!
+        // FIXME: the behavior in Effect should be allocated from the temp_pool, so we don't need to release it...
+        //if (!RELEASE(&effect->behavior)) return false;  // reclamation failure!
     }
     if (EFFECT_ERROR(effect)) {
         if (!RELEASE(&effect->error)) return false;  // reclamation failure!

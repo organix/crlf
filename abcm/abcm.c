@@ -104,14 +104,14 @@ int start_abcm() {  // ok == 0, fail != 0
 
     result = run_test_suite();  // pass == 0, fail != 0
     if (result) return result;
-    assert(audit_show_leaks() == 0);  // the test suite should not leak memory.
+    assert(audit_check_leaks() == 0);  // the test suite should not leak memory.
 
     result = run_program(bootstrap);  // pass == 0, fail != 0
     if (result) return result;
 #if 0
-    assert(audit_show_leaks() == 0);  // FIXME: the runtime has systemic leaks which may require a new strategy...
+    assert(audit_check_leaks() == 0);  // FIXME: the runtime has systemic leaks which may require a new strategy...
 #else
-    audit_show_leaks();
+    audit_check_leaks();
 #endif
 
     return result;

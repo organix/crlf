@@ -642,12 +642,12 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
             LOG_WARN("actor_eval: create failed!", (WORD)expression);
             return false;  // create failed!
         }
-        *result = address;  // FIXME: do we want to make a copy here?
+        *result = address;  // no copy needed...
     } else if (value_equiv(kind, k_actor_behavior)) {
         // { "kind":"actor_behavior", "name":<string>, "script":[<action>, ...] }
         LOG_DEBUG("actor_eval: actor_behavior expression", (WORD)kind);
         // self-evaluating expression
-        if (!COPY(result, expression)) return false;  // out of memory!
+        *result = expression;  // no copy needed...
     } else {
         LOG_WARN("actor_eval: unknown 'kind' of expression", (WORD)kind);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
@@ -815,13 +815,11 @@ int run_actor_config(DATA_PTR item) {
     if (!validate_value(item)) return 1;  // validate failed!
     DATA_PTR value;
     WORD actors = 0;
-    if (object_get(item, s_actors, &value)
-    &&  value_integer(value, &actors)) {
+    if (object_get(item, s_actors, &value) && value_integer(value, &actors)) {
         LOG_INFO("run_actor_config: actors =", actors);
     }
     WORD events = 0;
-    if (object_get(item, s_events, &value)
-    &&  value_integer(value, &events)) {
+    if (object_get(item, s_events, &value) && value_integer(value, &events)) {
         LOG_INFO("run_actor_config: events =", events);
     }
     DATA_PTR script;
@@ -830,6 +828,7 @@ int run_actor_config(DATA_PTR item) {
         return 1;  // script required!
     }
     LOG_INFO("run_actor_config: script =", (WORD)script);
+    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(script, 1));
     // +1 to account for initial actor and event
     sponsor_t * config_sponsor = new_sponsor(heap_pool, actors + 1, events + 1);
     assert(config_sponsor);
@@ -863,6 +862,7 @@ int run_actor_config(DATA_PTR item) {
     }
     while (config_dispatch(config))  // dispatch message-events
         ;
+    // FIXME: explicitly clean up bootstrap objects (including behavior)...
     return 0;  // success!
 }
 
