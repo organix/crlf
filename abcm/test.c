@@ -820,6 +820,7 @@ static int test_C_platform() {
     assert((--b) == 0xFF);
     assert((MAX_WORD + 1) == 0);
     assert((MAX_BYTE + 1) == 256);
+    assert((64 + ((WORD) -64)) == 0);
 
     // report big-endian or small-endian integer representation
     BYTE utf16_BOM[] = { 0xFE, 0xFF };

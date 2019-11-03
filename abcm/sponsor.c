@@ -202,9 +202,7 @@ BYTE config_commit(config_t * config, effect_t * effect) {
             LOG_WARN("event_apply_effects: state merge failed!", (WORD)actor);
             return false;  // state merge failed!
         }
-#if !TEMP_POOL_NEEDS_NO_RELEASE
-        if (!RELEASE(&scope->state)) return false;  // reclamation failure!
-#endif
+        state = TRACK(state);
         if (!RELEASE_FROM(CONFIG_POOL(config), &parent->state)) return false;  // reclamation failure!
         if (!COPY_INTO(CONFIG_POOL(config), &parent->state, state)) return false;  // allocation failure!
     }

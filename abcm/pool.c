@@ -279,6 +279,9 @@ int audit_release_all(char * _file_, int _line_, pool_t * pool) {  // bulk-remov
         alloc_audit_t * history = &audit_history[index];
         if (history->pool == pool) {
             if (history->release._file_ == NULL) {
+                IF_DEBUG(fprintf(stdout, "FREE: %p[%d] from %p %s:%d\n",
+                    history->address, (int)history->size, history->pool,
+                    history->reserve._file_, history->reserve._line_));
                 history->release._file_ = _file_;
                 history->release._line_ = _line_;
             } else {
@@ -296,7 +299,9 @@ int audit_release_all(char * _file_, int _line_, pool_t * pool) {  // bulk-remov
     if (gone) {
         LOG_WARN("audit_release_all: size already gone", gone);
     }
-    LOG_WARN("audit_release_all: total size released", total);
+    if (total) {
+        LOG_WARN("audit_release_all: total size released", total);
+    }
     LOG_INFO("audit_release_all: allocations released", count);
 #else
     /* can't bulk-remove if we're not auditing! */

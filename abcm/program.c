@@ -262,11 +262,7 @@ static BYTE array_eval(event_t * event, DATA_PTR exprs, DATA_PTR * result) {
     WORD length;
     if (!array_length(exprs, &length)) return false;  // exprs array required!
     LOG_TRACE("array_eval: exprs.length", length);
-#if TEMP_POOL_NEEDS_NO_RELEASE
-    *result = a_;  // start with an empty array
-#else
-    if (!COPY(result, a_)) return false;  // allocation failure!
-#endif
+    DATA_PTR array = a_;  // start with an empty array
     WORD i;
     for (i = 0; i < length; ++i) {
         DATA_PTR expression;
@@ -277,15 +273,10 @@ static BYTE array_eval(event_t * event, DATA_PTR exprs, DATA_PTR * result) {
             IF_WARN(value_print(expression, 0));
             return false;  // evaluation failed!
         }
-#if TEMP_POOL_NEEDS_NO_RELEASE
-        if (!array_add(*result, value, i, result)) return false;  // allocation failure!
-#else
-        DATA_PTR array;
-        if (!array_add(*result, value, i, &array)) return false;  // allocation failure!
-        if (!RELEASE(result)) return false;  // reclamation failure!
-        *result = TRACK(array);
-#endif
+        if (!array_add(array, value, i, &array)) return false;  // allocation failure!
+        array = TRACK(array);
     }
+    *result = array;
     LOG_DEBUG("array_eval: result @", (WORD)*result);
     IF_DEBUG(value_print(*result, 0));
     return true;  // success!
@@ -366,6 +357,12 @@ BYTE make_integer(WORD integer, DATA_PTR * new) {
     }
     return true;  // success!
 }
+BYTE get_small(WORD integer, DATA_PTR * new) {
+    WORD index = (64 + integer);
+    if (index > (64 + 126)) return false;
+    *new = (i_ + index);
+    return true;
+}
 
 // evaluate operation expression
 BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * result) {
@@ -378,8 +375,10 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         if (!op_1_eval(event, args, &x)) return false;  // bad arg!
         WORD length;
         if (!string_length(x, &length)) return false;  // bad length!
-        if (!make_integer(length, result)) return false;  // bad allocation!
-        *result = TRACK(*result);
+        if (!get_small(length, result)) {
+            if (!make_integer(length, result)) return false;  // bad allocation!
+            *result = TRACK(*result);
+        }
     } else if (value_equiv(name, op_charAt)) {
         DATA_PTR s;
         DATA_PTR n;
@@ -389,8 +388,10 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         --i;  // adjust for 1-based index
         if (!string_get(s, i, &i)) return false;  // get failed!
         // FIXME: Blocky semantics return a single-character String (we return a codepoint)...
-        if (!make_integer(i, result)) return false;  // bad allocation!
-        *result = TRACK(*result);
+        if (!get_small(i, result)) {
+            if (!make_integer(i, result)) return false;  // bad allocation!
+            *result = TRACK(*result);
+        }
     } else if (value_equiv(name, op_join)) {
         if (!array_eval(event, args, result)) return false;  // evaluation failed!
         // TODO: join the results into a single string...
@@ -473,8 +474,10 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
         i += j;  // calculate sum...
-        if (!make_integer(i, result)) return false;  // bad allocation!
-        *result = TRACK(*result);
+        if (!get_small(i, result)) {
+            if (!make_integer(i, result)) return false;  // bad allocation!
+            *result = TRACK(*result);
+        }
     } else if (value_equiv(name, op_MINUS_2)) {
         DATA_PTR x;
         DATA_PTR y;
@@ -484,8 +487,10 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
         i -= j;  // calculate difference...
-        if (!make_integer(i, result)) return false;  // bad allocation!
-        *result = TRACK(*result);
+        if (!get_small(i, result)) {
+            if (!make_integer(i, result)) return false;  // bad allocation!
+            *result = TRACK(*result);
+        }
     } else if (value_equiv(name, op_MULTIPLY_2)) {
         DATA_PTR x;
         DATA_PTR y;
@@ -495,8 +500,10 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
         i *= j;  // calculate product...
-        if (!make_integer(i, result)) return false;  // bad allocation!
-        *result = TRACK(*result);
+        if (!get_small(i, result)) {
+            if (!make_integer(i, result)) return false;  // bad allocation!
+            *result = TRACK(*result);
+        }
     } else if (value_equiv(name, op_DIVIDE_2)) {
         DATA_PTR x;
         DATA_PTR y;
@@ -506,8 +513,10 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
         i /= j;  // calculate quotient...
-        if (!make_integer(i, result)) return false;  // bad allocation!
-        *result = TRACK(*result);
+        if (!get_small(i, result)) {
+            if (!make_integer(i, result)) return false;  // bad allocation!
+            *result = TRACK(*result);
+        }
     } else {
         LOG_WARN("operation_eval: unknown 'name' of operation", (WORD)name);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...
@@ -621,6 +630,7 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
         if (!property_eval(event, expression, s_with, &dict)) return false;  // evaluation failed!
         // FIXME: make sure `dict` is an Object...
         if (!object_add(dict, name, value, result)) return false;  // allocation failure!
+        *result = TRACK(*result);
     } else if (value_equiv(kind, k_actor_message)) {
         // { "kind":"actor_message" }
         LOG_DEBUG("actor_eval: actor_message expression", (WORD)kind);

@@ -62,10 +62,37 @@ BYTE s_type_name[][10] = {
 BYTE v_null[] = { null };  // null value (encoded)
 BYTE b_true[] = { true };  // true value (encoded)
 BYTE b_false[] = { false };  // false value (encoded)
-BYTE i_0[] = { n_0 };  // integer zero (encoded)
 BYTE s_[] = { string_0 };  // empty string (encoded)
 BYTE a_[] = { array_0 };  // empty array (encoded)
 BYTE o_[] = { object_0 };  // empty object (encoded)
+
+BYTE i_[] = {  // small integers (encoded)
+    n_m64,  n_m63,  n_m62,  n_m61,  n_m60,  n_m59,  n_m58,  n_m57,
+    n_m56,  n_m55,  n_m54,  n_m53,  n_m52,  n_m51,  n_m50,  n_m49,
+    n_m48,  n_m47,  n_m46,  n_m45,  n_m44,  n_m43,  n_m42,  n_m41,
+    n_m40,  n_m39,  n_m38,  n_m37,  n_m36,  n_m35,  n_m34,  n_m33,
+    n_m32,  n_m31,  n_m30,  n_m29,  n_m28,  n_m27,  n_m26,  n_m25,
+    n_m24,  n_m23,  n_m22,  n_m21,  n_m20,  n_m19,  n_m18,  n_m17,
+    n_m16,  n_m15,  n_m14,  n_m13,  n_m12,  n_m11,  n_m10,  n_m9,
+    n_m8,   n_m7,   n_m6,   n_m5,   n_m4,   n_m3,   n_m2,   n_m1,
+    n_0,    n_1,    n_2,    n_3,    n_4,    n_5,    n_6,    n_7,
+    n_8,    n_9,    n_10,   n_11,   n_12,   n_13,   n_14,   n_15,
+    n_16,   n_17,   n_18,   n_19,   n_20,   n_21,   n_22,   n_23,
+    n_24,   n_25,   n_26,   n_27,   n_28,   n_29,   n_30,   n_31,
+    n_32,   n_33,   n_34,   n_35,   n_36,   n_37,   n_38,   n_39,
+    n_40,   n_41,   n_42,   n_43,   n_44,   n_45,   n_46,   n_47,
+    n_48,   n_49,   n_50,   n_51,   n_52,   n_53,   n_54,   n_55,
+    n_56,   n_57,   n_58,   n_59,   n_60,   n_61,   n_62,   n_63,
+    n_64,   n_65,   n_66,   n_67,   n_68,   n_69,   n_70,   n_71,
+    n_72,   n_73,   n_74,   n_75,   n_76,   n_77,   n_78,   n_79,
+    n_80,   n_81,   n_82,   n_83,   n_84,   n_85,   n_86,   n_87,
+    n_88,   n_89,   n_90,   n_91,   n_92,   n_93,   n_94,   n_95,
+    n_96,   n_97,   n_98,   n_99,   n_100,  n_101,  n_102,  n_103,
+    n_104,  n_105,  n_106,  n_107,  n_108,  n_109,  n_110,  n_111,
+    n_112,  n_113,  n_114,  n_115,  n_116,  n_117,  n_118,  n_119,
+    n_120,  n_121,  n_122,  n_123,  n_124,  n_125,  n_126   // < 127
+};
+DATA_PTR i_0 = (i_ + 64);  // integer zero (encoded)
 
 /*
  * BOSE String memoization
