@@ -48,6 +48,6 @@ extern BYTE k_expr_literal[];
 extern BYTE k_expr_operation[];
 extern BYTE k_log_print[];  // --DEPRECATED--
 
-int start_abcm();  // ok == 0, fail != 0
+int run_abcm();  // ok == 0, fail != 0
 
 #endif // _ABCM_H_

@@ -5,6 +5,7 @@
 
 #include "abcm.h"
 #include "bose.h"
+#include "device.h"
 #include "test.h"
 #include "sponsor.h"
 #include "pool.h"
@@ -90,11 +91,11 @@ BYTE k_expr_literal[] = { utf8, n_12, 'e', 'x', 'p', 'r', '_', 'l', 'i', 't', 'e
 BYTE k_expr_operation[] = { utf8, n_14, 'e', 'x', 'p', 'r', '_', 'o', 'p', 'e', 'r', 'a', 't', 'i', 'o', 'n' };
 BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };
 
-int start_abcm() {  // ok == 0, fail != 0
+int run_abcm() {  // ok == 0, fail != 0
     int result = 0;
-    log_config.level = LOG_LEVEL_WARN;
+    //log_config.level = LOG_LEVEL_WARN;
     //log_config.level = LOG_LEVEL_DEBUG;
-    //log_config.level = LOG_LEVEL_TRACE;
+    log_config.level = LOG_LEVEL_TRACE;
     //log_config.level = LOG_LEVEL_TRACE+2;
 
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
@@ -106,6 +107,7 @@ int start_abcm() {  // ok == 0, fail != 0
     if (result) return result;
     assert(audit_check_leaks() == 0);  // the test suite should not leak memory.
 
+    if (!device_startup()) return -1;  // device startup failed!
     result = run_program(bootstrap);  // pass == 0, fail != 0
     if (result) return result;
 #if 0
@@ -113,6 +115,7 @@ int start_abcm() {  // ok == 0, fail != 0
 #else
     audit_check_leaks();
 #endif
+    if (!device_shutdown()) return -1;  // device shutdown failed!
 
     return result;
 }
@@ -120,8 +123,36 @@ int start_abcm() {  // ok == 0, fail != 0
 #ifdef MAIN
 #include <stdlib.h>
 
+static WORD startup(WORD hook) {
+    LOG_INFO("startup: hook =", hook);
+    LOG_TRACE("startup: &device_startup_hook", (WORD)&device_startup_hook);
+    LOG_TRACE("startup: device_startup_hook", (WORD)device_startup_hook);
+    LOG_TRACE("startup: &device_call_hook", (WORD)&device_call_hook);
+    LOG_TRACE("startup: device_call_hook", (WORD)device_call_hook);
+    LOG_TRACE("startup: &device_shutdown_hook", (WORD)&device_shutdown_hook);
+    LOG_TRACE("startup: device_shutdown_hook", (WORD)device_shutdown_hook);
+    return 0;
+}
+
+static WORD shutdown(WORD hook) {
+    LOG_INFO("shutdown: hook =", hook);
+    CODE_PTR * hook_ptr = (CODE_PTR *)hook;
+    *hook_ptr = (CODE_PTR)0;  // clear device_call_hook
+    LOG_TRACE("shutdown: &device_startup_hook", (WORD)&device_startup_hook);
+    LOG_TRACE("shutdown: device_startup_hook", (WORD)device_startup_hook);
+    LOG_TRACE("shutdown: &device_call_hook", (WORD)&device_call_hook);
+    LOG_TRACE("shutdown: device_call_hook", (WORD)device_call_hook);
+    LOG_TRACE("shutdown: &device_shutdown_hook", (WORD)&device_shutdown_hook);
+    LOG_TRACE("shutdown: device_shutdown_hook", (WORD)device_shutdown_hook);
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
-    int exit_code = start_abcm();  // ok == 0, fail != 0
+    device_startup_hook = startup;
+    device_shutdown_hook = shutdown;
+
+    int exit_code = run_abcm();  // ok == 0, fail != 0
+
     return (exit(exit_code), exit_code);
 }
 
