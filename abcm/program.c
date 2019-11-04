@@ -22,10 +22,10 @@
 /*
  * include actor-byte-code bootstrap program...
  */
-#include "hello_world.abc"
+//#include "hello_world.abc"
 //#include "basic_scope.abc"
 //#include "fail_example.abc"
-//#include "stream_reader.abc"
+#include "stream_reader.abc"
 
 
 BYTE validate_value(DATA_PTR value) {

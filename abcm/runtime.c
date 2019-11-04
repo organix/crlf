@@ -19,6 +19,52 @@
 #define LOG_ALL // enable all logging
 #include "log.h"
 
+// FIXME: these should be in `number.c`, when it exists...
+BYTE get_small(WORD integer, DATA_PTR * new) {
+    WORD index = (64 + integer);
+    if (index > (64 + 126)) return false;
+    *new = (i_ + index);
+    return true;
+}
+BYTE make_integer(WORD i, DATA_PTR * new) {
+    LOG_TRACE("make_integer: i =", i);
+    long n = (long)i;  // treat it as a signed value...
+    DATA_PTR data;
+    WORD size;
+/*
+    if ((-64 <= n) && (n <= 126)) {  // small integer range
+        size = 1;
+        if (!RESERVE(&data, size)) return false;  // out of memory!
+        data[0] = (n + n_0);  // encode small integer value
+        LOG_DEBUG("make_integer: encoded small", data[0]);
+        *new = data;
+        return true;  // success!
+    }
+*/
+    if ((0 <= n) && (n <= 65535)) {  // positive 16-bit integer range
+        size = 4;
+        if (!RESERVE(&data, size)) return false;  // out of memory!
+        data[0] = p_int_0;   // prefix: +integer (padding bits: 0)
+        data[1] = n_2;       // size: 2 bytes
+        data[2] = i & 0xFF;  //   value (LSB)
+        data[3] = i >> 8;    //   value (MSB)
+        *new = data;
+        return true;  // success!
+    }
+    if ((-32768 <= n) && (n <= -1)) {  // negative 16-bit integer range
+        size = 4;
+        if (!RESERVE(&data, size)) return false;  // out of memory!
+        data[0] = m_int_1;   // prefix: -integer (padding bits: 1)
+        data[1] = n_2;       // size: 2 bytes
+        data[2] = n & 0xFF;  //   value (LSB)
+        data[3] = n >> 8;    //   value (MSB)
+        *new = data;
+        return true;  // success!
+    }
+    LOG_WARN("make_integer: value too large!", (WORD)i);
+    return false;  // value too large!
+}
+
 // evaluate expression found in named object property
 static BYTE property_eval(event_t * event, DATA_PTR object, DATA_PTR name, DATA_PTR * value) {
     LOG_TRACE("property_eval: object =", (WORD)object);
@@ -116,31 +162,6 @@ BYTE op_ADD_2[] = { utf8, n_6, 'A', 'D', 'D', '[', '2', ']' };
 BYTE op_MINUS_2[] = { utf8, n_8, 'M', 'I', 'N', 'U', 'S', '[', '2', ']' };
 BYTE op_MULTIPLY_2[] = { utf8, n_11, 'M', 'U', 'L', 'T', 'I', 'P', 'L', 'Y', '[', '2', ']' };
 BYTE op_DIVIDE_2[] = { utf8, n_9, 'D', 'I', 'V', 'I', 'D', 'E', '[', '2', ']' };
-
-// FIXME: this should be in `number.c`, when it exists...
-BYTE make_integer(WORD integer, DATA_PTR * new) {
-    LOG_TRACE("make_integer: integer", integer);
-    long n = (long)integer;  // treat it as a signed value...
-    DATA_PTR data;
-    WORD size;
-    if ((-64 <= n) && (n <= 126)) {  // small integer range
-        size = 1;
-        if (!RESERVE(&data, size)) return false;  // out of memory!
-        data[0] = (n + n_0);  // encode small integer value
-        LOG_DEBUG("make_integer: encoded small", data[0]);
-        *new = data;
-    } else {
-        LOG_WARN("make_integer: value too large!", (WORD)integer);
-        return false;  // value too large!
-    }
-    return true;  // success!
-}
-BYTE get_small(WORD integer, DATA_PTR * new) {
-    WORD index = (64 + integer);
-    if (index > (64 + 126)) return false;
-    *new = (i_ + index);
-    return true;
-}
 
 // evaluate operation expression
 BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * result) {
