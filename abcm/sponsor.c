@@ -301,27 +301,27 @@ config_t * new_config(pool_t * pool, WORD actors, WORD events) {
     return config;
 }
 
-BYTE config_shutdown(config_t ** config_ref, WORD actors, WORD events) {
+BYTE config_release(config_t ** config_ref, WORD actors, WORD events) {
     config_t * config = *config_ref;
-    LOG_DEBUG("config_shutdown: config =", (WORD)config);
+    LOG_DEBUG("config_release: config =", (WORD)config);
     pool_t * pool = CONFIG_POOL(config);
-    LOG_TRACE("config_shutdown: pool =", (WORD)pool);
+    LOG_TRACE("config_release: pool =", (WORD)pool);
     // release actors
-    LOG_TRACE("config_shutdown: config->actor =", (WORD)config->actor);
+    LOG_TRACE("config_release: config->actor =", (WORD)config->actor);
     if (config->actor) {
         if (!config_release_actors(config, actors)) return false;  // release failure!
         if (!RELEASE_FROM(pool, (DATA_PTR *)&config->actor)) return false;  // reclamation failure!
     }
     // release events (if any)
-    LOG_TRACE("config_shutdown: config->event =", (WORD)config->event);
+    LOG_TRACE("config_release: config->event =", (WORD)config->event);
     if (config->event) {
         if (!config_release_events(config, CONFIG_CURRENT(config))) return false;  // release failure!
         if (!RELEASE_FROM(pool, (DATA_PTR *)&config->event)) return false;  // reclamation failure!
     }
     // release config
-    LOG_TRACE("config_shutdown: releasing config", (WORD)*config_ref);
+    LOG_TRACE("config_release: releasing config", (WORD)*config_ref);
     if (!RELEASE_FROM(pool, (DATA_PTR *)config_ref)) return false;  // reclamation failure!
-    LOG_WARN("config_shutdown: shutdown completed.", (WORD)*config_ref);
+    LOG_WARN("config_release: shutdown completed.", (WORD)*config_ref);
     return true;  // success!
 }
 
@@ -329,26 +329,22 @@ BYTE config_shutdown(config_t ** config_ref, WORD actors, WORD events) {
  * a sponsor is a root object providing access to resource-management mechanisms for computations.
  */
 
-sponsor_t * new_sponsor(pool_t * pool, WORD actors, WORD events) {
-    sponsor_t * sponsor;
-    if (!RESERVE_FROM(pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return NULL;  // allocation failure!
+BYTE init_sponsor(sponsor_t * sponsor, pool_t * pool, WORD actors, WORD events) {
     sponsor->pool = pool;
-    if (!SPONSOR_POOL(sponsor)) return NULL;  // allocation failure!
+    //if (!SPONSOR_POOL(sponsor)) return false;  // allocation failure!
+    sponsor->actors = actors;
+    sponsor->events = events;
     sponsor->config = new_config(pool, actors, events);
-    if (!SPONSOR_CONFIG(sponsor)) return NULL;  // allocation failure!
-    LOG_DEBUG("new_sponsor: sponsor =", (WORD)sponsor);
-    return sponsor;
+    if (!SPONSOR_CONFIG(sponsor)) return false;  // allocation failure!
+    LOG_DEBUG("init_sponsor: sponsor =", (WORD)sponsor);
+    return true;  // success!
 }
 
-BYTE sponsor_shutdown(sponsor_t ** sponsor_ref, WORD actors, WORD events) {
-    sponsor_t * sponsor = *sponsor_ref;
+BYTE sponsor_shutdown(sponsor_t * sponsor) {
     LOG_DEBUG("sponsor_shutdown: sponsor =", (WORD)sponsor);
     pool_t * pool = SPONSOR_POOL(sponsor);
     LOG_TRACE("sponsor_shutdown: pool =", (WORD)pool);
-    if (!config_shutdown(&sponsor->config, actors, events)) return false;  // reclamation failure!
-    // release sponsor
-    LOG_TRACE("sponsor_shutdown: releasing sponsor", (WORD)*sponsor_ref);
-    if (!RELEASE_FROM(pool, (DATA_PTR *)sponsor_ref)) return false;  // reclamation failure!
-    LOG_WARN("sponsor_shutdown: shutdown completed.", (WORD)*sponsor_ref);
+    if (!config_release(&sponsor->config, sponsor->actors, sponsor->events)) return false;  // reclamation failure!
+    LOG_WARN("sponsor_shutdown: shutdown completed.", (WORD)sponsor);
     return true;  // success!
 }

@@ -19,8 +19,8 @@ typedef struct config_struct {
     pool_t *    pool;           // memory allocation pool
     actor_t *   actor;          // actor roster
     event_t *   event;          // event queue
-    WORD        actors;         // actor creation limit
-    WORD        events;         // message-send event limit
+    WORD        actors;         // actor creation index
+    WORD        events;         // message-send event index
     WORD        current;        // current-event index
 } config_t;
 
@@ -43,7 +43,7 @@ BYTE config_create(config_t * config, scope_t * parent, DATA_PTR state, DATA_PTR
 BYTE config_send(config_t * config, DATA_PTR address, DATA_PTR message);
 
 config_t * new_config(pool_t * pool, WORD actors, WORD events);
-BYTE config_shutdown(config_t ** config, WORD actors, WORD events);
+BYTE config_release(config_t ** config, WORD actors, WORD events);
 
 /*
  * Sponsor
@@ -53,15 +53,17 @@ typedef struct sponsor_struct sponsor_t;
 extern sponsor_t * sponsor;  // WE DECLARE A GLOBAL SPONSOR TO AVOID THREADING IT THROUGH ALL OTHER CALLS...
 
 typedef struct sponsor_struct {
-    pool_t *    pool;
-    config_t *  config;
+    pool_t *    pool;           // memory allocation pool
+    WORD        actors;         // actor creation limit
+    WORD        events;         // message-send event limit
+    config_t *  config;         // configuration state
 } sponsor_t;
 
 #define SPONSOR_POOL(sponsor) ((sponsor)->pool)  // (sponsor_t *) -> (pool_t *)
 #define SPONSOR_CONFIG(sponsor) ((sponsor)->config)  // (sponsor_t *) -> (config_t *)
 #define SPONSOR_EVENT(sponsor) CONFIG_EVENT(SPONSOR_CONFIG(sponsor))  // (sponsor_t *) -> (event_t *)
 
-sponsor_t * new_sponsor(pool_t * pool, WORD actors, WORD events);
-BYTE sponsor_shutdown(sponsor_t ** sponsor, WORD actors, WORD events);
+BYTE init_sponsor(sponsor_t * sponsor, pool_t * pool, WORD actors, WORD events);
+BYTE sponsor_shutdown(sponsor_t * sponsor);
 
 #endif // _SPONSOR_H_

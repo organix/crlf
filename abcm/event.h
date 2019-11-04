@@ -32,8 +32,8 @@ typedef struct actor_struct {
 
 typedef struct effect_struct {
     DATA_PTR    behavior;       // behavior for subsequent messages
-    WORD        actors;         // snapshot of actor creation limit
-    WORD        events;         // snapshot of message-send event limit
+    WORD        actors;         // snapshot of actor creation index
+    WORD        events;         // snapshot of message-send event index
     scope_t     scope;          // scope for new bindings
     DATA_PTR    error;          // error value, or NULL if none
 } effect_t;

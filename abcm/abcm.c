@@ -15,7 +15,7 @@
 #include "log.h"
 
 
-char * _semver = "0.0.6";
+char * _semver = "0.0.7";
 
 BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
 BYTE s_actors[] = { utf8, n_6, 'a', 'c', 't', 'o', 'r', 's' };
@@ -101,18 +101,24 @@ int run_abcm() {  // ok == 0, fail != 0
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
     LOG_INFO(_semver, (WORD)_semver);
 
-    sponsor = new_sponsor(heap_pool, 0, 0);  // establish testing sponsor
+    // establish (global) testing sponsor
+    if (!RESERVE_FROM(heap_pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return 1;  // allocation failure!
+    if (!init_sponsor(sponsor, heap_pool, 0, 0)) return 1;  // init failure!
     result = run_test_suite();  // pass == 0, fail != 0
     if (result) return result;
-    if (!sponsor_shutdown(&sponsor, 0, 0)) return 1;  // failure!
+    if (!sponsor_shutdown(sponsor)) return 1;  // shutdown failure!
+    if (!RELEASE_FROM(heap_pool, (DATA_PTR *)&sponsor)) return 1;  // reclamation failure!
     assert(audit_check_leaks() == 0);  // the test suite should not leak memory.
 
-    sponsor = new_sponsor(heap_pool, 0, 0);  // establish bootstrap sponsor
+    // establish (global) bootstrap sponsor
+    if (!RESERVE_FROM(heap_pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return 1;  // allocation failure!
+    if (!init_sponsor(sponsor, heap_pool, 0, 0)) return 1;  // init failure!
     if (!device_startup()) return -1;  // device startup failed!
     result = run_program(bootstrap);  // pass == 0, fail != 0
     if (result) return result;
     if (!device_shutdown()) return -1;  // device shutdown failed!
-    if (!sponsor_shutdown(&sponsor, 0, 0)) return 1;  // failure!
+    if (!sponsor_shutdown(sponsor)) return 1;  // shutdown failure!
+    if (!RELEASE_FROM(heap_pool, (DATA_PTR *)&sponsor)) return 1;  // reclamation failure!
 #if 1
     assert(audit_check_leaks() == 0);
 #else
