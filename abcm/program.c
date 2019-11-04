@@ -25,7 +25,8 @@
 //#include "hello_world.abc"
 //#include "basic_scope.abc"
 //#include "fail_example.abc"
-#include "stream_reader.abc"
+//#include "stream_reader.abc"
+#include "lambda_calculus.abc"
 
 
 BYTE validate_value(DATA_PTR value) {

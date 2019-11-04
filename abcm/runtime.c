@@ -31,13 +31,13 @@ BYTE make_integer(WORD i, DATA_PTR * new) {
     long n = (long)i;  // treat it as a signed value...
     DATA_PTR data;
     WORD size;
-/*
+/* --- should be calling `get_small` first ---
     if ((-64 <= n) && (n <= 126)) {  // small integer range
         size = 1;
         if (!RESERVE(&data, size)) return false;  // out of memory!
         data[0] = (n + n_0);  // encode small integer value
-        LOG_DEBUG("make_integer: encoded small", data[0]);
         *new = data;
+        LOG_DEBUG("make_integer: encoded small", *new);
         return true;  // success!
     }
 */
@@ -49,6 +49,7 @@ BYTE make_integer(WORD i, DATA_PTR * new) {
         data[2] = i & 0xFF;  //   value (LSB)
         data[3] = i >> 8;    //   value (MSB)
         *new = data;
+        LOG_DEBUG("make_integer: positive 16-bit", i);
         return true;  // success!
     }
     if ((-32768 <= n) && (n <= -1)) {  // negative 16-bit integer range
@@ -59,6 +60,7 @@ BYTE make_integer(WORD i, DATA_PTR * new) {
         data[2] = n & 0xFF;  //   value (LSB)
         data[3] = n >> 8;    //   value (MSB)
         *new = data;
+        LOG_DEBUG("make_integer: negative 16-bit", i);
         return true;  // success!
     }
     LOG_WARN("make_integer: value too large!", (WORD)i);
@@ -152,12 +154,18 @@ BYTE op_length[] = { utf8, n_9, 'l', 'e', 'n', 'g', 't', 'h', '[', '1', ']' };
 BYTE op_charAt[] = { utf8, n_20, 'c', 'h', 'a', 'r', 'A', 't', '_', 'F', 'R', 'O', 'M', '_', 'S', 'T', 'A', 'R', 'T', '[', '2', ']' };
 BYTE op_join[] = { utf8, n_7, 'j', 'o', 'i', 'n', '[', '*', ']' };
 BYTE op_conditional[] = { utf8, n_14, 'c', 'o', 'n', 'd', 'i', 't', 'i', 'o', 'n', 'a', 'l', '[', '*', ']' };
+
 BYTE op_EQ_2[] = { utf8, n_5, 'E', 'Q', '[', '2', ']' };
 BYTE op_NEQ_2[] = { utf8, n_6, 'N', 'E', 'Q', '[', '2', ']' };
 BYTE op_LT_2[] = { utf8, n_5, 'L', 'T', '[', '2', ']' };
 BYTE op_LTE_2[] = { utf8, n_6, 'L', 'T', 'E', '[', '2', ']' };
 BYTE op_GT_2[] = { utf8, n_5, 'G', 'T', '[', '2', ']' };
 BYTE op_GTE_2[] = { utf8, n_6, 'G', 'T', 'E', '[', '2', ']' };
+
+BYTE op_NOT_1[] = { utf8, n_6, 'N', 'O', 'T', '[', '1', ']' };
+BYTE op_AND_2[] = { utf8, n_6, 'A', 'N', 'D', '[', '2', ']' };
+BYTE op_OR_2[] = { utf8, n_5, 'O', 'R', '[', '2', ']' };
+
 BYTE op_ADD_2[] = { utf8, n_6, 'A', 'D', 'D', '[', '2', ']' };
 BYTE op_MINUS_2[] = { utf8, n_8, 'M', 'I', 'N', 'U', 'S', '[', '2', ']' };
 BYTE op_MULTIPLY_2[] = { utf8, n_11, 'M', 'U', 'L', 'T', 'I', 'P', 'L', 'Y', '[', '2', ']' };
@@ -264,6 +272,28 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         WORD j;
         if (!value_integer(y, &j)) return false;  // number required!
         *result = ((long)i >= (long)j) ? b_true : b_false;
+    } else if (value_equiv(name, op_NOT_1)) {
+        DATA_PTR x;
+        if (!op_1_eval(event, args, &x)) return false;  // bad arg!
+        *result = value_equiv(x, b_false) ? b_true : b_false;
+    } else if (value_equiv(name, op_AND_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
+        if (value_equiv(x, b_false)) {
+            *result = x;
+        } else {
+            *result = y;
+        }
+    } else if (value_equiv(name, op_OR_2)) {
+        DATA_PTR x;
+        DATA_PTR y;
+        if (!op_2_eval(event, args, &x, &y)) return false;  // bad args!
+        if (!value_equiv(x, b_false)) {
+            *result = x;
+        } else {
+            *result = y;
+        }
     } else if (value_equiv(name, op_ADD_2)) {
         DATA_PTR x;
         DATA_PTR y;
