@@ -13,7 +13,7 @@
     { "kind":"list_remove", "at":<number>, "from":<list> }
 */
 
-BYTE array_length(DATA_PTR array, WORD * length);
+BYTE array_count(DATA_PTR array, WORD * count);  // elements in Array
 BYTE array_get(DATA_PTR array, WORD offset, DATA_PTR * value);
 BYTE array_add(DATA_PTR array, DATA_PTR item, WORD offset, DATA_PTR * new);
 

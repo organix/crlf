@@ -14,30 +14,30 @@
 #define LOG_WARN
 #include "log.h"
 
-BYTE object_length(DATA_PTR object, WORD * length) {
-    LOG_TRACE("object_length @", (WORD)object);
+BYTE object_count(DATA_PTR object, WORD * count) {
+    LOG_TRACE("object_count @", (WORD)object);
     parse_t parse = {
         .base = object,
         .size = MAX_WORD,  // don't know how big object will be
         .start = 0
     };
     if (!parse_object(&parse)) {
-        LOG_WARN("object_length: bad object", (WORD)object);
+        LOG_WARN("object_count: bad object", (WORD)object);
         return false;  // bad object
     }
     if (parse.value == 0) {  // empty object short-cut
-        LOG_DEBUG("object_length: empty object", (WORD)object);
-        *length = 0;
+        LOG_DEBUG("object_count: empty object", (WORD)object);
+        *count = 0;
         return true;  // success!
     }
-    WORD count = parse.count;
+    WORD n = parse.count;
     if (!(parse.type & T_Counted)) {
         parse.size = parse.end;  // limit to object contents
         parse.start = (parse.end - parse.value);  // adjust to start of properties
-        if (!object_property_count(&parse, &count)) return false;  // property count failed!
+        if (!object_property_count(&parse, &n)) return false;  // property count failed!
     }
-    *length = count;
-    LOG_TRACE("object_length: count =", count);
+    *count = n;
+    LOG_TRACE("object_count: count =", *count);
     return true;  // success!
 }
 

@@ -85,12 +85,12 @@ static BYTE property_eval(event_t * event, DATA_PTR object, DATA_PTR name, DATA_
 // evaluate array of expressions
 static BYTE array_eval(event_t * event, DATA_PTR exprs, DATA_PTR * result) {
     LOG_TRACE("array_eval: exprs", (WORD)exprs);
-    WORD length;
-    if (!array_length(exprs, &length)) return false;  // exprs array required!
-    LOG_TRACE("array_eval: exprs.length", length);
+    WORD count;
+    if (!array_count(exprs, &count)) return false;  // exprs array required!
+    LOG_TRACE("array_eval: exprs.count", count);
     DATA_PTR array = a_;  // start with an empty array
     WORD i;
-    for (i = 0; i < length; ++i) {
+    for (i = 0; i < count; ++i) {
         DATA_PTR expression;
         if (!array_get(exprs, i, &expression)) return false;  // expression required!
         DATA_PTR value;
@@ -110,10 +110,10 @@ static BYTE array_eval(event_t * event, DATA_PTR exprs, DATA_PTR * result) {
 
 // evaluate unary operator expression
 static BYTE op_1_eval(event_t * event, DATA_PTR exprs, DATA_PTR * x) {
-    WORD length;
-    if (!array_length(exprs, &length)) return false;  // exprs array required!
-    if (length != 1) {
-        LOG_WARN("op_1_eval: must have exactly 1 argument!", length);
+    WORD count;
+    if (!array_count(exprs, &count)) return false;  // exprs array required!
+    if (count != 1) {
+        LOG_WARN("op_1_eval: must have exactly 1 argument!", count);
         return false;  // exprs array must have exactly 1 element!
     }
     DATA_PTR result;
@@ -130,10 +130,10 @@ static BYTE op_1_eval(event_t * event, DATA_PTR exprs, DATA_PTR * x) {
 
 // evaluate binary operator expression
 static BYTE op_2_eval(event_t * event, DATA_PTR exprs, DATA_PTR * x, DATA_PTR * y) {
-    WORD length;
-    if (!array_length(exprs, &length)) return false;  // exprs array required!
-    if (length != 2) {
-        LOG_WARN("op_2_eval: must have exactly 2 arguments!", length);
+    WORD count;
+    if (!array_count(exprs, &count)) return false;  // exprs array required!
+    if (count != 2) {
+        LOG_WARN("op_2_eval: must have exactly 2 arguments!", count);
         return false;  // exprs array must have exactly 2 elements!
     }
     DATA_PTR result;
@@ -180,10 +180,10 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
     } else if (value_equiv(name, op_length)) {
         DATA_PTR x;
         if (!op_1_eval(event, args, &x)) return false;  // bad arg!
-        WORD length;
-        if (!string_length(x, &length)) return false;  // bad length!
-        if (!get_small(length, result)) {
-            if (!make_integer(length, result)) return false;  // bad allocation!
+        WORD count;
+        if (!string_count(x, &count)) return false;  // bad count!
+        if (!get_small(count, result)) {
+            if (!make_integer(count, result)) return false;  // bad allocation!
             *result = TRACK(*result);
         }
     } else if (value_equiv(name, op_charAt)) {
@@ -203,11 +203,11 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
         if (!array_eval(event, args, result)) return false;  // evaluation failed!
         // TODO: join the results into a single string...
     } else if (value_equiv(name, op_conditional)) {  // FIXME: "conditional" is a command, but it _could_ be an expression...
-        WORD length;
-        if (!array_length(args, &length)) return false;  // args array required!
-        if ((length & 1) == 0) return false;  // args array must have an even number of elements!
+        WORD count;
+        if (!array_count(args, &count)) return false;  // args array required!
+        if ((count & 1) == 0) return false;  // args array must have an even number of elements!
         WORD i;
-        for (i = 0; i < length; i += 2) {  // iterate over "if" conditions...
+        for (i = 0; i < count; i += 2) {  // iterate over "if" conditions...
             DATA_PTR if_expr;
             if (!array_get(args, i, &if_expr)) return false;  // if_expr required!
             DATA_PTR value;
@@ -530,10 +530,10 @@ BYTE actor_exec(event_t * event, DATA_PTR command) {
             return false;  // missing property
         }
         // FIXME: make sure `args` is an Array...
-        WORD length;
-        if (!array_length(args, &length)) return false;  // args array required!
+        WORD count;
+        if (!array_count(args, &count)) return false;  // args array required!
         WORD i;
-        for (i = 0; i < length; i += 1) {  // iterate over conditional clauses...
+        for (i = 0; i < count; i += 1) {  // iterate over conditional clauses...
             DATA_PTR clause;
             if (!array_get(args, i, &clause)) return false;  // clause required!
             DATA_PTR value;
@@ -610,14 +610,14 @@ BYTE actor_exec(event_t * event, DATA_PTR command) {
 BYTE script_exec(event_t * event, DATA_PTR script) {
     LOG_TRACE("script_exec: script =", (WORD)script);
     IF_TRACE(value_print(script, 1));
-    WORD length;
-    if (!array_length(script, &length)) {
+    WORD count;
+    if (!array_count(script, &count)) {
         LOG_WARN("script_exec: script array required!", (WORD)script);
         return false;  // top-level array required!
     }
-    LOG_DEBUG("script_exec: script array length", length);
+    LOG_DEBUG("script_exec: script array count", count);
     WORD i;
-    for (i = 0; i < length; ++i) {
+    for (i = 0; i < count; ++i) {
         DATA_PTR command;
         if (!array_get(script, i, &command)
         ||  !object_has(command, s_kind)) {

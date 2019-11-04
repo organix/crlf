@@ -114,13 +114,13 @@ int run_actor_config(DATA_PTR spec) {
 int run_program(DATA_PTR program) {
     LOG_INFO("bootstrap", (WORD)program);
     if (!memo_reset()) return 1;  // memo reset failed!
-    WORD length;
-    if (!array_length(program, &length)) {
+    WORD count;
+    if (!array_count(program, &count)) {
         LOG_WARN("run_program: top-level array required!", (WORD)program);
         return 1;  // top-level array required!
     }
-    LOG_INFO("run_program: top-level array length", length);
-    for (WORD i = 0; i < length; ++i) {
+    LOG_INFO("run_program: top-level array count", count);
+    for (WORD i = 0; i < count; ++i) {
         DATA_PTR item;
         DATA_PTR kind;
         if (!array_get(program, i, &item)

@@ -191,9 +191,9 @@ BYTE config_commit(config_t * config, effect_t * effect) {
     LOG_DEBUG("config_commit: new events =", (EFFECT_EVENTS(effect) - CONFIG_EVENTS(config)));
     // merge state update effects, if any, into actor state
     scope_t * scope = EFFECT_SCOPE(effect);
-    WORD length;
-    if (!object_length(SCOPE_STATE(scope), &length)) return false;  // failed to get object length!
-    if (length > 0) {
+    WORD count;
+    if (!object_count(SCOPE_STATE(scope), &count)) return false;  // failed to get object property count!
+    if (count > 0) {
         LOG_DEBUG("config_commit: state' =", (WORD)SCOPE_STATE(scope));
         IF_TRACE(value_print(SCOPE_STATE(scope), 1));
         scope_t * parent = ACTOR_SCOPE(actor);

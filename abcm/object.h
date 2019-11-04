@@ -15,7 +15,7 @@
     { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
 */
 
-BYTE object_length(DATA_PTR object, WORD * length);
+BYTE object_count(DATA_PTR object, WORD * count);  // properties in Object
 BYTE object_has(DATA_PTR object, DATA_PTR name);
 BYTE object_get(DATA_PTR object, DATA_PTR name, DATA_PTR * value);
 BYTE object_add(DATA_PTR object, DATA_PTR name, DATA_PTR value, DATA_PTR * new);

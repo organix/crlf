@@ -593,25 +593,25 @@ static int test_array() {
         utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd',
         utf16, n_12, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0',
         true, false, null };
-    WORD length;
+    WORD count;
     DATA_PTR value;
 
     IF_TRACE(value_print(data_0, 0));
-    assert(array_length(data_0, &length));
-    assert(length == 0);
+    assert(array_count(data_0, &count));
+    assert(count == 0);
 
     IF_TRACE(value_print(data_1, 0));
-    assert(array_length(data_1, &length));
-    assert(length == 0);
+    assert(array_count(data_1, &count));
+    assert(count == 0);
 
     IF_TRACE(value_print(data_2, 0));
-    assert(array_length(data_2, &length));
-    assert(length == 0);
+    assert(array_count(data_2, &count));
+    assert(count == 0);
 
     IF_TRACE(value_print(data_3, 1));
-    assert(array_length(data_3, &length));
-    LOG_DEBUG("test_array: data_3.length =", length);
-    assert(length == 4);
+    assert(array_count(data_3, &count));
+    LOG_DEBUG("test_array: data_3.count =", count);
+    assert(count == 4);
     assert(array_get(data_3, 0, &value));
     assert(value_equiv(value, b_true));
     assert(array_get(data_3, 1, &value));
@@ -623,18 +623,18 @@ static int test_array() {
     assert(!array_get(data_3, 4, &value));
 
     IF_TRACE(value_print(data_4, 1));
-    assert(array_length(data_4, &length));
-    LOG_DEBUG("test_array: data_4.length =", length);
-    assert(length == 2);
+    assert(array_count(data_4, &count));
+    LOG_DEBUG("test_array: data_4.count =", count);
+    assert(count == 2);
     assert(array_get(data_4, 0, &value));
     assert(value_equiv(value, i_0));
     assert(array_get(data_4, 1, &value));
     assert(!array_get(data_4, 2, &value));
 
     IF_TRACE(value_print(data_5, 1));
-    assert(array_length(data_5, &length));
-    LOG_DEBUG("test_array: data_5.length =", length);
-    assert(length == 5);
+    assert(array_count(data_5, &count));
+    LOG_DEBUG("test_array: data_5.count =", count);
+    assert(count == 5);
 
 /*
 ADD x AT 0 TO [a, b, c] --> [x, a, b, c]
@@ -662,9 +662,9 @@ ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
 
     assert(array_add(data_10, i_0, 3, &value));
     assert(value_equiv(value, data_14));
-    assert(array_length(value, &length));
-    LOG_DEBUG("test_array: value.length =", length);
-    assert(length == 4);
+    assert(array_count(value, &count));
+    LOG_DEBUG("test_array: value.count =", count);
+    assert(count == 4);
     assert(RELEASE(&value));
 
     assert(!array_add(data_10, i_0, 4, &value));
@@ -674,29 +674,29 @@ ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
     DATA_PTR array;
     assert(COPY(&array, a_));
     // append 1
-    assert(array_length(array, &length));
+    assert(array_count(array, &count));
     assert(array_get(data_10, 0, &value));
-    assert(array_add(array, value, length, &value));
+    assert(array_add(array, value, count, &value));
     assert(RELEASE(&array));
     array = TRACK(value);
     // append 2
-    assert(array_length(array, &length));
+    assert(array_count(array, &count));
     assert(array_get(data_10, 1, &value));
-    assert(array_add(array, value, length, &value));
+    assert(array_add(array, value, count, &value));
     assert(RELEASE(&array));
     array = TRACK(value);
     // append 3
-    assert(array_length(array, &length));
+    assert(array_count(array, &count));
     assert(array_get(data_10, 2, &value));
-    assert(array_add(array, value, length, &value));
+    assert(array_add(array, value, count, &value));
     assert(RELEASE(&array));
     array = TRACK(value);
     // verify result
     IF_TRACE(value_print(array, 1));
     assert(value_equiv(array, data_10));
-    assert(array_length(array, &length));
-    LOG_DEBUG("test_array: array.length =", length);
-    assert(length == 3);
+    assert(array_count(array, &count));
+    LOG_DEBUG("test_array: array.count =", count);
+    assert(count == 3);
     assert(RELEASE(&array));
 
     return 0;

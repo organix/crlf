@@ -13,29 +13,29 @@
 //#define LOG_WARN
 #include "log.h"
 
-BYTE string_length(DATA_PTR string, WORD * length) {
-    LOG_TRACE("string_length @", (WORD)string);
+BYTE string_count(DATA_PTR string, WORD * count) {
+    LOG_TRACE("string_count @", (WORD)string);
     parse_t parse;
     if (!string_parse(string, &parse)) {
-        LOG_WARN("string_length: bad string", (WORD)string);
+        LOG_WARN("string_count: bad string", (WORD)string);
         return false;  // bad string
     }
     if (parse.prefix == octets) {
-        *length = parse.size;
-        LOG_DEBUG("string_length: binary octets", *length);
+        *count = parse.size;
+        LOG_DEBUG("string_count: binary octets", *count);
         return true;  // success! -- early exit for binary octet data
     }
     WORD n = 0;
     while (parse.start < parse.size) {
         if (!parse_codepoint(&parse)) {
-            LOG_WARN("string_length: bad codepoint", parse.start);
+            LOG_WARN("string_count: bad codepoint", parse.start);
             return false;  // bad codepoint
         }
         ++n;  // increment count
         parse.start = parse.end;
     }
-    *length = n;
-    LOG_DEBUG("string_length: encoded string", *length);
+    *count = n;
+    LOG_DEBUG("string_count: encoded string", *count);
     return true;  // success!
 };
 
@@ -66,7 +66,7 @@ BYTE string_get(DATA_PTR string, WORD offset, WORD * codepoint) {
         ++n;  // increment count
         parse.start = parse.end;
     }
-    LOG_WARN("string_get: offset must be less than length", n);
+    LOG_WARN("string_get: offset must be less than count", n);
     return false;  // not found.
 };
 

@@ -13,43 +13,43 @@
 #define LOG_WARN
 #include "log.h"
 
-BYTE array_length(DATA_PTR array, WORD * length) {
-    LOG_TRACE("array_length @", (WORD)array);
+BYTE array_count(DATA_PTR array, WORD * count) {
+    LOG_TRACE("array_count @", (WORD)array);
     parse_t parse = {
         .base = array,
         .size = MAX_WORD,  // don't know how big array will be
         .start = 0
     };
     if (!parse_array(&parse)) {
-        LOG_WARN("array_length: bad array", (WORD)array);
+        LOG_WARN("array_count: bad array", (WORD)array);
         return false;  // bad array
     }
     //DUMP_PARSE("array", &parse);
     if (parse.value == 0) {  // empty array short-cut
-        *length = 0;
-        LOG_DEBUG("array_length: empty array", *length);
+        *count = 0;
+        LOG_DEBUG("array_count: empty array", *count);
         return true;  // success!
     }
     if (parse.type & T_Counted) {  // assume count is correct
-        *length = parse.count;
-        LOG_DEBUG("array_length: counted array", *length);
+        *count = parse.count;
+        LOG_DEBUG("array_count: counted array", *count);
         return true;  // success!
     }
     parse.size = parse.end;  // limit to array contents
     parse.start = parse.end - parse.value;  // reset to start of element data
     WORD n = 0;
     while (parse.start < parse.size) {
-        LOG_TRACE("array_length: element start =", parse.start);
+        LOG_TRACE("array_count: element start =", parse.start);
         if (!parse_value(&parse)) {
-            LOG_WARN("array_length: bad element", parse.start);
+            LOG_WARN("array_count: bad element", parse.start);
             return false;  // bad element
         }
         //DUMP_PARSE("array element", &parse);
         ++n;  // increment item count
         parse.start = parse.end;
     }
-    *length = n;
-    LOG_DEBUG("array_length: variadic array", *length);
+    *count = n;
+    LOG_DEBUG("array_count: variadic array", *count);
     return true;  // success!
 };
 
@@ -108,7 +108,7 @@ BYTE array_get(DATA_PTR array, WORD offset, DATA_PTR * value) {
         ++n;  // increment item count
         parse.start = parse.end;
     }
-    LOG_WARN("array_get: offset must be less than length", n);
+    LOG_WARN("array_get: offset must be less than count", n);
     return false;  // not found.
 };
 
