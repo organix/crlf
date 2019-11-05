@@ -118,16 +118,24 @@ static BYTE int_print(parse_t * parse) {
     return true;  // success!
 }
 
-void hex_print(BYTE b) {
+void hex_byte(BYTE b) {
     static char * hex = "0123456789ABCDEF";
     print(hex[(b >> 4) & 0xF]);
     print(hex[b & 0xF]);
 }
 
+void hex_word(WORD w) {
+    WORD shift = sizeof(WORD) * 8;
+    for (WORD i = 0; i < sizeof(WORD); ++i) {
+        shift -= 8;
+        hex_byte(w >> shift);
+    }
+}
+
 void hex_dump(DATA_PTR data, WORD size) {
     for (WORD i = 0; i < size; ++i) {
         print(' ');
-        hex_print(data[i]);
+        hex_byte(data[i]);
         if (i > 9) {
             prints(" ~");
             break;  // size-limited dump cut-off
@@ -142,7 +150,7 @@ void data_dump(DATA_PTR data, WORD size) {
         if ((b >= 0x20) && (b < 0x7F)) {
             print(b);
         } else {
-            hex_print(b);
+            hex_byte(b);
         }
         if (i > 12) {
             prints(" ~~");
@@ -199,7 +207,7 @@ static BYTE number_print(parse_t * parse) {
     WORD end = parse->end;  // offset past end of number data
     WORD start = end - parse->value;  // offset to start of number data
     while (start < end--) {
-        hex_print(parse->base[end]);
+        hex_byte(parse->base[end]);
 /* byte separator...
         if (start != end) {
             print('_');
@@ -216,7 +224,7 @@ static BYTE string_print(parse_t * parse) {
 #if HEXDUMP_ANNOTATION
         set_color(MEMO_COLOR);
         print('(');
-        hex_print(parse->value);
+        hex_byte(parse->value);
         print(')');
         clear_color();
 #endif
@@ -237,7 +245,7 @@ static BYTE string_print(parse_t * parse) {
         DATA_PTR data = parse->base + (parse->end - parse->value);
         for (WORD i = 0; i < parse->value; ++i) {
             print(' ');
-            hex_print(data[i]);
+            hex_byte(data[i]);
         }
         prints(" >");
         clear_color();
@@ -454,12 +462,8 @@ BYTE parse_print(parse_t * parse, WORD indent) {
 
 BYTE value_print(DATA_PTR value, WORD indent) {
     LOG_TRACE("value_print @", (WORD)value);
-    parse_t parse = {
-        .base = value,
-        .size = MAX_WORD,  // don't know how big value will be
-        .start = 0
-    };
-    if (!parse_value(&parse)) {
+    parse_t parse;
+    if (!value_parse(value, &parse)) {
         LOG_WARN("value_print: bad value", (WORD)value);
         return false;  // bad value
     }

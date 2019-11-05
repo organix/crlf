@@ -10,7 +10,9 @@ void print(WORD unicode);
 void prints(char * cstring);
 void newline();
 
-void hex_print(BYTE b);
+void hex_byte(BYTE b);
+void hex_word(WORD w);
+
 void hex_dump(DATA_PTR data, WORD size);
 void data_dump(DATA_PTR data, WORD size);
 void memo_print(DATA_PTR data, WORD size);

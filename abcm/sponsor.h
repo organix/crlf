@@ -8,6 +8,9 @@
 #include "pool.h"
 #include "event.h"
 
+#define ANNOTATE_DELIVERY 1 /* display each actor-message delivery event dispatched */
+#define ANNOTATE_BEHAVIOR 0 /* display the behavior of each actor on delivery */
+
 #define EVENT_TEMP_POOL_SIZE (1 << 16)  /* if this is 0, temp_pool is not used. */
 
 /*
@@ -58,14 +61,17 @@ typedef struct sponsor_struct {
     WORD        actors;         // actor creation limit
     WORD        events;         // message-send event limit
     config_t *  config;         // configuration state
+    sponsor_t * next;           // sponsor chain link
 } sponsor_t;
 
 #define SPONSOR_POOL(sponsor) ((sponsor)->pool)  // (sponsor_t *) -> (pool_t *)
 #define SPONSOR_MEMO(sponsor) ((sponsor)->memo)  // (sponsor_t *) -> (memo_t *)
 #define SPONSOR_CONFIG(sponsor) ((sponsor)->config)  // (sponsor_t *) -> (config_t *)
 #define SPONSOR_EVENT(sponsor) CONFIG_EVENT(SPONSOR_CONFIG(sponsor))  // (sponsor_t *) -> (event_t *)
+#define SPONSOR_NEXT(sponsor) ((sponsor)->next)  // (sponsor_t *) -> (sponsor_t *)
 
-BYTE init_sponsor(sponsor_t * sponsor, pool_t * pool, memo_t * memo, WORD actors, WORD events);
+sponsor_t * new_sponsor(pool_t * pool, memo_t * memo, WORD actors, WORD events);
 BYTE sponsor_shutdown(sponsor_t * sponsor);
+BYTE sponsor_release(sponsor_t ** sponsor);
 
 #endif // _SPONSOR_H_

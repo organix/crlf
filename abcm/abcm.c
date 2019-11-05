@@ -1,6 +1,7 @@
 /*
  * abcm.c -- Actor Byte-Code Machine
  */
+#include <stddef.h>  // for NULL, size_t, et. al.
 #include <assert.h>
 
 #include "abcm.h"
@@ -14,86 +15,35 @@
 #define LOG_ALL // enable all logging
 #include "log.h"
 
-
 char * _semver = "0.0.7";
 
-BYTE s_kind[] = { utf8, n_4, 'k', 'i', 'n', 'd' };
-BYTE s_actors[] = { utf8, n_6, 'a', 'c', 't', 'o', 'r', 's' };
-BYTE s_events[] = { utf8, n_6, 'e', 'v', 'e', 'n', 't', 's' };
-BYTE s_script[] = { utf8, n_6, 's', 'c', 'r', 'i', 'p', 't' };
-BYTE s_message[] = { utf8, n_7, 'm', 'e', 's', 's', 'a', 'g', 'e' };
-BYTE s_actor[] = { utf8, n_5, 'a', 'c', 't', 'o', 'r' };
-BYTE s_state[] = { utf8, n_5, 's', 't', 'a', 't', 'e' };
-BYTE s_behavior[] = { utf8, n_8, 'b', 'e', 'h', 'a', 'v', 'i', 'o', 'r' };
-BYTE s_name[] = { utf8, n_4, 'n', 'a', 'm', 'e' };
-BYTE s_value[] = { utf8, n_5, 'v', 'a', 'l', 'u', 'e' };
-BYTE s_type[] = { utf8, n_4, 't', 'y', 'p', 'e' };
-BYTE s_args[] = { utf8, n_4, 'a', 'r', 'g', 's' };
-BYTE s_if[] = { utf8, n_2, 'i', 'f' };
-BYTE s_do[] = { utf8, n_2, 'd', 'o' };
-BYTE s_in[] = { utf8, n_2, 'i', 'n' };
-BYTE s_with[] = { utf8, n_4, 'w', 'i', 't', 'h' };
-BYTE s_const[] = { utf8, n_5, 'c', 'o', 'n', 's', 't' };
-BYTE s_level[] = { utf8, n_5, 'l', 'e', 'v', 'e', 'l' };
-BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
-
 /*
-// Containers
-    { "kind":"actor_sponsor", "actors":<number>, "events":<number>, "script":[<action>, ...] }
-// Actions
-    { "kind":"actor_send", "message":<dictionary>, "actor":<address> }
-    { "kind":"actor_become", "behavior":<behavior> }
-    { "kind":"actor_ignore" }
-    { "kind":"actor_assign", "name":<string>, "value":<expression> }
-    { "kind":"actor_fail", "error":<expression> }
-    { "kind":"conditional", "args":[{ "if":<expression>, "do":[<action>, ...] }, ...] }
-    { "kind":"log_print", "level":<number>, "value":<expression> }  // --DEPRECATED--
-// Address Expressions
-    { "kind":"actor_create", "state":<dictionary>, "behavior":<behavior> }
-    { "kind":"actor_self" }
-// Behavior Expressions
-    { "kind":"actor_behavior", "name":<string>, "script":[<action>, ...] }
-// Value Expressions
-    { "kind":"actor_state", "name":<string> }
-    { "kind":"dict_get", "name":<string>, "in":<dictionary> }
-    { "kind":"list_get", "at":<number>, "from":<list> }
-    { "kind":"expr_literal", "const":<value> }
-    { "kind":"expr_operation", "name":<string>, "args":[<expression>, ...] }
-// Number Expressions
-    { "kind":"list_length", "of":<list> }
-// Boolean Expressions
-    { "kind":"actor_has_state", "name":<string> }
-    { "kind":"dict_has", "name":<string>, "in":<dictionary> }
-// List (Array) Expressions
-    { "kind":"list_add", "value":<expression>, "at":<number>, "to":<list> }
-    { "kind":"list_remove", "at":<number>, "from":<list> }
-// Dictionary (Object) Expressions
-    { "kind":"actor_message" }
-    { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
-*/
-BYTE k_actor_sponsor[] = { utf8, n_13, 'a', 'c', 't', 'o', 'r', '_', 's', 'p', 'o', 'n', 's', 'o', 'r' };
-BYTE k_actor_send[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 's', 'e', 'n', 'd' };
-BYTE k_actor_become[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'b', 'e', 'c', 'o', 'm', 'e' };
-BYTE k_actor_ignore[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'i', 'g', 'n', 'o', 'r', 'e' };
-BYTE k_actor_assign[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'a', 's', 's', 'i', 'g', 'n' };
-BYTE k_actor_fail[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 'f', 'a', 'i', 'l' };
-BYTE k_conditional[] = { utf8, n_11, 'c', 'o', 'n', 'd', 'i', 't', 'i', 'o', 'n', 'a', 'l' };
-BYTE k_actor_behavior[] = { utf8, n_14, 'a', 'c', 't', 'o', 'r', '_', 'b', 'e', 'h', 'a', 'v', 'i', 'o', 'r' };
-BYTE k_actor_create[] = { utf8, n_12, 'a', 'c', 't', 'o', 'r', '_', 'c', 'r', 'e', 'a', 't', 'e' };
-BYTE k_actor_message[] = { utf8, n_13, 'a', 'c', 't', 'o', 'r', '_', 'm', 'e', 's', 's', 'a', 'g', 'e' };
-BYTE k_actor_self[] = { utf8, n_10, 'a', 'c', 't', 'o', 'r', '_', 's', 'e', 'l', 'f' };
-BYTE k_actor_has_state[] = { utf8, n_15, 'a', 'c', 't', 'o', 'r', '_', 'h', 'a', 's', '_', 's', 't', 'a', 't', 'e' };
-BYTE k_actor_state[] = { utf8, n_11, 'a', 'c', 't', 'o', 'r', '_', 's', 't', 'a', 't', 'e' };
-BYTE k_dict_has[] = { utf8, n_8, 'd', 'i', 'c', 't', '_', 'h', 'a', 's' };
-BYTE k_dict_get[] = { utf8, n_8, 'd', 'i', 'c', 't', '_', 'g', 'e', 't' };
-BYTE k_dict_bind[] = { utf8, n_9, 'd', 'i', 'c', 't', '_', 'b', 'i', 'n', 'd' };
-BYTE k_expr_literal[] = { utf8, n_12, 'e', 'x', 'p', 'r', '_', 'l', 'i', 't', 'e', 'r', 'a', 'l' };
-BYTE k_expr_operation[] = { utf8, n_14, 'e', 'x', 'p', 'r', '_', 'o', 'p', 'e', 'r', 'a', 't', 'i', 'o', 'n' };
-BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };
+ * include actor-byte-code bootstrap program...
+ */
+BYTE bootstrap[] = {
+//#include "hello_world.abc"
+//#include "basic_scope.abc"
+//#include "fail_example.abc"
+#include "two_sponsor.abc"
+//#include "stream_reader.abc"
+//#include "lambda_calculus.abc"
+};
+
+#define LOAD_2ND_PROGRAM 1 /* test loading of multiple top-level programs */
+#if LOAD_2ND_PROGRAM
+BYTE boot2nd[] = {
+//#include "hello_world.abc"
+//#include "basic_scope.abc"
+#include "fail_example.abc"
+//#include "two_sponsor.abc"
+//#include "stream_reader.abc"
+//#include "lambda_calculus.abc"
+};
+#endif
 
 int run_abcm() {  // ok == 0, fail != 0
     int result = 0;
-    log_config.level = LOG_LEVEL_WARN;
+    //log_config.level = LOG_LEVEL_WARN;
     //log_config.level = LOG_LEVEL_DEBUG;
     //log_config.level = LOG_LEVEL_TRACE;
     //log_config.level = LOG_LEVEL_TRACE+2;
@@ -102,28 +52,38 @@ int run_abcm() {  // ok == 0, fail != 0
     LOG_INFO(_semver, (WORD)_semver);
 
     // establish (global) testing sponsor
-    if (!RESERVE_FROM(heap_pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return 1;  // allocation failure!
-    if (!init_sponsor(sponsor, heap_pool, (memo_t *)0, 0, 0)) return 1;  // init failure!
+    sponsor = new_sponsor(heap_pool, NULL, 0, 0);
+    assert(sponsor);
     result = run_test_suite();  // pass == 0, fail != 0
     if (result) return result;
-    if (!sponsor_shutdown(sponsor)) return 1;  // shutdown failure!
-    if (!RELEASE_FROM(heap_pool, (DATA_PTR *)&sponsor)) return 1;  // reclamation failure!
+    if (!sponsor_release(&sponsor)) return 1;  // reclamation failure!
     assert(audit_check_leaks() == 0);  // the test suite should not leak memory.
 
     // establish (global) bootstrap sponsor
-    if (!RESERVE_FROM(heap_pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return 1;  // allocation failure!
-    if (!init_sponsor(sponsor, heap_pool, (memo_t *)0, 0, 0)) return 1;  // init failure!
+    log_config.level = LOG_LEVEL_WARN;
+    //log_config.level = LOG_LEVEL_DEBUG;
+    //log_config.level = LOG_LEVEL_TRACE;
+    //log_config.level = LOG_LEVEL_TRACE+2;
+    sponsor_t * boot_sponsor = new_sponsor(heap_pool, NULL, 0, 0);
+    if (!boot_sponsor) return 1;  // allocation failure!
+    sponsor = boot_sponsor;  // set global sponsor
     if (!device_startup()) return -1;  // device startup failed!
-    result = run_program(bootstrap);  // pass == 0, fail != 0
-    if (result) return result;
-#if 1
-    extern BYTE boot2nd[];
-    result = run_program(boot2nd);  // pass == 0, fail != 0
-    if (result) return result;
+    if (!load_program(bootstrap)) {
+        LOG_WARN("run_abcm: load_program failed!", (WORD)bootstrap);
+        return 1;  // load_program failed!
+    }
+#if LOAD_2ND_PROGRAM
+    if (!load_program(boot2nd)) {
+        LOG_WARN("run_abcm: load_program failed!", (WORD)boot2nd);
+        return 1;  // load_program failed!
+    }
 #endif
+    if (!sponsor_dispatch_loop(SPONSOR_NEXT(sponsor))) {
+        LOG_WARN("run_abcm: sponsor dispatch loop failed!", (WORD)sponsor);
+    }
+    sponsor = boot_sponsor;  // restore previous global sponsor
     if (!device_shutdown()) return -1;  // device shutdown failed!
-    if (!sponsor_shutdown(sponsor)) return 1;  // shutdown failure!
-    if (!RELEASE_FROM(heap_pool, (DATA_PTR *)&sponsor)) return 1;  // reclamation failure!
+    if (!sponsor_release(&sponsor)) return 1;  // reclamation failure!
 #if 1
     assert(audit_check_leaks() == 0);
 #else

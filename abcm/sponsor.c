@@ -9,11 +9,11 @@
 #include "bose.h"
 #include "pool.h"
 #include "event.h"
+#include "program.h"
 #include "runtime.h"
 #include "object.h"
 #include "equiv.h"
 #include "print.h"
-#include "abcm.h"
 
 #define LOG_ALL // enable all logging
 //#define LOG_INFO
@@ -137,11 +137,34 @@ BYTE config_dispatch(config_t * config) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_dispatch: current =", current);
     event_t * event = CONFIG_EVENT(config);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_dispatch: event =", (WORD)event);
+    actor_t * actor = EVENT_ACTOR(event);
+#if ANNOTATE_DELIVERY
+    hex_word((WORD)sponsor);
+    print(':');
+/*
+    parse_t parse;
+    if (!value_parse(ACTOR_SELF(actor), &parse)) {
+        LOG_WARN("value_print: bad value", (WORD)ACTOR_SELF(actor));
+        return false;  // bad value
+    }
+    parse_print(&parse, 0);
+    prints(" <== ");
+    if (!value_parse(EVENT_MESSAGE(event), &parse)) {
+        LOG_WARN("value_print: bad value", (WORD)EVENT_MESSAGE(event));
+        return false;  // bad value
+    }
+    parse_print(&parse, 0);
+    newline();
+*/
+    value_print(ACTOR_SELF(actor), 0);
+    prints("  <== ");
+    value_print(EVENT_MESSAGE(event), 0);
+#else
     LOG_DEBUG("config_dispatch: message =", (WORD)EVENT_MESSAGE(event));
     IF_DEBUG(value_print(EVENT_MESSAGE(event), 1));
-    actor_t * actor = EVENT_ACTOR(event);
     LOG_DEBUG("config_dispatch: actor =", (WORD)actor);
     IF_DEBUG(value_print(ACTOR_SELF(actor), 1));
+#endif
     DATA_PTR behavior = ACTOR_BEHAVIOR(actor);
     DATA_PTR script;
     if (!object_get(behavior, s_script, &script)) {
@@ -158,6 +181,10 @@ BYTE config_dispatch(config_t * config) {
         sponsor->pool = CONFIG_POOL(config);
         return false;  // out-of-memory
     }
+#if ANNOTATE_BEHAVIOR
+    prints("BEH: ");
+    value_print(script, 1);
+#endif
     BYTE ok = config_script_exec(config, event, script);
 #if EVENT_TEMP_POOL_SIZE
     RELEASE_ALL(sponsor->pool);
@@ -321,7 +348,7 @@ BYTE config_release(config_t ** config_ref, WORD actors, WORD events) {
     // release config
     LOG_TRACE("config_release: releasing config", (WORD)*config_ref);
     if (!RELEASE_FROM(pool, (DATA_PTR *)config_ref)) return false;  // reclamation failure!
-    LOG_WARN("config_release: shutdown completed.", (WORD)*config_ref);
+    LOG_WARN("config_release: release completed.", (WORD)*config_ref);
     return true;  // success!
 }
 
@@ -329,24 +356,67 @@ BYTE config_release(config_t ** config_ref, WORD actors, WORD events) {
  * a sponsor is a root object providing access to resource-management mechanisms for computations.
  */
 
-BYTE init_sponsor(sponsor_t * sponsor, pool_t * pool, memo_t * memo, WORD actors, WORD events) {
-    LOG_TRACE("init_sponsor: pool =", (WORD)pool);
+sponsor_t * new_sponsor(pool_t * pool, memo_t * memo, WORD actors, WORD events) {
+    sponsor_t * sponsor;
+    if (!RESERVE_FROM(pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return NULL;  // allocation failure!
+    LOG_TRACE("new_sponsor: pool =", (WORD)pool);
     sponsor->pool = pool;
-    LOG_TRACE("init_sponsor: memo =", (WORD)memo);
+    LOG_TRACE("new_sponsor: memo =", (WORD)memo);
     sponsor->memo = memo;
     sponsor->actors = actors;
     sponsor->events = events;
     sponsor->config = new_config(pool, actors, events);
-    if (!SPONSOR_CONFIG(sponsor)) return false;  // allocation failure!
-    LOG_DEBUG("init_sponsor: sponsor =", (WORD)sponsor);
+    if (!SPONSOR_CONFIG(sponsor)) return NULL;  // allocation failure!
+    sponsor->next = NULL;
+    LOG_DEBUG("new_sponsor: sponsor =", (WORD)sponsor);
+    return sponsor;
+}
+
+static BYTE sponsor_release_ring(sponsor_t * sponsor) {
+    // release each sponsor in the dispatch ring, if any.
+    memo_t * memo = NULL;
+    sponsor_t * current = SPONSOR_NEXT(sponsor);
+    LOG_DEBUG("sponsor_release_ring: first sponsor =", (WORD)current);
+    if (current) {
+        sponsor_t * next = SPONSOR_NEXT(current);
+        do {
+            // FIXME: this weird iteration is needed to release the memo structures -- should use ref-counted allocator!
+            current = next;
+            next = SPONSOR_NEXT(current);
+            if (memo != SPONSOR_MEMO(current)) {
+                memo = SPONSOR_MEMO(current);
+                LOG_DEBUG("sponsor_release_ring: releasing memo =", (WORD)memo);
+                if (!RELEASE((DATA_PTR *)&current->memo)) {
+                    LOG_WARN("sponsor_release_ring: failed to release memo!", (WORD)memo);
+                    return false;  // failed to release memo!
+                }
+            }
+            sponsor_t * victim = current;
+            LOG_DEBUG("sponsor_release_ring: releasing sponsor =", (WORD)victim);
+            if (!RELEASE((DATA_PTR *)&victim)) {
+                LOG_WARN("sponsor_release_ring: failed to release sponsor!", (WORD)current);
+                return false;  // reclamation failure!
+            }
+        } while (current != SPONSOR_NEXT(sponsor));
+        sponsor->next = NULL;  // clear link to first sponsor
+        LOG_WARN("sponsor_release_ring: released ring for", (WORD)sponsor);
+    }
     return true;  // success!
 }
 
 BYTE sponsor_shutdown(sponsor_t * sponsor) {
     LOG_DEBUG("sponsor_shutdown: sponsor =", (WORD)sponsor);
-    pool_t * pool = SPONSOR_POOL(sponsor);
-    LOG_TRACE("sponsor_shutdown: pool =", (WORD)pool);
     if (!config_release(&sponsor->config, sponsor->actors, sponsor->events)) return false;  // reclamation failure!
     LOG_WARN("sponsor_shutdown: shutdown completed.", (WORD)sponsor);
+    return true;  // success!
+}
+
+BYTE sponsor_release(sponsor_t ** sponsor_ref) {
+    LOG_DEBUG("sponsor_release: sponsor =", (WORD)*sponsor_ref);
+    assert(SPONSOR_POOL(*sponsor_ref) == SPONSOR_POOL(sponsor));
+    if (!sponsor_release_ring(*sponsor_ref)) return false;  // reclamation failure!
+    if (!sponsor_shutdown(*sponsor_ref)) return false;  // shutdown failure!
+    if (!RELEASE((DATA_PTR *)sponsor_ref)) return false;  // reclamation failure!
+    LOG_WARN("sponsor_release: release completed.", (WORD)*sponsor_ref);
     return true;  // success!
 }
