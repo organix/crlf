@@ -329,9 +329,11 @@ BYTE config_release(config_t ** config_ref, WORD actors, WORD events) {
  * a sponsor is a root object providing access to resource-management mechanisms for computations.
  */
 
-BYTE init_sponsor(sponsor_t * sponsor, pool_t * pool, WORD actors, WORD events) {
+BYTE init_sponsor(sponsor_t * sponsor, pool_t * pool, memo_t * memo, WORD actors, WORD events) {
+    LOG_TRACE("init_sponsor: pool =", (WORD)pool);
     sponsor->pool = pool;
-    //if (!SPONSOR_POOL(sponsor)) return false;  // allocation failure!
+    LOG_TRACE("init_sponsor: memo =", (WORD)memo);
+    sponsor->memo = memo;
     sponsor->actors = actors;
     sponsor->events = events;
     sponsor->config = new_config(pool, actors, events);

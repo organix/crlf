@@ -103,7 +103,7 @@ int run_abcm() {  // ok == 0, fail != 0
 
     // establish (global) testing sponsor
     if (!RESERVE_FROM(heap_pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return 1;  // allocation failure!
-    if (!init_sponsor(sponsor, heap_pool, 0, 0)) return 1;  // init failure!
+    if (!init_sponsor(sponsor, heap_pool, (memo_t *)0, 0, 0)) return 1;  // init failure!
     result = run_test_suite();  // pass == 0, fail != 0
     if (result) return result;
     if (!sponsor_shutdown(sponsor)) return 1;  // shutdown failure!
@@ -112,7 +112,7 @@ int run_abcm() {  // ok == 0, fail != 0
 
     // establish (global) bootstrap sponsor
     if (!RESERVE_FROM(heap_pool, (DATA_PTR *)&sponsor, sizeof(sponsor_t))) return 1;  // allocation failure!
-    if (!init_sponsor(sponsor, heap_pool, 0, 0)) return 1;  // init failure!
+    if (!init_sponsor(sponsor, heap_pool, (memo_t *)0, 0, 0)) return 1;  // init failure!
     if (!device_startup()) return -1;  // device startup failed!
     result = run_program(bootstrap);  // pass == 0, fail != 0
     if (result) return result;

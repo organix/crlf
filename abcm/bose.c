@@ -12,6 +12,7 @@
 //#define LOG_ALL // enable all logging
 #define LOG_INFO
 #define LOG_WARN
+//#define LOG_DEBUG
 #include "log.h"
 
 type_t prefix_type[1<<8] = {
@@ -97,38 +98,41 @@ DATA_PTR i_0 = (i_ + 64);  // integer zero (encoded)
 /*
  * BOSE String memoization
  */
-static DATA_PTR memo_table[1<<8] = {};
-static BYTE memo_index = 0;  // index of next memo slot to use
-BYTE memo_freeze = false;  // stop accepting memo table additions
 
-BYTE memo_reset() {  // reset memo table between top-level values
-    LOG_DEBUG("memo_reset: index", memo_index);
-    memo_freeze = false;
-    memo_index = 0;
+BYTE memo_init(memo_t * memo) {
+    LOG_DEBUG("memo_init @", (WORD)memo);
+    assert(memo);
+    memo->freeze = false;
+    memo->index = 0;
     do {
-        memo_table[memo_index] = s_;  // initialize with safe empty-string
-    } while (++memo_index);  // stop when we wrap-around to 0
+        memo->table[memo->index] = s_;  // initialize with safe empty-string
+    } while (++memo->index);  // stop when we wrap-around to 0
     return true;  // success!
 };
 
-DATA_PTR memo_get(BYTE index) {
+DATA_PTR memo_get(memo_t * memo, BYTE index) {
+    assert(memo);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "memo_get: index", index);
-    return memo_table[index];
+    assert(memo->freeze || (index < memo->index));
+    return memo->table[index];
 }
 
-BYTE memo_add(parse_t * parse) {
-    LOG_DEBUG("memo_add: index", memo_index);
-    if (memo_freeze) {
-        LOG_WARN("parse_value: attempt to memoize after freeze", memo_index);
+BYTE memo_add(memo_t * memo, parse_t * parse) {
+    assert(memo);
+    LOG_DEBUG("memo_add: index", memo->index);
+    if (memo->freeze) {
+        LOG_WARN("memo_add: attempt to memoize after freeze", memo->index);
         return false;  // don't call memo_add if memo_freeze is in effect...
     }
-    IF_TRACE(WORD size = parse->end - parse->start);
-    LOG_TRACE("memo_add: size", size);
     parse->base[parse->start] &= 0x0E;  // WARNING: THIS CLEARS THE MEMOIZE FLAG IN-PLACE!
-    memo_table[memo_index] = parse->base + parse->start;  // point directly to persistent data...
-    IF_TRACE(memo_print(memo_table[memo_index], size));
-    if (++memo_index == 0) {  // index wrap-around
-        memo_freeze = true;
+    memo->table[memo->index] = parse->base + parse->start;  // point directly to persistent data...
+    IF_TRACE({
+        WORD size = parse->end - parse->start;
+        LOG_TRACE("memo_add: size", size);
+        memo_print(memo->table[memo->index], size);
+    });
+    if (++memo->index == 0) {  // index wrap-around
+        memo->freeze = true;
     }
     return true;  // success!
 };
@@ -230,7 +234,7 @@ BYTE parse_value(parse_t * parse) {
         }
         BYTE index = parse->base[parse->end++];
         parse->value = index;
-        parse->count = (WORD)memo_get(index);
+        parse->count = (WORD)memo_get(SPONSOR_MEMO(sponsor), index);
         LOG_DEBUG("parse_value: memoized String", parse->value);
     } else if (parse->type & T_Sized) {
         // extended Value
@@ -293,7 +297,7 @@ BYTE parse_value(parse_t * parse) {
                 }
             }
             if (parse->type & T_Exact) {
-                if (!memo_add(parse)) return false;  // memo failed!
+                if (!memo_add(SPONSOR_MEMO(sponsor), parse)) return false;  // memo failed!
             }
         } else if ((parse->prefix == utf16) || (parse->prefix == utf16_mem)) {
             LOG_TRACE("parse_value: utf16", parse->value);
@@ -313,7 +317,7 @@ BYTE parse_value(parse_t * parse) {
                 }
             }
             if (parse->type & T_Exact) {
-                if (!memo_add(parse)) return false;  // memo failed!
+                if (!memo_add(SPONSOR_MEMO(sponsor), parse)) return false;  // memo failed!
             }
         }
         LOG_DEBUG("parse_value: extended data size", parse->value);

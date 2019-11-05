@@ -54,16 +54,18 @@ extern sponsor_t * sponsor;  // WE DECLARE A GLOBAL SPONSOR TO AVOID THREADING I
 
 typedef struct sponsor_struct {
     pool_t *    pool;           // memory allocation pool
+    memo_t *    memo;           // BOSE memoization structure
     WORD        actors;         // actor creation limit
     WORD        events;         // message-send event limit
     config_t *  config;         // configuration state
 } sponsor_t;
 
 #define SPONSOR_POOL(sponsor) ((sponsor)->pool)  // (sponsor_t *) -> (pool_t *)
+#define SPONSOR_MEMO(sponsor) ((sponsor)->memo)  // (sponsor_t *) -> (memo_t *)
 #define SPONSOR_CONFIG(sponsor) ((sponsor)->config)  // (sponsor_t *) -> (config_t *)
 #define SPONSOR_EVENT(sponsor) CONFIG_EVENT(SPONSOR_CONFIG(sponsor))  // (sponsor_t *) -> (event_t *)
 
-BYTE init_sponsor(sponsor_t * sponsor, pool_t * pool, WORD actors, WORD events);
+BYTE init_sponsor(sponsor_t * sponsor, pool_t * pool, memo_t * memo, WORD actors, WORD events);
 BYTE sponsor_shutdown(sponsor_t * sponsor);
 
 #endif // _SPONSOR_H_

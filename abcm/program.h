@@ -9,18 +9,13 @@
 extern BYTE bootstrap[];
 
 /*
-{
-    "kind": "sponsor",
-    "actors": <integer>,
-    "events": <integer>,
-    "script": [ ... ]
-}
-*/
-int run_actor_config(DATA_PTR spec);
-
-/*
 [
-    { "kind":"sponsor", ... },
+	{
+	    "kind": "sponsor",
+	    "actors": <integer>,
+	    "events": <integer>,
+	    "script": [ ... ]
+	},
     ...
 ]
 */

@@ -46,33 +46,7 @@ BYTE validate_value(DATA_PTR value) {
  * WARNING! All the `run_...` procedures return 0 on success, and 1 on failure. (not true/false)
  */
 
-int run_actor_config(DATA_PTR spec) {
-    assert(sponsor);
-    LOG_TRACE("run_actor_config @", (WORD)spec);
-    if (!validate_value(spec)) return 1;  // validate failed!
-    DATA_PTR value;
-    WORD actors = 0;
-    if (object_get(spec, s_actors, &value) && value_integer(value, &actors)) {
-        LOG_INFO("run_actor_config: actors =", actors);
-    }
-    WORD events = 0;
-    if (object_get(spec, s_events, &value) && value_integer(value, &events)) {
-        LOG_INFO("run_actor_config: events =", events);
-    }
-    DATA_PTR script;
-    if (!object_get(spec, s_script, &script)) {
-        LOG_WARN("run_actor_config: script required!", (WORD)spec);
-        return 1;  // script required!
-    }
-    LOG_INFO("run_actor_config: script =", (WORD)script);
-    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(script, 1));
-
-    // +1 to account for initial actor and event
-    if (!init_sponsor(sponsor, heap_pool, actors + 1, events + 1)) return false;  // allocation failure!
-    LOG_DEBUG("run_actor_config: sponsor =", (WORD)sponsor);
-    config_t * config = SPONSOR_CONFIG(sponsor);
-    LOG_DEBUG("run_actor_config: config =", (WORD)config);
-
+static int run_actor_config(config_t * config, DATA_PTR script) {
     /*
      * --WARNING-- THIS CODE HAS INTIMATE KNOWLEDGE OF THE ACTOR AND EVENT STRUCTURES
      */
@@ -102,9 +76,15 @@ int run_actor_config(DATA_PTR spec) {
 }
 
 int run_program(DATA_PTR program) {
-    LOG_INFO("bootstrap", (WORD)program);
-    sponsor_t * boot_sponsor = sponsor;  // save current global sponsor
-    if (!memo_reset()) return 1;  // memo reset failed!
+    LOG_INFO("run_program: program =", (WORD)program);
+    pool_t * pool = SPONSOR_POOL(sponsor);
+    if (!RESERVE((DATA_PTR *)&sponsor->memo, sizeof(memo_t))) {
+        LOG_WARN("run_program: failed allocation of memo structure!", (WORD)sizeof(memo_t));
+        return 1;  // failed allocation of memo structure!
+    }
+    memo_t * memo = SPONSOR_MEMO(sponsor);
+    if (!memo_init(memo)) return 1;  // memo init failed!
+    if (!validate_value(program)) return 1;  // validate failed!
     WORD count;
     if (!array_count(program, &count)) {
         LOG_WARN("run_program: top-level array required!", (WORD)program);
@@ -116,8 +96,11 @@ int run_program(DATA_PTR program) {
         LOG_WARN("run_program: failed allocation of sponsor group!", (WORD)count);
         return 1;  // failed allocation of sponsor group!
     }
+    sponsor_t * boot_sponsor = sponsor;  // save current global sponsor
+
     // create each sponsor from specification
     for (WORD i = 0; i < count; ++i) {
+        LOG_DEBUG("run_program: creating sponsor #", i);
         DATA_PTR spec;
         DATA_PTR kind;
         if (!array_get(program, i, &spec)
@@ -126,12 +109,36 @@ int run_program(DATA_PTR program) {
             LOG_WARN("run_program: sponsor object required!", (WORD)spec);
             return 1;  // sponsor object required!
         }
+        DATA_PTR value;
+        WORD actors = 0;
+        if (object_get(spec, s_actors, &value) && value_integer(value, &actors)) {
+            LOG_INFO("run_program: actors =", actors);
+        }
+        WORD events = 0;
+        if (object_get(spec, s_events, &value) && value_integer(value, &events)) {
+            LOG_INFO("run_program: events =", events);
+        }
+        DATA_PTR script;
+        if (!object_get(spec, s_script, &script)) {
+            LOG_WARN("run_program: script required!", (WORD)spec);
+            return 1;  // script required!
+        }
+        LOG_INFO("run_program: script =", (WORD)script);
+        IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(script, 1));
+
         sponsor = &sponsor_group[i];  // set global sponsor
-        if (run_actor_config(spec) != 0) {
+        // +1 to account for initial actor and event
+        if (!init_sponsor(sponsor, pool, memo, actors + 1, events + 1)) return false;  // allocation failure!
+        LOG_DEBUG("run_program: sponsor =", (WORD)sponsor);
+        config_t * config = SPONSOR_CONFIG(sponsor);
+        LOG_DEBUG("run_program: config =", (WORD)config);
+        if (run_actor_config(config, script) != 0) {
             LOG_WARN("run_program: actor configuration failed!", (WORD)spec);
             return 1;  // configuration failed!
         }
+        sponsor = boot_sponsor;  // restore previous global sponsor
     }
+
     // round-robin scheduling to each sponsor for message dispatching
     BYTE working = true;
     while (working) {
@@ -140,7 +147,7 @@ int run_program(DATA_PTR program) {
             sponsor = &sponsor_group[i];  // set global sponsor
             config_t * config = SPONSOR_CONFIG(sponsor);
             if (config) {  // config is cleared by shutdown...
-                LOG_INFO("dispatching sponsor", (WORD)sponsor);
+                LOG_INFO("run_program: dispatching sponsor", (WORD)sponsor);
                 // dispatch message-events
                 if (config_dispatch(config)) {
                     working = true;  // still working...
@@ -151,13 +158,18 @@ int run_program(DATA_PTR program) {
             }
         }
     }
+
     // clean up and prepare to exit
+    sponsor = boot_sponsor;  // restore previous global sponsor
+    LOG_DEBUG("run_program: boot_sponsor =", (WORD)sponsor);
     if (!RELEASE((DATA_PTR *)&sponsor_group)) {
         LOG_WARN("run_program: failed to release sponsor group!", (WORD)sponsor_group);
         return 1;  // failed to release sponsor group!
     }
-    sponsor = boot_sponsor;  // restore previous global sponsor
-    LOG_DEBUG("run_program: boot_sponsor =", (WORD)sponsor);
-    if (!memo_reset()) return 1;  // memo reset failed!
+    LOG_INFO("run_program: final memo index =", MEMO_INDEX(memo));
+    if (!RELEASE((DATA_PTR *)&sponsor->memo)) {
+        LOG_WARN("run_program: failed to release memo structure!", (WORD)memo);
+        return 1;  // failed to release memo structure!
+    }
     return 0;  // success
 }

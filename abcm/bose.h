@@ -102,9 +102,19 @@ Manage the memo table during a linear parse of a top-level BOSE value.
 There is no allcation because memoized values are referenced in place.
 This implies that the entire top-level value must persist during parsing.
 **/
-BYTE memo_reset();  // reset memo table between top-level values
-DATA_PTR memo_get(BYTE index);  // get memo table entry at index
-BYTE memo_add(parse_t * parse);  // add parsed String to memo table
+typedef struct {
+    DATA_PTR    table[1<<8];    // pointers to memoized values
+    BYTE        index;          // index of next memo slot to use
+    BYTE        freeze;         // stop accepting memo table additions
+} memo_t;
+
+#define MEMO_INDEX(memo) ((memo)->index)  // (memo_t *) -> (BYTE)
+#define MEMO_FREEZE(memo) ((memo)->freeze)  // (memo_t *) -> (BYTE)
+
+BYTE memo_init(memo_t * memo);  // initialize memo structure to parse a new top-level value
+//BYTE memo_reset();  // reset memo table between top-level values
+DATA_PTR memo_get(memo_t * memo, BYTE index);  // get memo table entry at index
+BYTE memo_add(memo_t * memo, parse_t * parse);  // add parsed String to memo table
 
 /**
 Input:

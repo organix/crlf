@@ -832,7 +832,6 @@ static int test_C_platform() {
 }
 
 int run_test_suite() {
-    if (!memo_reset()) return 1;  // memo reset failed!
     return test_C_platform()
         || test_bytecode_types()
         || test_parse_integer()
