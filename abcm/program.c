@@ -22,13 +22,20 @@
 /*
  * include actor-byte-code bootstrap program...
  */
+BYTE bootstrap[] = {
 //#include "hello_world.abc"
 //#include "basic_scope.abc"
 //#include "fail_example.abc"
 #include "two_sponsor.abc"
 //#include "stream_reader.abc"
 //#include "lambda_calculus.abc"
+};
 
+#if 1
+BYTE boot2nd[] = {
+#include "fail_example.abc"
+};
+#endif
 
 BYTE validate_value(DATA_PTR value) {
     LOG_INFO("validate_value @", (WORD)value);

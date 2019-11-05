@@ -116,6 +116,11 @@ int run_abcm() {  // ok == 0, fail != 0
     if (!device_startup()) return -1;  // device startup failed!
     result = run_program(bootstrap);  // pass == 0, fail != 0
     if (result) return result;
+#if 1
+    extern BYTE boot2nd[];
+    result = run_program(boot2nd);  // pass == 0, fail != 0
+    if (result) return result;
+#endif
     if (!device_shutdown()) return -1;  // device shutdown failed!
     if (!sponsor_shutdown(sponsor)) return 1;  // shutdown failure!
     if (!RELEASE_FROM(heap_pool, (DATA_PTR *)&sponsor)) return 1;  // reclamation failure!
