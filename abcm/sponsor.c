@@ -174,10 +174,14 @@ BYTE config_dispatch(config_t * config) {
         return false;  // script required!
     }
     // execute script using temporary memory pool
-    pool_t * sponsor_pool = SPONSOR_POOL(sponsor);
+    pool_t * sponsor_pool = SPONSOR_POOL(sponsor);  // remember original sponsor pool
     //assert(SPONSOR_POOL(sponsor) == CONFIG_POOL(config));
+#if STATIC_TEMP_POOL_SIZE
+    sponsor->pool = clear_temp_pool();
+#else
 #if EVENT_TEMP_POOL_SIZE
     sponsor->pool = new_temp_pool(CONFIG_POOL(config), EVENT_TEMP_POOL_SIZE);
+#endif
 #endif
     LOG_DEBUG("config_dispatch: temp_pool =", (WORD)SPONSOR_POOL(sponsor));
     if (!SPONSOR_POOL(sponsor)) {
@@ -189,11 +193,16 @@ BYTE config_dispatch(config_t * config) {
     value_print_limit(script, 1, 2);
 #endif
     BYTE ok = config_script_exec(config, event, script);
+#if STATIC_TEMP_POOL_SIZE
+    RELEASE_ALL(sponsor->pool);
+    sponsor->pool = NULL;
+#else
 #if EVENT_TEMP_POOL_SIZE
     RELEASE_ALL(sponsor->pool);
     RELEASE_FROM(CONFIG_POOL(config), (DATA_PTR *)&sponsor->pool);
 #endif
-    sponsor->pool = sponsor_pool;
+#endif
+    sponsor->pool = sponsor_pool;  // restore original sponsor pool
     if (!RELEASE(&event->message)) return false;  // reclamation failure!
     LOG_DEBUG("config_dispatch: event completed.", (WORD)event);
     return ok;

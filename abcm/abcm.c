@@ -46,7 +46,6 @@ int run_abcm() {  // ok == 0, fail != 0
     //log_config.level = LOG_LEVEL_WARN;
     //log_config.level = LOG_LEVEL_DEBUG;
     //log_config.level = LOG_LEVEL_TRACE;
-    //log_config.level = LOG_LEVEL_TRACE+2;
 
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
     LOG_INFO(_semver, (WORD)_semver);
@@ -60,9 +59,10 @@ int run_abcm() {  // ok == 0, fail != 0
     assert(audit_check_leaks() == 0);  // the test suite should not leak memory.
 
     // establish (global) bootstrap sponsor
-    //log_config.level = LOG_LEVEL_WARN;
-    log_config.level = LOG_LEVEL_DEBUG;
+    log_config.level = LOG_LEVEL_WARN;
+    //log_config.level = LOG_LEVEL_DEBUG;
     //log_config.level = LOG_LEVEL_TRACE;
+    //log_config.level = LOG_LEVEL_TRACE+1;
     //log_config.level = LOG_LEVEL_TRACE+2;
 #if REF_COUNTED_BOOT_SPONSOR
     pool_t * pool = new_ref_pool(heap_pool);

@@ -10,6 +10,8 @@
 #define FULL_AUDIT_DUMP 1 /* report ALL allocations, not just the leaks... */
 #define SCRIBBLE_ON_FREE 1 /* write null (0xFF) on memory before releasing it */
 
+#define STATIC_TEMP_POOL_SIZE (1 << 16)  /* if this is 0, static temp_pool is not used. */
+
 #if AUDIT_ALLOCATION
 #define RESERVE_FROM(pool,dpp,size) audit_reserve(__FILE__, __LINE__, (pool), (dpp), (size))
 #define COPY_INTO(pool,to_dpp,from_dp) audit_copy(__FILE__, __LINE__, (pool), (to_dpp), (from_dp))
@@ -47,7 +49,12 @@ typedef struct pool_struct {
 extern pool_t * heap_pool;  // globally-available explicit reserve/release pool
 
 pool_t * new_ref_pool(pool_t * parent/*, WORD size*/);  // create reference-counted memory pool
+#if STATIC_TEMP_POOL_SIZE
+//extern pool_t * temp_pool;  // globally-available temporary working-memory pool
+pool_t * clear_temp_pool();  // reset static temp_pool to empty-state
+#else
 pool_t * new_temp_pool(pool_t * parent, WORD size);  // create temporary working-memory pool
+#endif
 
 BYTE audit_reserve(char * _file_, int _line_, pool_t * pool, DATA_PTR * data, WORD size);
 BYTE audit_copy(char * _file_, int _line_, pool_t * pool, DATA_PTR * data, DATA_PTR value);

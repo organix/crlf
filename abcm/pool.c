@@ -147,7 +147,7 @@ static BYTE ref_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "ref_pool_copy: value =", (WORD)value);
     ref_mem_t ** prev;
     if (!find_ref_mem(THIS, value, &prev)) {  // not allocated from this pool!
-        LOG_WARN("ref_pool_copy: not allocated from this pool, copy-in...", (WORD)value);
+        LOG_DEBUG("ref_pool_copy: not allocated from this pool, copy-in...", (WORD)value);
         return generic_pool_copy(pool, data, value);  // copy-in...
     }
     ref_mem_t * mem = ((ref_mem_t *)value) - 1;  // ref_mem_t structure preceeds allocation
@@ -212,7 +212,7 @@ typedef struct {
     pool_t      pool;           // super-type member (MUST BE FIRST!)
     WORD        size;           // size of managed memory (in bytes)
     WORD        offset;         // offset to next available allocation
-    BYTE        memory[];       // managed memory follows header...
+    BYTE        memory[0];      // managed memory follows header... (0-size allows static wrapper declaration)
 } temp_pool_t;
 
 static BYTE temp_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
@@ -249,7 +249,23 @@ static pool_vt temp_pool_vtable = {
     .copy = generic_pool_copy,
     .release = temp_pool_release,
 };
+#if STATIC_TEMP_POOL_SIZE
+static struct {
+    pool_t      pool;           // super-type member (MUST BE FIRST!)
+    temp_pool_t temp_pool;      // temp_pool header with memory[0]
+    BYTE        memory[STATIC_TEMP_POOL_SIZE];  // staticly initialized memory[]
+} temp_pool_wrapper = {
+    .temp_pool.pool.vtable = &temp_pool_vtable,
+    .temp_pool.size = STATIC_TEMP_POOL_SIZE,
+    .temp_pool.offset = 0,
+};
+temp_pool_t * temp_pool = &temp_pool_wrapper.temp_pool;
 
+pool_t * clear_temp_pool() {
+    temp_pool->offset = 0;
+    return &temp_pool->pool;
+}
+#else
 pool_t * new_temp_pool(pool_t * parent, WORD size) {
     temp_pool_t * THIS;
     if (!RESERVE_FROM(parent, (DATA_PTR *)&THIS, sizeof(temp_pool_t) + size)) {
@@ -261,6 +277,7 @@ pool_t * new_temp_pool(pool_t * parent, WORD size) {
     LOG_DEBUG("new_temp_pool: created", size);
     return &THIS->pool;
 }
+#endif
 
 /*
  * polymorphic method calls
@@ -348,7 +365,7 @@ BYTE audit_release(char * _file_, int _line_, pool_t * pool, DATA_PTR * data) {
     int index = audit_index;
     while (index > 0) {
         alloc_audit_t * history = &audit_history[--index];
-        if (history->address == address) {
+        if ((history->address == address) && (history->release._file_ == NULL)) {
             if (history->pool != pool) {
                 LOG_WARN("audit_release: WRONG POOL!", (WORD)pool);
                 IF_WARN(fprintf(stdout, "%p[%d] from %p %s:%d -> %s:%d\n",
