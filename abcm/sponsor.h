@@ -9,7 +9,7 @@
 #include "event.h"
 
 #define ANNOTATE_DELIVERY 1 /* display each actor-message delivery event dispatched */
-#define ANNOTATE_BEHAVIOR 0 /* display the behavior of each actor on delivery */
+#define ANNOTATE_BEHAVIOR 1 /* display the behavior of each actor on delivery */
 
 #define REF_COUNTED_BOOT_SPONSOR 1 /* use ref_pool for boot_sponsor allocations (incl. memo) */
 #define EVENT_TEMP_POOL_SIZE (1 << 16)  /* if this is 0, temp_pool is not used. */

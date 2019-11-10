@@ -447,6 +447,13 @@ int audit_check_leaks() {
                 history->reserve._file_, history->reserve._line_));
             ++count;
             leaked += history->size;
+#if FULL_AUDIT_DUMP
+        } else {
+            IF_WARN(fprintf(stdout, "freed %p[%d] from %p %s:%d -> %s:%d\n",
+                history->address, (int)history->size, history->pool,
+                history->reserve._file_, history->reserve._line_,
+                history->release._file_, history->release._line_));
+#endif
         }
         total += history->size;
     }

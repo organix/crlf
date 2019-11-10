@@ -21,15 +21,15 @@ char * _semver = "0.0.7";
  * include actor-byte-code bootstrap program...
  */
 BYTE bootstrap[] = {
-#include "hello_world.abc"
+//#include "hello_world.abc"
 //#include "basic_scope.abc"
 //#include "fail_example.abc"
-//#include "two_sponsor.abc"
+#include "two_sponsor.abc"
 //#include "stream_reader.abc"
 //#include "lambda_calculus.abc"
 };
 
-#define LOAD_2ND_PROGRAM 0 /* test loading of multiple top-level programs */
+#define LOAD_2ND_PROGRAM 1 /* test loading of multiple top-level programs */
 #if LOAD_2ND_PROGRAM
 BYTE boot2nd[] = {
 //#include "hello_world.abc"
@@ -73,6 +73,7 @@ int run_abcm() {  // ok == 0, fail != 0
 #endif
     if (!boot_sponsor) return 1;  // allocation failure!
     sponsor = boot_sponsor;  // set global sponsor
+    TRACK(boot_sponsor);  // WARNING! can't TRACK until `sponsor` is set...
     if (!device_startup()) return -1;  // device startup failed!
     if (!load_program(bootstrap)) {
         LOG_WARN("run_abcm: load_program failed!", (WORD)bootstrap);
@@ -89,7 +90,13 @@ int run_abcm() {  // ok == 0, fail != 0
     }
     sponsor = boot_sponsor;  // restore previous global sponsor
     if (!device_shutdown()) return -1;  // device shutdown failed!
+#if REF_COUNTED_BOOT_SPONSOR
+    assert(pool == SPONSOR_POOL(sponsor));
     if (!sponsor_release(&sponsor)) return 1;  // reclamation failure!
+    if (!RELEASE_FROM(heap_pool, (DATA_PTR *)&pool)) return 1;  // reclamation failure!
+#else
+    if (!sponsor_release(&sponsor)) return 1;  // reclamation failure!
+#endif
 #if 1
     assert(audit_check_leaks() == 0);
 #else
