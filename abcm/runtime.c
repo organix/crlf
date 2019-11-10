@@ -96,7 +96,7 @@ static BYTE array_eval(event_t * event, DATA_PTR exprs, DATA_PTR * result) {
         DATA_PTR value;
         if (!actor_eval(event, expression, &value)) {
             LOG_WARN("array_eval: bad expression!", (WORD)expression);
-            IF_WARN(value_print(expression, 0));
+            IF_WARN(value_print_limit(expression, 0, 2));
             return false;  // evaluation failed!
         }
         if (!array_add(array, value, i, &array)) return false;  // allocation failure!
@@ -104,7 +104,7 @@ static BYTE array_eval(event_t * event, DATA_PTR exprs, DATA_PTR * result) {
     }
     *result = array;
     LOG_DEBUG("array_eval: result @", (WORD)*result);
-    IF_DEBUG(value_print(*result, 0));
+    IF_DEBUG(value_print_limit(*result, 0, 2));
     return true;  // success!
 }
 
@@ -119,11 +119,11 @@ static BYTE op_1_eval(event_t * event, DATA_PTR exprs, DATA_PTR * x) {
     DATA_PTR result;
     if (!array_eval(event, exprs, &result)) {
         LOG_WARN("op_1_eval: argument evaluation failed!", (WORD)exprs);
-        IF_WARN(value_print(exprs, 0));
+        IF_WARN(value_print_limit(exprs, 0, 2));
         return false;  // evaluation failed!
     }
     LOG_TRACE("op_1_eval: result @", (WORD)result);
-    IF_TRACE(value_print(result, 0));
+    IF_TRACE(value_print_limit(result, 0, 1));
     if (!array_get(result, 0, x)) return false;  // x value required!
     return true;  // success!
 }
@@ -139,11 +139,11 @@ static BYTE op_2_eval(event_t * event, DATA_PTR exprs, DATA_PTR * x, DATA_PTR * 
     DATA_PTR result;
     if (!array_eval(event, exprs, &result)) {
         LOG_WARN("op_2_eval: argument evaluation failed!", (WORD)exprs);
-        IF_WARN(value_print(exprs, 0));
+        IF_WARN(value_print_limit(exprs, 0, 2));
         return false;  // evaluation failed!
     }
     LOG_TRACE("op_2_eval: result @", (WORD)result);
-    IF_TRACE(value_print(result, 0));
+    IF_TRACE(value_print_limit(result, 0, 1));
     if (!array_get(result, 0, x)) return false;  // x value required!
     if (!array_get(result, 1, y)) return false;  // y value required!
     return true;  // success!
@@ -359,7 +359,7 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
     LOG_TRACE("actor_eval: expression", (WORD)expression);
     IF_DEBUG({
         prints("  ");
-        value_print(expression, 0);
+        value_print_limit(expression, 0, 2);
     });
     DATA_PTR kind;
     if (!object_get(expression, s_kind, &kind)) {
@@ -494,7 +494,7 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
     LOG_TRACE("actor_eval: result", (WORD)(*result));
     IF_DEBUG({
         prints("  -> ");
-        value_print(*result, 0);
+        value_print_limit(*result, 0, 1);
     });
     return true;  // success!
 }
@@ -502,7 +502,7 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
 // execute actor command (action -> effects)
 BYTE actor_exec(event_t * event, DATA_PTR command) {
     LOG_DEBUG("actor_exec: command", (WORD)command);
-    IF_DEBUG(value_print(command, 1));
+    IF_DEBUG(value_print_limit(command, 1, 2));
     DATA_PTR kind;
     if (!object_get(command, s_kind, &kind)) {
         LOG_WARN("actor_exec: missing 'kind' property", (WORD)command);
@@ -586,7 +586,7 @@ BYTE actor_exec(event_t * event, DATA_PTR command) {
         DATA_PTR error;
         if (!property_eval(event, command, s_error, &error)) {
             LOG_INFO("actor_exec: DOUBLE-FAULT!", (WORD)command);
-            IF_WARN(value_print(command, 0));
+            IF_WARN(value_print_limit(command, 0, 2));
             return false;  // evaluation failed!
         }
         LOG_WARN("actor_exec: FAIL!", (WORD)error);
@@ -609,7 +609,7 @@ BYTE actor_exec(event_t * event, DATA_PTR command) {
 // execute actor script (array of commands)
 BYTE script_exec(event_t * event, DATA_PTR script) {
     LOG_TRACE("script_exec: script =", (WORD)script);
-    IF_TRACE(value_print(script, 1));
+    IF_TRACE(value_print_limit(script, 1, 2));
     WORD count;
     if (!array_count(script, &count)) {
         LOG_WARN("script_exec: script array required!", (WORD)script);

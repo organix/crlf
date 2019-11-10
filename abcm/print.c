@@ -274,15 +274,18 @@ static BYTE string_print(parse_t * parse) {
     return true;  // success!
 }
 
-static BYTE array_print(parse_t * parse, WORD indent) {
+static BYTE array_print(parse_t * parse, WORD indent, WORD limit) {
     // print parsed value known to be an Array
     assert(parse->start < (parse->end - parse->value));
     set_color(PUNCT_COLOR);
     print('[');
-    if (parse->value == 0) {  // empty array short-cut
+    if ((parse->value == 0) || (limit < 1)) {  // empty/elided array short-cut
+        if (parse->value > 0) {
+            prints("...");
+        }
         print(']');
         clear_color();
-#if HEXDUMP_ANNOTATION
+#if 0 && HEXDUMP_ANNOTATION
         if (indent) {
             set_color(DUMP_COLOR);
             prints("  //");
@@ -312,13 +315,13 @@ static BYTE array_print(parse_t * parse, WORD indent) {
             LOG_WARN("array_print: bad element value", item_parse.start);
             return false;  // bad element value
         }
-        if (!parse_print(&item_parse, indent)) return false;  // print failed!
+        if (!parse_print_limit(&item_parse, indent, limit - 1)) return false;  // print failed!
         if (item_parse.end < item_parse.size) {
             set_color(PUNCT_COLOR);
             print(',');
             clear_color();
 #if HEXDUMP_ANNOTATION
-            if (indent && ((item_parse.prefix < 0x02) || (item_parse.prefix > 0x07))) {  // not Arrays or Objects
+            if (indent) {// && ((item_parse.prefix < 0x02) || (item_parse.prefix > 0x07))) {  // not Arrays or Objects
                 set_color(DUMP_COLOR);
                 prints("  //");
                 hex_dump(item_parse.base + item_parse.start, item_parse.end - item_parse.start);
@@ -327,7 +330,7 @@ static BYTE array_print(parse_t * parse, WORD indent) {
 #endif
             space(indent);
 #if HEXDUMP_ANNOTATION
-        } else if (indent && ((item_parse.prefix < 0x02) || (item_parse.prefix > 0x07))) {  // not Arrays or Objects
+        } else if (indent) {// && ((item_parse.prefix < 0x02) || (item_parse.prefix > 0x07))) {  // not Arrays or Objects
             set_color(DUMP_COLOR);
             prints("  //");
             hex_dump(item_parse.base + item_parse.start, item_parse.end - item_parse.start);
@@ -345,15 +348,18 @@ static BYTE array_print(parse_t * parse, WORD indent) {
     return true;  // success!
 }
 
-static BYTE object_print(parse_t * parse, WORD indent) {
+static BYTE object_print(parse_t * parse, WORD indent, WORD limit) {
     // print parsed value known to be an Object
     assert(parse->start < (parse->end - parse->value));
     set_color(PUNCT_COLOR);
     print('{');
-    if (parse->value == 0) {  // empty object short-cut
+    if ((parse->value == 0) || (limit < 1)) {  // empty/elided object short-cut
+        if (parse->value > 0) {
+            prints("...");
+        }
         print('}');
         clear_color();
-#if HEXDUMP_ANNOTATION
+#if 0 && HEXDUMP_ANNOTATION
         if (indent) {
             set_color(DUMP_COLOR);
             prints("  //");
@@ -397,13 +403,13 @@ static BYTE object_print(parse_t * parse, WORD indent) {
             LOG_WARN("object_print: bad property value", prop_parse.start);
             return false;  // bad property value
         }
-        if (!parse_print(&prop_parse, indent)) return false;  // print failed!
+        if (!parse_print_limit(&prop_parse, indent, limit - 1)) return false;  // print failed!
         if (prop_parse.end < prop_parse.size) {
             set_color(PUNCT_COLOR);
             print(',');
             clear_color();
 #if HEXDUMP_ANNOTATION
-            if (indent && ((prop_parse.prefix < 0x02) || (prop_parse.prefix > 0x07))) {  // not Arrays or Objects
+            if (indent) {// && ((prop_parse.prefix < 0x02) || (prop_parse.prefix > 0x07))) {  // not Arrays or Objects
                 set_color(DUMP_COLOR);
                 prints("  //");
                 hex_dump(prop_parse.base + prop_parse.start, prop_parse.end - prop_parse.start);
@@ -412,7 +418,7 @@ static BYTE object_print(parse_t * parse, WORD indent) {
 #endif
             space(indent);
 #if HEXDUMP_ANNOTATION
-        } else if (indent && ((prop_parse.prefix < 0x02) || (prop_parse.prefix > 0x07))) {  // not Arrays or Objects
+        } else if (indent) {// && ((prop_parse.prefix < 0x02) || (prop_parse.prefix > 0x07))) {  // not Arrays or Objects
             set_color(DUMP_COLOR);
             prints("  //");
             hex_dump(prop_parse.base + prop_parse.start, prop_parse.end - prop_parse.start);
@@ -430,9 +436,9 @@ static BYTE object_print(parse_t * parse, WORD indent) {
     return true;  // success!
 }
 
-BYTE parse_print(parse_t * parse, WORD indent) {
-    LOG_TRACE("parse_print @", (WORD)parse);
-    //DUMP_PARSE("parse_print", parse);
+BYTE parse_print_limit(parse_t * parse, WORD indent, WORD limit) {
+    LOG_TRACE("parse_print_limit @", (WORD)parse);
+    //DUMP_PARSE("parse_print_limit", parse);
     switch (parse->type & T_Base) {
         case T_Null: {
             return null_print(parse);
@@ -447,27 +453,31 @@ BYTE parse_print(parse_t * parse, WORD indent) {
             return string_print(parse);
         }
         case T_Array: {
-            return array_print(parse, indent);
+            return array_print(parse, indent, limit);
         }
         case T_Object: {
-            return object_print(parse, indent);
+            return object_print(parse, indent, limit);
         }
         default: {
-            LOG_WARN("parse_print: bad type", (parse->type & T_Base));
+            LOG_WARN("parse_print_limit: bad type", (parse->type & T_Base));
             return false;  // bad type
         }
     }
     return true;  // success!
 }
 
-BYTE value_print(DATA_PTR value, WORD indent) {
-    LOG_TRACE("value_print @", (WORD)value);
+BYTE parse_print(parse_t * parse, WORD indent) {
+    return parse_print_limit(parse, indent, MAX_WORD);
+}
+
+BYTE value_print_limit(DATA_PTR value, WORD indent, WORD limit) {
+    LOG_TRACE("value_print_limit @", (WORD)value);
     parse_t parse;
     if (!value_parse(value, &parse)) {
-        LOG_WARN("value_print: bad value", (WORD)value);
+        LOG_WARN("value_print_limit: bad value", (WORD)value);
         return false;  // bad value
     }
-    BYTE ok = parse_print(&parse, indent);
+    BYTE ok = parse_print_limit(&parse, indent, limit);
 #if HEXDUMP_ANNOTATION
     if (indent && ((parse.prefix < 0x02) || (parse.prefix > 0x07))) {  // not Arrays or Objects
         set_color(DUMP_COLOR);
@@ -479,3 +489,7 @@ BYTE value_print(DATA_PTR value, WORD indent) {
     newline();
     return ok;
 };
+
+BYTE value_print(DATA_PTR value, WORD indent) {
+    return value_print_limit(value, indent, MAX_WORD);
+}

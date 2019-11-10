@@ -7,6 +7,7 @@
 #include "bose.h"
 
 #define AUDIT_ALLOCATION 1 /* track reserve/release calls to check for leaks */
+#define SCRIBBLE_ON_FREE 1 /* write null (0xFF) on memory before releasing it */
 
 #if AUDIT_ALLOCATION
 #define RESERVE_FROM(pool,dpp,size) audit_reserve(__FILE__, __LINE__, (pool), (dpp), (size))
@@ -42,8 +43,9 @@ typedef struct pool_struct {
     pool_vt *   vtable;
 } pool_t;
 
-extern pool_t * heap_pool;  // explicit reserve/release pool
+extern pool_t * heap_pool;  // globally-available explicit reserve/release pool
 
+pool_t * new_ref_pool(pool_t * parent/*, WORD size*/);  // create reference-counted memory pool
 pool_t * new_temp_pool(pool_t * parent, WORD size);  // create temporary working-memory pool
 
 BYTE audit_reserve(char * _file_, int _line_, pool_t * pool, DATA_PTR * data, WORD size);

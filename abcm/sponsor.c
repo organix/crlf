@@ -53,9 +53,9 @@ BYTE config_create(config_t * config, scope_t * parent, DATA_PTR state, DATA_PTR
         return false;  // no more actors!
     }
     LOG_TRACE("config_create: state =", (WORD)state);
-    IF_TRACE(value_print(state, 0));
+    IF_TRACE(value_print_limit(state, 0, 2));
     LOG_TRACE("config_create: behavior =", (WORD)behavior);
-    IF_TRACE(value_print(behavior, 0));
+    IF_TRACE(value_print_limit(behavior, 0, 2));
     WORD ocap = --config->actors;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_create: ocap =", ocap);
     actor_t * actor = &config->actor[ocap];
@@ -166,31 +166,34 @@ BYTE config_dispatch(config_t * config) {
     IF_DEBUG(value_print(ACTOR_SELF(actor), 1));
 #endif
     DATA_PTR behavior = ACTOR_BEHAVIOR(actor);
+    LOG_TRACE("config_dispatch: behavior =", (WORD)behavior);
+    IF_TRACE(value_print_limit(behavior, 0, 2));
     DATA_PTR script;
     if (!object_get(behavior, s_script, &script)) {
         LOG_WARN("config_dispatch: script required!", (WORD)behavior);
         return false;  // script required!
     }
     // execute script using temporary memory pool
-    assert(SPONSOR_POOL(sponsor) == CONFIG_POOL(config));
+    pool_t * sponsor_pool = SPONSOR_POOL(sponsor);
+    //assert(SPONSOR_POOL(sponsor) == CONFIG_POOL(config));
 #if EVENT_TEMP_POOL_SIZE
     sponsor->pool = new_temp_pool(CONFIG_POOL(config), EVENT_TEMP_POOL_SIZE);
 #endif
     LOG_DEBUG("config_dispatch: temp_pool =", (WORD)SPONSOR_POOL(sponsor));
     if (!SPONSOR_POOL(sponsor)) {
-        sponsor->pool = CONFIG_POOL(config);
+        sponsor->pool = sponsor_pool;
         return false;  // out-of-memory
     }
 #if ANNOTATE_BEHAVIOR
     prints("BEH: ");
-    value_print(script, 1);
+    value_print_limit(script, 1, 2);
 #endif
     BYTE ok = config_script_exec(config, event, script);
 #if EVENT_TEMP_POOL_SIZE
     RELEASE_ALL(sponsor->pool);
     RELEASE_FROM(CONFIG_POOL(config), (DATA_PTR *)&sponsor->pool);
 #endif
-    sponsor->pool = CONFIG_POOL(config);
+    sponsor->pool = sponsor_pool;
     if (!RELEASE(&event->message)) return false;  // reclamation failure!
     LOG_DEBUG("config_dispatch: event completed.", (WORD)event);
     return ok;
@@ -365,7 +368,12 @@ sponsor_t * new_sponsor(pool_t * pool, memo_t * memo, WORD actors, WORD events) 
     sponsor->memo = memo;
     sponsor->actors = actors;
     sponsor->events = events;
-    sponsor->config = new_config(pool, actors, events);
+#if REF_COUNTED_BOOT_SPONSOR
+    sponsor->config = new_config(pool, actors, events);  // allocate config from same pool as sponsor
+    //sponsor->config = new_config(heap_pool, actors, events);  // switch to heap-pool for config allocations
+#else
+    sponsor->config = new_config(pool, actors, events);  // allocate config from same pool as sponsor
+#endif
     if (!SPONSOR_CONFIG(sponsor)) return NULL;  // allocation failure!
     sponsor->next = NULL;
     LOG_DEBUG("new_sponsor: sponsor =", (WORD)sponsor);

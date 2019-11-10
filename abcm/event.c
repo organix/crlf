@@ -53,7 +53,7 @@ BYTE scope_lookup_binding(scope_t * scope, DATA_PTR name, DATA_PTR * value) {
             break;
         }
         LOG_TRACE("scope_lookup_binding: searching scope", (WORD)SCOPE_STATE(scope));
-        IF_TRACE(value_print(SCOPE_STATE(scope), 1));
+        IF_TRACE(value_print_limit(SCOPE_STATE(scope), 1, 1));
     }
     LOG_DEBUG("scope_lookup_binding: value =", (WORD)*value);
     return true;  // success
@@ -68,12 +68,12 @@ BYTE scope_update_binding(scope_t * scope, DATA_PTR name, DATA_PTR value) {
     LOG_TRACE("scope_update_binding @", (WORD)scope);
     LOG_TRACE("scope_update_binding: name =", (WORD)name);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "scope_update_binding: state =", (WORD)SCOPE_STATE(scope));
-    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(SCOPE_STATE(scope), 1));
+    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print_limit(SCOPE_STATE(scope), 1, 2));
     DATA_PTR state;
     if (!object_add(SCOPE_STATE(scope), name, value, &state)) return false;  // allocation failure!
     scope->state = TRACK(state);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "scope_update_binding: state' =", (WORD)SCOPE_STATE(scope));
-    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(SCOPE_STATE(scope), 1));
+    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print_limit(SCOPE_STATE(scope), 1, 2));
     LOG_DEBUG("scope_update_binding: value =", (WORD)value);
     return true;  // success
 }
@@ -93,7 +93,7 @@ BYTE effect_init(effect_t * effect, actor_t * target, WORD actors, WORD events) 
     scope->parent = ACTOR_SCOPE(target);
     scope->state = o_;
     LOG_DEBUG("effect_init: state =", (WORD)SCOPE_STATE(scope));
-    IF_TRACE(value_print(SCOPE_STATE(scope), 1));
+    IF_TRACE(value_print_limit(SCOPE_STATE(scope), 1, 2));
     effect->error = NULL;
     return true;  // success
 }
@@ -125,7 +125,7 @@ BYTE effect_send(effect_t * effect, DATA_PTR address, DATA_PTR message) {
         LOG_DEBUG("effect_send: address =", (WORD)address);
         IF_TRACE(value_print(address, 1));
         LOG_DEBUG("effect_send: message =", (WORD)message);
-        IF_TRACE(value_print(message, 1));
+        IF_TRACE(value_print_limit(message, 1, 1));
     }
     return ok;
 }
@@ -137,7 +137,7 @@ BYTE effect_send(effect_t * effect, DATA_PTR address, DATA_PTR message) {
 BYTE effect_become(effect_t * effect, DATA_PTR behavior) {
     LOG_DEBUG("effect_become: behavior =", (WORD)behavior);
     effect->behavior = behavior;
-    IF_TRACE(value_print(behavior, 0));
+    IF_TRACE(value_print_limit(behavior, 0, 2));
     return true;  // success
 }
 
@@ -151,7 +151,7 @@ BYTE effect_assign(effect_t * effect, DATA_PTR name, DATA_PTR value) {
         LOG_DEBUG("effect_assign: name =", (WORD)name);
         IF_TRACE(value_print(name, 1));
         LOG_DEBUG("effect_assign: value =", (WORD)value);
-        IF_TRACE(value_print(value, 0));
+        IF_TRACE(value_print_limit(value, 0, 1));
     }
     return ok;
 }
@@ -163,6 +163,6 @@ BYTE effect_assign(effect_t * effect, DATA_PTR name, DATA_PTR value) {
 BYTE effect_fail(effect_t * effect, DATA_PTR error) {
     LOG_DEBUG("effect_fail: error =", (WORD)error);
     effect->error = error;
-    IF_TRACE(value_print(error, 1));
+    IF_TRACE(value_print_limit(error, 1, 2));
     return true;  // success!
 }

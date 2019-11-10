@@ -2,6 +2,9 @@
  * pool.c -- memory management pools
  */
 #include <assert.h>
+#include <stddef.h>  // for NULL, size_t, et. al.
+#include <stdlib.h>  // for malloc, et. al.
+#include <string.h>  // for memcpy, et. al.
 
 #include "pool.h"
 #include "bose.h"
@@ -14,8 +17,6 @@
 /*
  * generic allocator methods
  */
-
-#include <string.h>  // for memcpy, et. al.
 
 static BYTE generic_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "generic_pool_copy: value =", (WORD)value);
@@ -36,33 +37,45 @@ static BYTE generic_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
  * standard heap-memory allocator
  */
 
-#include <stddef.h>  // for NULL, size_t, et. al.
-#include <stdlib.h>  // for malloc, et. al.
-//#include <assert.h>
-
 typedef struct {
-    pool_t      pool;           // super-type member
+    pool_t      pool;           // super-type member (MUST BE FIRST!)
+    //ref_mem_t * used;           // used-memory chain
 } heap_pool_t;
+
+typedef struct heap_mem_struct {
+    //ref_mem_t * link;           // link for chaining allocation records
+    WORD        size;           // allocation size
+    BYTE        data[];         // data follows header...
+} heap_mem_t;
 
 static BYTE heap_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
     //heap_pool_t * THIS = (heap_pool_t *)pool;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "heap_pool_reserve: size =", size);
-    VOID_PTR p = malloc(size);
-    *data = p;  // stomp on data either way!
-    LOG_LEVEL(LOG_LEVEL_TRACE+1, "heap_pool_reserve: data @", (WORD)(*data));
-    BYTE ok = (p != NULL);
-    if (!ok) {
+    *data = NULL;  // stomp on data either way!
+    heap_mem_t * mem = (heap_mem_t *)malloc(sizeof(heap_mem_t) + size);
+    BYTE ok = (mem != NULL);
+    if (ok) {
+        //mem->link = THIS->used;
+        mem->size = size;
+        *data = (DATA_PTR)(mem + 1);  // allocated memory starts after ref_mem_t structure
+        //THIS->used = mem;  // link into used-memory chain
+    } else {
         LOG_WARN("heap_pool_reserve: OUT-OF-MEMORY!", size);
     }
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "heap_pool_reserve: data @", (WORD)(*data));
     return ok;
 }
 
 static BYTE heap_pool_release(pool_t * pool, DATA_PTR * data) {
     //heap_pool_t * THIS = (heap_pool_t *)pool;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "heap_pool_release: data @", (WORD)(*data));
-    VOID_PTR p = *data;
-    if (p == NULL) return false;
-    free(p);
+    DATA_PTR value = *data;
+    if (value == NULL) return false;
+    heap_mem_t * mem = ((heap_mem_t *)value) - 1;  // heap_mem_t structure preceeds allocation
+#if SCRIBBLE_ON_FREE
+    memset(mem->data, null, mem->size);
+#endif
+    free(mem);  // free the allocation
     *data = NULL;  // destroy pointer to free'd memory
     LOG_LEVEL(LOG_LEVEL_TRACE+2, "heap_pool_release: data =", (WORD)(*data));
     return true;
@@ -79,30 +92,140 @@ static heap_pool_t heap_pool_instance = {
 pool_t * heap_pool = &heap_pool_instance.pool;
 
 /*
+ * reference-counted heap-memory allocator
+ */
+
+typedef struct ref_mem_struct ref_mem_t;
+typedef struct {
+    pool_t      pool;           // super-type member (MUST BE FIRST!)
+    ref_mem_t * used;           // used-memory chain
+} ref_pool_t;
+
+typedef struct ref_mem_struct {
+    ref_mem_t * link;           // link for chaining allocation records
+    WORD        size;           // allocation size
+    WORD        count;          // reference count
+    BYTE        data[];         // data follows header...
+} ref_mem_t;
+
+static BYTE ref_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
+    ref_pool_t * THIS = (ref_pool_t *)pool;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "ref_pool_reserve: size =", size);
+    *data = NULL;  // stomp on data either way!
+    ref_mem_t * mem = (ref_mem_t *)malloc(sizeof(ref_mem_t) + size);
+    BYTE ok = (mem != NULL);
+    if (ok) {
+        mem->link = THIS->used;
+        mem->size = size;
+        mem->count = 1;  // start with a reference count of 1
+        *data = (DATA_PTR)(mem + 1);  // allocated memory starts after ref_mem_t structure
+        THIS->used = mem;  // link into used-memory chain
+    } else {
+        LOG_WARN("ref_pool_reserve: OUT-OF-MEMORY!", size);
+    }
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "ref_pool_reserve: data @", (WORD)(*data));
+    return ok;
+}
+
+static BYTE find_ref_mem(ref_pool_t * THIS, DATA_PTR value, ref_mem_t *** pprev) {
+    LOG_LEVEL(LOG_LEVEL_TRACE+2, "find_ref_mem: pool =", (WORD)THIS);
+    ref_mem_t * mem = ((ref_mem_t *)value) - 1;  // ref_mem_t structure preceeds allocation
+    *pprev = &THIS->used;
+    while (**pprev != NULL) {
+        if (**pprev == mem) {
+            LOG_LEVEL(LOG_LEVEL_TRACE+2, "find_ref_mem: found =", (WORD)value);
+            return true;
+        }
+        *pprev = &(**pprev)->link;
+    }
+    LOG_TRACE("find_ref_mem: not allocated from this pool!", (WORD)value);
+    return false;
+}
+
+static BYTE ref_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
+    ref_pool_t * THIS = (ref_pool_t *)pool;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "ref_pool_copy: value =", (WORD)value);
+    ref_mem_t ** prev;
+    if (!find_ref_mem(THIS, value, &prev)) {  // not allocated from this pool!
+        LOG_WARN("ref_pool_copy: not allocated from this pool, copy-in...", (WORD)value);
+        return generic_pool_copy(pool, data, value);  // copy-in...
+    }
+    ref_mem_t * mem = ((ref_mem_t *)value) - 1;  // ref_mem_t structure preceeds allocation
+    ++mem->count;  // increase reference count
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "ref_pool_copy: count =", mem->count);
+    *data = value;  // alias value, reference count avoids making a copy...
+    LOG_LEVEL(LOG_LEVEL_TRACE+2, "ref_pool_copy: data @", (WORD)(*data));
+    return true;
+}
+
+static BYTE ref_pool_release(pool_t * pool, DATA_PTR * data) {
+    ref_pool_t * THIS = (ref_pool_t *)pool;
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "ref_pool_release: data @", (WORD)(*data));
+    DATA_PTR value = *data;
+    if (value == NULL) return false;
+    ref_mem_t ** prev;
+    if (!find_ref_mem(THIS, value, &prev)) {  // not allocated from this pool!
+        LOG_WARN("ref_pool_release: not allocated from this pool!", (WORD)value);
+        return false;
+    }
+    ref_mem_t * mem = ((ref_mem_t *)value) - 1;  // ref_mem_t structure preceeds allocation
+    if (mem->count < 1) {
+        LOG_WARN("ref_pool_release: too many releases!", (WORD)value);
+        return false;
+    }
+    --mem->count;  // decrease reference count
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "ref_pool_release: count =", mem->count);
+    if (mem->count < 1) {  // no more references
+        *prev = mem->link;  // take allocation out of used chain
+#if SCRIBBLE_ON_FREE
+        memset(mem->data, null, mem->size);
+#endif
+        free(mem);  // free the allocation
+    }
+    *data = NULL;  // destroy pointer to "free'd" memory
+    LOG_LEVEL(LOG_LEVEL_TRACE+2, "ref_pool_release: data =", (WORD)(*data));
+    return true;
+}
+
+static pool_vt ref_pool_vtable = {
+    .reserve = ref_pool_reserve,
+    .copy = ref_pool_copy,
+    .release = ref_pool_release,
+};
+
+pool_t * new_ref_pool(pool_t * parent/*, WORD size*/) {
+    ref_pool_t * THIS;
+    if (!RESERVE_FROM(parent, (DATA_PTR *)&THIS, sizeof(ref_pool_t))) {
+        LOG_WARN("new_ref_pool: could not reserve memory for pool", sizeof(ref_pool_t));
+    }
+    THIS->pool.vtable = &ref_pool_vtable;
+    THIS->used = NULL;
+    LOG_DEBUG("new_ref_pool: created", (WORD)THIS);
+    return &THIS->pool;
+}
+
+/*
  * simple linear allocator
  */
 
-#include <stddef.h>  // for NULL, size_t, et. al.
-//#include <assert.h>
-
 typedef struct {
-    pool_t      pool;           // super-type member
-    DATA_PTR    base;           // base address of managed memory
+    pool_t      pool;           // super-type member (MUST BE FIRST!)
     WORD        size;           // size of managed memory (in bytes)
     WORD        offset;         // offset to next available allocation
+    BYTE        memory[];       // managed memory follows header...
 } temp_pool_t;
 
 static BYTE temp_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
     temp_pool_t * THIS = (temp_pool_t *)pool;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "temp_pool_reserve: size =", size);
-    VOID_PTR p = NULL;
+    DATA_PTR value = NULL;
     if (THIS->offset + size <= THIS->size) {
-        p = THIS->base + THIS->offset;
+        value = &THIS->memory[THIS->offset];
         THIS->offset += size;
     }
-    *data = p;  // stomp on data either way!
+    *data = value;  // stomp on data either way!
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "temp_pool_reserve: data @", (WORD)(*data));
-    BYTE ok = (p != NULL);
+    BYTE ok = (value != NULL);
     if (!ok) {
         LOG_WARN("temp_pool_reserve: OUT-OF-MEMORY!", THIS->offset);
     }
@@ -113,6 +236,9 @@ static BYTE temp_pool_release(pool_t * pool, DATA_PTR * data) {
     //temp_pool_t * THIS = (temp_pool_t *)pool;
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "temp_pool_release: data @", (WORD)(*data));
     LOG_DEBUG("temp_pool needs no release", (WORD)(*data));
+#if SCRIBBLE_ON_FREE
+    //memset(mem->data, null, mem->size); --- FIXME: NOT IMPLEMENTED?
+#endif
     *data = NULL;  // destroy pointer to "free'd" memory
     LOG_LEVEL(LOG_LEVEL_TRACE+2, "temp_pool_release: data =", (WORD)(*data));
     return true;
@@ -130,7 +256,6 @@ pool_t * new_temp_pool(pool_t * parent, WORD size) {
         LOG_WARN("new_temp_pool: could not reserve memory for pool", size);
     }
     THIS->pool.vtable = &temp_pool_vtable;
-    THIS->base = (DATA_PTR)(THIS + 1);  // managed memory starts after pool structure
     THIS->size = size;
     THIS->offset = 0;
     LOG_DEBUG("new_temp_pool: created", size);
@@ -234,7 +359,6 @@ BYTE audit_release(char * _file_, int _line_, pool_t * pool, DATA_PTR * data) {
             }
             history->release._file_ = _file_;
             history->release._line_ = _line_;
-            memset(address, null, history->size);  // FIXME: should memory scribbling be optional?
             BYTE ok = pool_release(pool, data);  // (*data == NULL) on return from pool_release!
             return ok;  // found it!
         }

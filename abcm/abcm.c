@@ -21,15 +21,15 @@ char * _semver = "0.0.7";
  * include actor-byte-code bootstrap program...
  */
 BYTE bootstrap[] = {
-//#include "hello_world.abc"
+#include "hello_world.abc"
 //#include "basic_scope.abc"
 //#include "fail_example.abc"
-#include "two_sponsor.abc"
+//#include "two_sponsor.abc"
 //#include "stream_reader.abc"
 //#include "lambda_calculus.abc"
 };
 
-#define LOAD_2ND_PROGRAM 1 /* test loading of multiple top-level programs */
+#define LOAD_2ND_PROGRAM 0 /* test loading of multiple top-level programs */
 #if LOAD_2ND_PROGRAM
 BYTE boot2nd[] = {
 //#include "hello_world.abc"
@@ -60,11 +60,17 @@ int run_abcm() {  // ok == 0, fail != 0
     assert(audit_check_leaks() == 0);  // the test suite should not leak memory.
 
     // establish (global) bootstrap sponsor
-    log_config.level = LOG_LEVEL_WARN;
-    //log_config.level = LOG_LEVEL_DEBUG;
+    //log_config.level = LOG_LEVEL_WARN;
+    log_config.level = LOG_LEVEL_DEBUG;
     //log_config.level = LOG_LEVEL_TRACE;
     //log_config.level = LOG_LEVEL_TRACE+2;
+#if REF_COUNTED_BOOT_SPONSOR
+    pool_t * pool = new_ref_pool(heap_pool);
+    if (!pool) return 1;  // allocation failure!
+    sponsor_t * boot_sponsor = new_sponsor(pool, NULL, 0, 0);
+#else
     sponsor_t * boot_sponsor = new_sponsor(heap_pool, NULL, 0, 0);
+#endif
     if (!boot_sponsor) return 1;  // allocation failure!
     sponsor = boot_sponsor;  // set global sponsor
     if (!device_startup()) return -1;  // device startup failed!

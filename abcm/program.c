@@ -109,7 +109,7 @@ BYTE validate_value(DATA_PTR value) {
 static BYTE config_exec(config_t * config, DATA_PTR script) {
     LOG_TRACE("config_exec: config =", (WORD)config);
     LOG_DEBUG("config_exec: script =", (WORD)script);
-    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(script, 1));
+    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print_limit(script, 1, 2));
     /*
      * --WARNING-- THIS CODE HAS INTIMATE KNOWLEDGE OF THE ACTOR AND EVENT STRUCTURES
      */
@@ -121,7 +121,7 @@ static BYTE config_exec(config_t * config, DATA_PTR script) {
     if (!object_add(behavior_template, s_script, script, &behavior)) return false;  // allocation failure!
     behavior = TRACK(behavior);
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "config_exec: behavior =", (WORD)behavior);
-    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print(behavior, 1));
+    IF_LEVEL(LOG_LEVEL_TRACE+1, value_print_limit(behavior, 1, 2));
     scope_t * scope = NULL;  // no parent scope
     DATA_PTR state = o_;  // empty initial state
     DATA_PTR address;
