@@ -205,6 +205,12 @@ BYTE load_program(DATA_PTR program) {
         }
         sponsor = boot_sponsor;  // restore previous global sponsor
     }
+#if REF_COUNTED_BOOT_SPONSOR
+    if (!RELEASE((DATA_PTR *)&sponsor->memo)) {
+        LOG_WARN("load_program: failed to reduce memo ref-count!", (WORD)&sponsor->memo);
+        return false;  // failed to reduce memo ref-count!
+    }
+#endif
     LOG_DEBUG("load_program: dispatch ring start =", (WORD)SPONSOR_NEXT(sponsor));
     return true;  // success!
 }

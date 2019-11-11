@@ -59,8 +59,8 @@ int run_abcm() {  // ok == 0, fail != 0
     assert(audit_check_leaks() == 0);  // the test suite should not leak memory.
 
     // establish (global) bootstrap sponsor
-    log_config.level = LOG_LEVEL_WARN;
-    //log_config.level = LOG_LEVEL_DEBUG;
+    //log_config.level = LOG_LEVEL_WARN;
+    log_config.level = LOG_LEVEL_DEBUG;
     //log_config.level = LOG_LEVEL_TRACE;
     //log_config.level = LOG_LEVEL_TRACE+1;
     //log_config.level = LOG_LEVEL_TRACE+2;
