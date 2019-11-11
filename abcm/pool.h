@@ -7,7 +7,7 @@
 #include "bose.h"
 
 #define AUDIT_ALLOCATION 1 /* track reserve/release calls to check for leaks */
-#define FULL_AUDIT_DUMP 1 /* report ALL allocations, not just the leaks... */
+#define FULL_AUDIT_DUMP 0 /* report ALL allocations, not just the leaks... */
 #define SCRIBBLE_ON_FREE 1 /* write null (0xFF) on memory before releasing it */
 
 #define STATIC_TEMP_POOL_SIZE (1 << 16)  /* if this is 0, static temp_pool is not used. */
