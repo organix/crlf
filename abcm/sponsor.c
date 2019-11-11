@@ -377,9 +377,8 @@ sponsor_t * new_sponsor(pool_t * pool, memo_t * memo, WORD actors, WORD events) 
     sponsor->memo = memo;
     sponsor->actors = actors;
     sponsor->events = events;
-#if REF_COUNTED_BOOT_SPONSOR
-    sponsor->config = new_config(pool, actors, events);  // allocate config from same pool as sponsor
-    //sponsor->config = new_config(heap_pool, actors, events);  // switch to heap-pool for config allocations
+#if USE_HEAP_POOL_FOR_CONFIG
+    sponsor->config = new_config(heap_pool, actors, events);  // switch to heap-pool for config allocations
 #else
     sponsor->config = new_config(pool, actors, events);  // allocate config from same pool as sponsor
 #endif

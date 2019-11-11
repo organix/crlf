@@ -221,8 +221,18 @@ BYTE sponsor_dispatch_loop(sponsor_t * start) {
             if (config) {  // config is cleared by shutdown...
                 LOG_DEBUG("sponsor_dispatch_loop: dispatching sponsor", (WORD)sponsor);
                 // dispatch message-events
-                if (config_dispatch(config)) {
-                    working = true;  // still working...
+#if USE_HEAP_POOL_FOR_CONFIG
+                pool_t * sponsor_pool = SPONSOR_POOL(sponsor);  // remember original sponsor pool
+                sponsor->pool = CONFIG_POOL(config);  // switch to config pool for dispatching
+#else
+                assert(SPONSOR_POOL(sponsor) == CONFIG_POOL(config));
+#endif
+                BYTE ok = config_dispatch(config);
+#if USE_HEAP_POOL_FOR_CONFIG
+                sponsor->pool = sponsor_pool;  // restore original sponsor pool
+#endif
+                if (ok) {
+                    working = true;
                 } else {
                     // shut down and clean up...
                     if (!sponsor_shutdown(sponsor)) return false;  // shutdown failed!
