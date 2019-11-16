@@ -13,7 +13,7 @@
 
 #define REF_COUNTED_BOOT_SPONSOR 1 /* use ref_pool for boot_sponsor allocations (incl. memo) */
 #define USE_HEAP_POOL_FOR_CONFIG 1 /* force use of heap_pool in config, otherwise inherit from sponsor */
-#define EVENT_TEMP_POOL_SIZE (1 << 16)  /* if this is 0, temp_pool is not used. */
+#define EVENT_TEMP_POOL_SIZE (1 << 12)  /* if this is 0, temp_pool is not used. */
 
 /*
  * Configuration

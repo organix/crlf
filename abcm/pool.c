@@ -14,6 +14,14 @@
 //#define LOG_WARN
 #include "log.h"
 
+#if KEEP_POOL_METRICS
+static struct {
+    WORD        total_size;     // total bytes allocated over history
+    WORD        current_size;   // bytes currently allocated
+    WORD        peak_size;      // maximum bytes allocated concurrently
+} pool_metrics;
+#endif
+
 /*
  * generic allocator methods
  */
@@ -59,6 +67,13 @@ static BYTE heap_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
         mem->size = size;
         *data = (DATA_PTR)(mem + 1);  // allocated memory starts after ref_mem_t structure
         //THIS->used = mem;  // link into used-memory chain
+#if KEEP_POOL_METRICS
+        pool_metrics.total_size += size;
+        pool_metrics.current_size += size;
+        if (pool_metrics.peak_size < pool_metrics.current_size) {
+            pool_metrics.peak_size = pool_metrics.current_size;
+        }
+#endif
     } else {
         LOG_WARN("heap_pool_reserve: OUT-OF-MEMORY!", size);
     }
@@ -72,6 +87,9 @@ static BYTE heap_pool_release(pool_t * pool, DATA_PTR * data) {
     DATA_PTR value = *data;
     if (value == NULL) return false;
     heap_mem_t * mem = ((heap_mem_t *)value) - 1;  // heap_mem_t structure preceeds allocation
+#if KEEP_POOL_METRICS
+    pool_metrics.current_size -= mem->size;
+#endif
 #if SCRIBBLE_ON_FREE
     memset(mem->data, null, mem->size);
 #endif
@@ -120,6 +138,13 @@ static BYTE ref_pool_reserve(pool_t * pool, DATA_PTR * data, WORD size) {
         mem->count = 1;  // start with a reference count of 1
         *data = (DATA_PTR)(mem + 1);  // allocated memory starts after ref_mem_t structure
         THIS->used = mem;  // link into used-memory chain
+#if KEEP_POOL_METRICS
+        pool_metrics.total_size += size;
+        pool_metrics.current_size += size;
+        if (pool_metrics.peak_size < pool_metrics.current_size) {
+            pool_metrics.peak_size = pool_metrics.current_size;
+        }
+#endif
     } else {
         LOG_WARN("ref_pool_reserve: OUT-OF-MEMORY!", size);
     }
@@ -177,6 +202,9 @@ static BYTE ref_pool_release(pool_t * pool, DATA_PTR * data) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "ref_pool_release: count =", mem->count);
     if (mem->count < 1) {  // no more references
         *prev = mem->link;  // take allocation out of used chain
+#if KEEP_POOL_METRICS
+        pool_metrics.current_size -= mem->size;
+#endif
 #if SCRIBBLE_ON_FREE
         memset(mem->data, null, mem->size);
 #endif
@@ -262,6 +290,9 @@ static struct {
 temp_pool_t * temp_pool = &temp_pool_wrapper.temp_pool;
 
 pool_t * clear_temp_pool() {
+#if KEEP_POOL_METRICS
+    LOG_INFO("clear_temp_pool: bytes released =", temp_pool->offset);
+#endif
     temp_pool->offset = 0;
     return &temp_pool->pool;
 }
@@ -485,4 +516,13 @@ int audit_check_leaks() {
     /* can't check for leaks if we're not auditing! */
 #endif
     return count;
+}
+
+void show_pool_metrics() {
+#if KEEP_POOL_METRICS
+    LOG_INFO("pool_metrics.total_size", pool_metrics.total_size);
+    LOG_INFO("pool_metrics.current_size", pool_metrics.current_size);
+    LOG_INFO("pool_metrics.peak_size", pool_metrics.peak_size);
+#endif
+    return;
 }

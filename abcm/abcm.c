@@ -56,11 +56,12 @@ int run_abcm() {  // ok == 0, fail != 0
     result = run_test_suite();  // pass == 0, fail != 0
     if (result) return result;
     if (!sponsor_release(&sponsor)) return 1;  // reclamation failure!
+    show_pool_metrics();
     assert(audit_check_leaks() == 0);  // the test suite should not leak memory.
 
     // establish (global) bootstrap sponsor
-    //log_config.level = LOG_LEVEL_WARN;
-    log_config.level = LOG_LEVEL_DEBUG;
+    log_config.level = LOG_LEVEL_WARN;
+    //log_config.level = LOG_LEVEL_DEBUG;
     //log_config.level = LOG_LEVEL_TRACE;
     //log_config.level = LOG_LEVEL_TRACE+1;
     //log_config.level = LOG_LEVEL_TRACE+2;
@@ -73,7 +74,7 @@ int run_abcm() {  // ok == 0, fail != 0
 #endif
     if (!boot_sponsor) return 1;  // allocation failure!
     sponsor = boot_sponsor;  // set global sponsor
-    TRACK(boot_sponsor);  // WARNING! can't TRACK until `sponsor` is set...
+    boot_sponsor = TRACK(sponsor);  // WARNING! can't TRACK until `sponsor` is set...
     if (!device_startup()) return -1;  // device startup failed!
     if (!load_program(bootstrap)) {
         LOG_WARN("run_abcm: load_program failed!", (WORD)bootstrap);
@@ -97,6 +98,7 @@ int run_abcm() {  // ok == 0, fail != 0
 #else
     if (!sponsor_release(&sponsor)) return 1;  // reclamation failure!
 #endif
+    show_pool_metrics();
 #if 1
     assert(audit_check_leaks() == 0);
 #else
