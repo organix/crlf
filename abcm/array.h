@@ -16,5 +16,6 @@
 BYTE array_count(DATA_PTR array, WORD * count);  // elements in Array
 BYTE array_get(DATA_PTR array, WORD offset, DATA_PTR * value);
 BYTE array_add(DATA_PTR array, DATA_PTR item, WORD offset, DATA_PTR * new);
+BYTE array_concat(DATA_PTR left, DATA_PTR right, DATA_PTR * new);
 
 #endif // _ARRAY_H_

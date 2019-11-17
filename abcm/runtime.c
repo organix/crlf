@@ -149,7 +149,7 @@ static BYTE op_2_eval(event_t * event, DATA_PTR exprs, DATA_PTR * x, DATA_PTR * 
     return true;  // success!
 }
 
-BYTE op_list[] = { utf8, n_4, 'l', 'i', 's', 't' };
+BYTE op_list[] = { utf8, n_7, 'l', 'i', 's', 't', '[', '*', ']' };
 BYTE op_length[] = { utf8, n_9, 'l', 'e', 'n', 'g', 't', 'h', '[', '1', ']' };
 BYTE op_charAt[] = { utf8, n_20, 'c', 'h', 'a', 'r', 'A', 't', '_', 'F', 'R', 'O', 'M', '_', 'S', 'T', 'A', 'R', 'T', '[', '2', ']' };
 BYTE op_join[] = { utf8, n_7, 'j', 'o', 'i', 'n', '[', '*', ']' };
@@ -180,8 +180,27 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
     } else if (value_equiv(name, op_length)) {
         DATA_PTR x;
         if (!op_1_eval(event, args, &x)) return false;  // bad arg!
+        BYTE type;
+        if (!value_type(x, &type)) return false;  // bad type!
         WORD count;
-        if (!string_count(x, &count)) return false;  // bad count!
+        switch (type & T_Base) {
+            case T_String: {
+                if (!string_count(x, &count)) return false;  // bad count!
+                break;
+            }
+            case T_Array: {
+                if (!array_count(x, &count)) return false;  // bad count!
+                break;
+            }
+            case T_Object: {
+                if (!object_count(x, &count)) return false;  // bad count!
+                break;
+            }
+            default: {
+                LOG_WARN("operation_eval: op_length requires collection type!", (WORD)type);
+                return false;  // evaluation failed!
+            }
+        }
         if (!get_small(count, result)) {
             if (!make_integer(count, result)) return false;  // bad allocation!
             *result = TRACK(*result);
@@ -200,8 +219,18 @@ BYTE operation_eval(event_t * event, DATA_PTR name, DATA_PTR args, DATA_PTR * re
             *result = TRACK(*result);
         }
     } else if (value_equiv(name, op_join)) {
-        if (!array_eval(event, args, result)) return false;  // evaluation failed!
-        // TODO: join the results into a single string...
+        DATA_PTR array;
+        if (!array_eval(event, args, &array)) return false;  // evaluation failed!
+        WORD count;
+        if (!array_count(array, &count)) return false;  // bad count!
+        DATA_PTR string = s_;
+        for (WORD i = 0; i < count; ++i) {
+            DATA_PTR value;
+            if (!array_get(array, i, &value)) return false;  // failed to get parameter!
+            if (!string_from(value, &value)) return false;  // failed to convert to String
+            if (!string_concat(string, value, &string)) return false;  // concatenate failed!
+        }
+        *result = TRACK(string);
     } else if (value_equiv(name, op_conditional)) {  // FIXME: "conditional" is a command, but it _could_ be an expression...
         WORD count;
         if (!array_count(args, &count)) return false;  // args array required!
@@ -598,7 +627,12 @@ BYTE actor_exec(event_t * event, DATA_PTR command) {
         DATA_PTR value;
         if (!property_eval(event, command, s_value, &value)) return false;  // evaluation failed!
         prints("LOG: ");
+#if 0
+        if (!string_from(value, &value)) return false;  // failed to convert to String
+        if (!value_print(value, 0)) return false;  // print failed
+#else
         if (!value_print(value, 1)) return false;  // print failed
+#endif
     } else {
         LOG_WARN("actor_exec: unknown 'kind' of command", (WORD)kind);
         // FIXME: probably want to return `false` here and fail the script execution, but we just ignore it...

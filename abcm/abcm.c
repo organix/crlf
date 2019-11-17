@@ -34,9 +34,9 @@ BYTE bootstrap[] = {
 BYTE boot2nd[] = {
 //#include "hello_world.abc"
 //#include "basic_scope.abc"
-#include "fail_example.abc"
+//#include "fail_example.abc"
 //#include "two_sponsor.abc"
-//#include "stream_reader.abc"
+#include "stream_reader.abc"
 //#include "lambda_calculus.abc"
 };
 #endif

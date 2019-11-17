@@ -301,7 +301,7 @@ BYTE object_concat(DATA_PTR left, DATA_PTR right, DATA_PTR * new) {
 
     /* allocate space for new object */
     DATA_PTR data;
-    WORD size = 8;  // margin for size/count growth
+    WORD size = 9;  // counted object header size
     size += right_parse.value;  // plus size of right content
     size += left_parse.value;  // plus size of left content
     LOG_TRACE("object_concat: allocation size =", size);

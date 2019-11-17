@@ -2,7 +2,7 @@
  * string.h -- String operations
  */
 #include <string.h>  // for memcpy, et. al.
-//#include <assert.h>
+#include <assert.h>
 
 #include "string.h"
 #include "bose.h"
@@ -12,6 +12,79 @@
 //#define LOG_INFO
 //#define LOG_WARN
 #include "log.h"
+
+BYTE s_null[] = { utf8, n_4, 'n', 'u', 'l', 'l' };
+BYTE s_true[] = { utf8, n_4, 't', 'r', 'u', 'e' };
+BYTE s_false[] = { utf8, n_5, 'f', 'a', 'l', 's', 'e' };
+
+static BYTE scratch[48];  // scratch buffer for formatting
+static char * hex = "0123456789abcdef";
+
+BYTE string_from(DATA_PTR value, DATA_PTR * result) {
+/*
+           1         2         3         4     .  5         6
+0123456789012345678901234567890123456789012345678901234567890123
+SN<xx xx xx xx xx xx xx xx xx ...>
+*/
+    parse_t parse;
+    if (!value_parse(value, &parse)) return false;  // parse failed!
+    if (parse.prefix == mem_ref) {  // redirect to memo table entry
+        value = (DATA_PTR)parse.count;
+        if (!value_parse(value, &parse)) return false;  // bad memo!
+    }
+    switch (parse.type & T_Base) {
+        case T_Null: {
+            *result = s_null;
+            return true;  // hard-coded value
+        }
+        case T_Boolean: {
+            *result = (parse.prefix ? s_true : s_false);
+            return true;  // hard-coded value
+        }
+/*
+        case T_Number: {
+            return number_print(parse);
+        }
+*/
+        case T_String: {
+            *result = value;
+            return true;  // no conversion needed
+        }
+/*
+        case T_Array: {
+            return array_print(parse, indent, limit);
+        }
+        case T_Object: {
+            return object_print(parse, indent, limit);
+        }
+*/
+    }
+
+    /* if all else fails, dump encoded value in hex... */
+    DATA_PTR p = scratch;
+    *p++ = utf8;
+    *p++ = n_0;  // size will be filled in later...
+    *p++ = '<';
+    WORD i = parse.start;
+    while (i < parse.end) {
+        if (i > 0) {
+            *p++ = ' ';
+        }
+        if (i > 8) {  // size cut-off
+            *p++ = '.';
+            *p++ = '.';
+            *p++ = '.';
+            break;
+        }
+        BYTE b = parse.base[i++];
+        *p++ = hex[(b >> 4) & 0xF];
+        *p++ = hex[b & 0xF];
+    }
+    *p++ = '>';
+    scratch[1] = n_m2 + (p - scratch);  // fill in string size field
+    if (!COPY(result, scratch)) return false;  // allocation failure!
+    return true;  // encoded value dump
+}
 
 BYTE string_count(DATA_PTR string, WORD * count) {
     LOG_TRACE("string_count @", (WORD)string);
@@ -70,123 +143,243 @@ BYTE string_get(DATA_PTR string, WORD offset, WORD * codepoint) {
     return false;  // not found.
 };
 
-BYTE string_add(sponsor_t * sponsor, DATA_PTR string, WORD codepoint, WORD offset, DATA_PTR * new) {
+static WORD encode_codepoint(DATA_PTR data, WORD offset, parse_t * parse) {
+    WORD u = parse->value;
+    assert(u <= MAX_UNICODE);
+    switch (parse->prefix) {
+        case octets: {
+            // each byte is an untranslated codepoint in the range 0x00..0xFF
+            assert(u <= 0xFF);
+            data[offset++] = u;
+            break;
+        }
+        case utf8: {
+            if (u <= 0x7F) {
+                data[offset++] = u;
+            } else if (u <= 0x07FF) {
+                data[offset++] = 0xC0 | ((u >> 6) & 0x1F);
+                data[offset++] = 0x80 | (u & 0x3F);
+            } else if (u <= 0xFFFF) {
+                data[offset++] = 0xE0 | ((u >> 12) & 0x0F);
+                data[offset++] = 0x80 | ((u >> 6) & 0x3F);
+                data[offset++] = 0x80 | (u & 0x3F);
+            } else {
+                data[offset++] = 0xF0 | ((u >> 18) & 0x07);
+                data[offset++] = 0x80 | ((u >> 12) & 0x3F);
+                data[offset++] = 0x80 | ((u >> 6) & 0x3F);
+                data[offset++] = 0x80 | (u & 0x3F);
+            }
+            break;
+        }
+        case utf16: {
+            if (u <= 0xFFFF) {
+                if (parse->type & T_Negative) {  // LE
+                    data[offset++] = (u & 0xFF);
+                    data[offset++] = (u >> 8);
+                } else {  // BE
+                    data[offset++] = (u >> 8);
+                    data[offset++] = (u & 0xFF);
+                }
+            } else {  // surrogate pairs
+                u -= 0x10000;
+                if (parse->type & T_Negative) {  // LE
+                    data[offset++] = (u & 0xFF);
+                    data[offset++] = 0xDC | ((u >> 8) & 0x03);
+                    data[offset++] = (u >> 10);
+                    data[offset++] = 0xD8 | ((u >> 18) & 0x03);
+                } else {  // BE
+                    data[offset++] = 0xD8 | ((u >> 18) & 0x03);
+                    data[offset++] = (u >> 10);
+                    data[offset++] = 0xDC | ((u >> 8) & 0x03);
+                    data[offset++] = (u & 0xFF);
+                }
+            }
+            break;
+        }
+        default: {
+            LOG_WARN("encode_codepoint: unsupported string prefix!", parse->prefix);
+            break;
+        }
+    }
+    return offset;
+}
+BYTE string_add(DATA_PTR string, WORD codepoint, WORD offset, DATA_PTR * new) {
     LOG_TRACE("string_add @", (WORD)string);
     LOG_DEBUG("string_add: codepoint =", codepoint);
     LOG_DEBUG("string_add: offset =", offset);
-#if 0
-    parse_t parse = {
-        .base = array,
-        .size = MAX_WORD,  // don't know how big array will be
-        .start = 0
-    };
-    if (!parse_array(&parse)) {
-        LOG_WARN("array_add: bad array", (WORD)array);
-        return false;  // bad array
+    parse_t parse;
+    if (!string_parse(string, &parse)) {
+        LOG_WARN("string_add: bad string", (WORD)string);
+        return false;  // bad string
     }
-    //DUMP_PARSE("array", &parse);
-    parse_t item_parse = {
-        .base = item,
-        .size = MAX_WORD,  // don't know how big item will be
-        .start = 0
-    };
-    if (!parse_value(&item_parse)) {
-        LOG_WARN("array_add: bad item value", (WORD)item);
-        return false;  // bad item value
-    }
-    //DUMP_PARSE("item", &item_parse);
-    if (parse.type & T_Counted) {  // assume count is correct
-        LOG_DEBUG("array_add: counted array", parse.count);
-        if (index > parse.count) {
-            LOG_WARN("array_add: index exceeds count", parse.count);
-            return false;  // not found.
-        }
-    }
+    if (parse.type & T_Capability) return false;  // can't inject data into a Capability
 
-    /* allocate space for new array */
+    /* allocate space for new string */
     DATA_PTR data;
-    WORD size = 8;  // margin for size/count growth
-    size += (parse.end - parse.start);  // plus size of array
-    size += (item_parse.end - item_parse.start);  // plus size of item
-    LOG_TRACE("array_add: allocation size =", size);
+    WORD size = 8;  // margin for full string header with length and BOM
+    size += parse.size;
+    LOG_TRACE("string_add: allocation size =", size);
     if (size > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but code below depends on it...
-        LOG_WARN("array_add: array too large", size);
-        return false;  // array too large!
+        LOG_WARN("string_add: string too large", size);
+        return false;  // string too large!
     }
     if (!RESERVE(&data, size)) return false;  // out of memory!
-    WORD offset = 0;
-    data[offset++] = array_n;   // 0: counted array
-    data[offset++] = p_int_0;   // 1: size field
-    data[offset++] = n_2;       // 2:   2 bytes
-    data[offset++] = 0;         // 3:   size (LSB)
-    data[offset++] = 0;         // 4:   size (MSB)
-    data[offset++] = p_int_0;   // 5: count field
-    data[offset++] = n_2;       // 6:   2 bytes
-    data[offset++] = 0;         // 7:   count (LSB)
-    data[offset++] = 0;         // 8:   count (MSB)
-
-    /* copy elements before index */
-    parse.size = parse.end;  // limit to array contents
-    parse.start = parse.end - parse.value;  // reset to start of element data
-    WORD n = 0;
-    while ((n < index) && (parse.start < parse.size)) {
-        LOG_TRACE("array_add: element start =", parse.start);
-        if (!parse_value(&parse)) {
-            LOG_WARN("array_add: bad element", parse.start);
-            RELEASE(&data);  // free memory on failure
-            return false;  // bad element
+    WORD i = 0;  // data encoding offset
+    data[i++] = parse.prefix;   // 0: string prefix
+    data[i++] = p_int_0;        // 1: size field
+    data[i++] = n_2;            // 2:   2 bytes
+    data[i++] = 0;              // 3:   size (LSB)
+    data[i++] = 0;              // 4:   size (MSB)
+    if (parse.prefix == utf8) {
+        data[i++] = 0xEF;  // BOM[0]
+        data[i++] = 0xBB;  // BOM[1]
+        data[i++] = 0xBF;  // BOM[2]
+    } else if (parse.prefix == utf16) {
+        if (parse.type & T_Negative) {
+            data[i++] = 0xFF;  // BOM-LSB
+            data[i++] = 0xFE;  // BOM-MSB
+        } else {
+            data[i++] = 0xFE;  // BOM-MSB
+            data[i++] = 0xFF;  // BOM-LSB
         }
-        //DUMP_PARSE("array element", &parse);
-        size = parse.end - parse.start;
-        LOG_TRACE("array_add: element size =", size);
-        memcpy(data + offset, parse.base + parse.start, size);
-        offset += size;
-        ++n;  // increment item count
-        parse.start = parse.end;
     }
 
-    /* copy item at index */
-    size = item_parse.end - item_parse.start;
-    LOG_TRACE("array_add: item size =", size);
-    memcpy(data + offset, item_parse.base + item_parse.start, size);
-    offset += size;
-
-    /* copy elements after index */
+    /* copy codepoints, injecting new value at `offset` */
+    WORD n = 0;  // codepoint offset
     while (parse.start < parse.size) {
-        LOG_TRACE("array_add: element start =", parse.start);
-        if (!parse_value(&parse)) {
-            LOG_WARN("array_add: bad element", parse.start);
-            RELEASE(&data);  // free memory on failure
-            return false;  // bad element
+        if (n == offset) {
+            parse.value = codepoint;
+            i = encode_codepoint(data, i, &parse);
         }
-        //DUMP_PARSE("array element", &parse);
-        size = parse.end - parse.start;
-        LOG_TRACE("array_add: element size =", size);
-        memcpy(data + offset, parse.base + parse.start, size);
-        offset += size;
-        ++n;  // increment item count
+        if (!parse_codepoint(&parse)) return false;  // bad codepoint
+        i = encode_codepoint(data, i, &parse);
+        ++n;
         parse.start = parse.end;
     }
+    if (n == offset) {
+        parse.value = codepoint;
+        i = encode_codepoint(data, i, &parse);
+    }
 
-    /* fill in size/count and return new array */
-    if (index > n) {
-        LOG_WARN("array_add: index exceeds count", n);
+    /* fill in size and return new string */
+    if (n < offset) {
+        LOG_WARN("string_add: index exceeds count", n);
         RELEASE(&data);  // free memory on failure
         return false;  // not found.
     }
-    LOG_TRACE("array_add: final offset =", offset);
-    size = offset - 5;  // subtract header byte count
-    LOG_TRACE("array_add: final size =", size);
-    ++n;  // count new item
-    LOG_TRACE("array_add: final count =", n);
+    LOG_TRACE("string_add: final offset =", i);
+    size = i - 5;  // subtract header byte count
+    LOG_TRACE("string_add: final size =", size);
     data[3] = size & 0xFF;  // size (LSB)
     data[4] = size >> 8;    // size (MSB)
-    data[7] = n & 0xFF;     // count (LSB)
-    data[8] = n >> 8;       // count (MSB)
     *new = data;
-    LOG_DEBUG("array_add: new array @", (WORD)data);
+    LOG_DEBUG("string_add: new string @", (WORD)data);
     return true;  // success!
-#else
-    return false;  // NOT IMPLEMENTED!
-#endif
+};
+
+static WORD encode_size(DATA_PTR data, WORD offset, WORD size) {
+    if (size < 127) {
+        data[offset++] = n_0 + size;    // directly-coded small integer
+    } else {
+        assert(size <= 0xFFFF);
+        data[offset++] = p_int_0;       // positive integer
+        data[offset++] = n_2;           //   2 bytes
+        data[offset++] = size & 0xFF;   //   size (LSB)
+        data[offset++] = size >> 8;     //   size (MSB)
+    }
+    return offset;
+}
+BYTE string_concat(DATA_PTR left, DATA_PTR right, DATA_PTR * new) {
+    LOG_TRACE("string_concat: left @", (WORD)left);
+    LOG_TRACE("string_concat: right @", (WORD)right);
+    parse_t left_parse;
+    if (!string_parse(left, &left_parse)) {
+        LOG_WARN("string_concat: bad left string", (WORD)left);
+        return false;  // bad left string
+    }
+    IF_TRACE({
+        DUMP_PARSE("left", &left_parse);
+    });
+    parse_t right_parse;
+    if (!string_parse(right, &right_parse)) {
+        LOG_WARN("string_concat: bad right string", (WORD)right);
+        return false;  // bad right string
+    }
+    IF_TRACE({
+        DUMP_PARSE("right", &right_parse);
+    });
+
+    /* handle special cases (e.g.: empty strings) */
+    if (left_parse.prefix == string_0) {
+        return COPY(new, right);
+    }
+    if (right_parse.prefix == string_0) {
+        return COPY(new, left);
+    }
+    if (left_parse.type != right_parse.type) {
+        // FIXME: we could get fancier with transcoding, but it would be significantly more complicated...
+        LOG_WARN("string_concat: type/encoding mismatch!", (WORD)(left_parse.type ^ right_parse.type));
+        return false;  // type/encoding mismatch!
+    }
+    WORD size = left_parse.size + right_parse.size;  // total content size
+
+    /* allocate space for new string */
+    DATA_PTR data;
+    size += 8;  // margin for full string header with length and BOM
+    LOG_TRACE("string_concat: allocation size =", size);
+    if (size > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but code below depends on it...
+        LOG_WARN("string_concat: string too large", size);
+        return false;  // string too large!
+    }
+    if (!RESERVE(&data, size)) return false;  // out of memory!
+    size -= 8;  // revert to content size
+    WORD offset = 0;
+    data[offset++] = left_parse.prefix;  // string prefix
+
+    /* encode size & insert markers */
+    if (left_parse.prefix == octets) {
+        if (left_parse.type & T_Capability) {
+            size += 1;  // adjust for CAP-mark
+            offset = encode_size(data, offset, size);
+            data[offset++] = 0x10;  // CAP-mark
+        } else {
+            offset = encode_size(data, offset, size);
+        }
+    } else if (left_parse.prefix == utf8) {
+        size += 3;  // adjust for BOM
+        offset = encode_size(data, offset, size);
+        data[offset++] = 0xEF;  // BOM[0]
+        data[offset++] = 0xBB;  // BOM[1]
+        data[offset++] = 0xBF;  // BOM[2]
+    } else if (left_parse.prefix == utf16) {
+        size += 2;  // adjust for BOM
+        offset = encode_size(data, offset, size);
+        if (left_parse.type & T_Negative) {
+            data[offset++] = 0xFF;  // BOM-LSB
+            data[offset++] = 0xFE;  // BOM-MSB
+        } else {
+            data[offset++] = 0xFE;  // BOM-MSB
+            data[offset++] = 0xFF;  // BOM-LSB
+        }
+    } else {
+        LOG_WARN("string_concat: unsupported string prefix!", left_parse.prefix);
+        return false;  // unsupported string prefix!
+    }
+
+    /* copy codepoints from left */
+    LOG_TRACE("string_concat: left size =", left_parse.size);
+    memcpy(data + offset, left_parse.base, left_parse.size);
+    offset += left_parse.size;
+
+    /* copy codepoints from right */
+    LOG_TRACE("string_concat: right size =", right_parse.size);
+    memcpy(data + offset, right_parse.base, right_parse.size);
+    offset += right_parse.size;
+
+    /* return new string */
+    LOG_TRACE("string_concat: final offset =", offset);
+    LOG_TRACE("string_concat: final size =", size);
+    *new = data;
+    LOG_DEBUG("string_concat: new string @", (WORD)data);
+    return true;  // success!
 };

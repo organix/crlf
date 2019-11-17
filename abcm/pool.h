@@ -11,7 +11,7 @@
 #define SCRIBBLE_ON_FREE 1 /* write null (0xFF) on memory before releasing it */
 #define KEEP_POOL_METRICS 1 /* track memory usage metrics across pools */
 
-#define STATIC_TEMP_POOL_SIZE (1 << 12)  /* if this is 0, static temp_pool is not used. */
+#define STATIC_TEMP_POOL_SIZE (1 << 16)  /* if this is 0, static temp_pool is not used. */
 
 #if AUDIT_ALLOCATION
 #define RESERVE_FROM(pool,dpp,size) audit_reserve(__FILE__, __LINE__, (pool), (dpp), (size))
