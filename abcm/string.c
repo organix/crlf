@@ -16,13 +16,13 @@
 BYTE s_null[] = { utf8, n_4, 'n', 'u', 'l', 'l' };
 BYTE s_true[] = { utf8, n_4, 't', 'r', 'u', 'e' };
 BYTE s_false[] = { utf8, n_5, 'f', 'a', 'l', 's', 'e' };
+BYTE s_0[] = { utf8, n_1, '0' };
 
 static BYTE scratch[48];  // scratch buffer for formatting
 static char * hex = "0123456789abcdef";
 
 BYTE string_from(DATA_PTR value, DATA_PTR * result) {
-/*
-           1         2         3         4     .  5         6
+/*        1         2         3         4      .  5         6
 0123456789012345678901234567890123456789012345678901234567890123
 SN<xx xx xx xx xx xx xx xx xx ...>
 */
@@ -41,21 +41,43 @@ SN<xx xx xx xx xx xx xx xx xx ...>
             *result = (parse.prefix ? s_true : s_false);
             return true;  // hard-coded value
         }
-/*
         case T_Number: {
-            return number_print(parse);
+            WORD n;
+            if (value_integer(value, &n)) {
+                // value fits in a WORD
+                if (n == 0) {
+                    *result = s_0;
+                    return true;  // hard-coded value
+                }
+                if (parse.type & T_Negative) {
+                    n = -n;  // absolute magnitude
+                }
+                DATA_PTR p = scratch + sizeof(scratch);  // start past end of scratch buffer
+                while (n) {
+                    *--p = '0' + (n % 10);  // base-10 digit
+                    n /= 10;
+                }
+                if (parse.type & T_Negative) {
+                    *--p = '-';  // sign
+                }
+                WORD size = (scratch + sizeof(scratch)) - p;
+                *--p = n_0 + size;  // string size field
+                *--p = utf8;
+                if (!COPY(result, p)) return false;  // allocation failure!
+                return true;  // base-10 integer
+            }
+            break;  // fall-thru to hex dump...
         }
-*/
         case T_String: {
             *result = value;
             return true;  // no conversion needed
         }
 /*
         case T_Array: {
-            return array_print(parse, indent, limit);
+            break;  // fall-thru to hex dump...
         }
         case T_Object: {
-            return object_print(parse, indent, limit);
+            break;  // fall-thru to hex dump...
         }
 */
     }
@@ -81,7 +103,7 @@ SN<xx xx xx xx xx xx xx xx xx ...>
         *p++ = hex[b & 0xF];
     }
     *p++ = '>';
-    scratch[1] = n_m2 + (p - scratch);  // fill in string size field
+    scratch[1] = n_m2 + (p - scratch);  // string size field
     if (!COPY(result, scratch)) return false;  // allocation failure!
     return true;  // encoded value dump
 }

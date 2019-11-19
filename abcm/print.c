@@ -223,9 +223,9 @@ static BYTE string_print(parse_t * parse) {
     if (parse->prefix == mem_ref) {
 #if HEXDUMP_ANNOTATION
         set_color(MEMO_COLOR);
-        print('(');
+        //print('(');
         hex_byte(parse->value);
-        print(')');
+        print('=');//print(')');
         clear_color();
 #endif
         parse_t mem_parse;

@@ -708,7 +708,7 @@ BYTE string_parse(DATA_PTR value, parse_t * parse) {  // prepare parse structure
     parse->size = MAX_WORD;  // don't know how big value will be
     parse->start = 0;  // start at the beginning
     if (!parse_string(parse)) {
-        LOG_WARN("value_parse: bad value", (WORD)value);
+        LOG_WARN("string_parse: bad string", (WORD)value);
         return false;  // bad value
     }
     if (parse->prefix == mem_ref) {  // redirect to memo table entry
@@ -725,9 +725,13 @@ BYTE string_parse(DATA_PTR value, parse_t * parse) {  // prepare parse structure
 
 BYTE value_type(DATA_PTR value, BYTE * type) {
     LOG_TRACE("value_type @", (WORD)value);
-    parse_t parse;
-    if (!value_parse(value, &parse)) {
-        LOG_WARN("value_type: bad value", (WORD)value);
+    parse_t parse = {
+        .base = value,
+        .size = MAX_WORD,
+        .start = 0
+    };
+    if (!parse_prefix(&parse)) {
+        LOG_WARN("value_type: bad prefix", (WORD)value);
         return false;  // bad value
     }
     *type = parse.type;  // "return" type field
