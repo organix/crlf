@@ -489,6 +489,87 @@ BYTE actor_eval(event_t * event, DATA_PTR expression, DATA_PTR * result) {
         // FIXME: make sure `dict` is an Object...
         if (!object_add(dict, name, value, result)) return false;  // allocation failure!
         *result = TRACK(*result);
+#if 1
+    } else if (value_equiv(kind, k_string_length)) {
+        // { "kind":"string_length", "string":<string> }
+        LOG_DEBUG("actor_eval: string_length expression", (WORD)kind);
+        DATA_PTR string;
+        if (!property_eval(event, expression, s_string, &string)) return false;  // evaluation failed!
+        // FIXME: make sure `string` is an String...
+        WORD count;
+        if (!string_count(string, &count)) return false;  // count failed!
+        if (!make_integer(count, result)) return false;  // bad allocation!
+        *result = TRACK(*result);
+    } else if (value_equiv(kind, k_string_at)) {
+        // { "kind":"string_at", "index":<number>, "string":<string> }
+        LOG_DEBUG("actor_eval: string_at expression", (WORD)kind);
+        DATA_PTR index;  // 1-based index
+        if (!property_eval(event, expression, s_index, &index)) return false;  // evaluation failed!
+        WORD offset;
+        if (!value_integer(index, &offset)) return false;  // number required!
+        offset -= 1;  // adjust for 1-based index
+        DATA_PTR string;
+        if (!property_eval(event, expression, s_string, &string)) return false;  // evaluation failed!
+        // FIXME: make sure `string` is an String...
+        WORD codepoint;
+        if (!string_get(string, offset, &codepoint)) return false;  // get failed!
+        if (!make_integer(codepoint, result)) return false;  // bad allocation!
+        *result = TRACK(*result);
+    } else if (value_equiv(kind, k_string_insert)) {
+        // { "kind":"string_insert", "index":<number>, "value":<number>, "string":<string> }
+        LOG_DEBUG("actor_eval: string_insert expression", (WORD)kind);
+        DATA_PTR index;  // 1-based index
+        if (!property_eval(event, expression, s_index, &index)) return false;  // evaluation failed!
+        WORD offset;
+        if (!value_integer(index, &offset)) return false;  // number required!
+        offset -= 1;  // adjust for 1-based index
+        DATA_PTR value;  // Unicode codepoint
+        if (!property_eval(event, expression, s_value, &value)) return false;  // evaluation failed!
+        WORD codepoint;
+        if (!value_integer(value, &codepoint)) return false;  // number required!
+        DATA_PTR string;
+        if (!property_eval(event, expression, s_string, &string)) return false;  // evaluation failed!
+        // FIXME: make sure `string` is an String...
+        if (!string_add(string, codepoint, offset, result)) return false;  // get failed!
+        *result = TRACK(*result);
+    } else if (value_equiv(kind, k_array_length)) {
+        // { "kind":"array_length", "array":<array> }
+        LOG_DEBUG("actor_eval: array_length expression", (WORD)kind);
+        DATA_PTR array;
+        if (!property_eval(event, expression, s_array, &array)) return false;  // evaluation failed!
+        // FIXME: make sure `array` is an Array...
+        WORD count;
+        if (!array_count(array, &count)) return false;  // count failed!
+        if (!make_integer(count, result)) return false;  // bad allocation!
+        *result = TRACK(*result);
+    } else if (value_equiv(kind, k_array_at)) {
+        // { "kind":"array_at", "index":<number>, "array":<array> }
+        LOG_DEBUG("actor_eval: array_at expression", (WORD)kind);
+        DATA_PTR index;  // 1-based index
+        if (!property_eval(event, expression, s_index, &index)) return false;  // evaluation failed!
+        WORD offset;
+        if (!value_integer(index, &offset)) return false;  // number required!
+        offset -= 1;  // adjust for 1-based index
+        DATA_PTR array;
+        if (!property_eval(event, expression, s_array, &array)) return false;  // evaluation failed!
+        // FIXME: make sure `array` is an Array...
+        if (!array_get(array, offset, result)) return false;  // get failed!
+    } else if (value_equiv(kind, k_array_insert)) {
+        // { "kind":"array_insert", "index":<number>, "value":<expression>, "array":<array> }
+        LOG_DEBUG("actor_eval: array_insert expression", (WORD)kind);
+        DATA_PTR index;  // 1-based index
+        if (!property_eval(event, expression, s_index, &index)) return false;  // evaluation failed!
+        WORD offset;
+        if (!value_integer(index, &offset)) return false;  // number required!
+        offset -= 1;  // adjust for 1-based index
+        DATA_PTR value;  // Unicode codepoint
+        if (!property_eval(event, expression, s_value, &value)) return false;  // evaluation failed!
+        DATA_PTR array;
+        if (!property_eval(event, expression, s_array, &array)) return false;  // evaluation failed!
+        // FIXME: make sure `array` is an Array...
+        if (!array_add(array, value, offset, result)) return false;  // get failed!
+        *result = TRACK(*result);
+#endif
     } else if (value_equiv(kind, k_actor_message)) {
         // { "kind":"actor_message" }
         LOG_DEBUG("actor_eval: actor_message expression", (WORD)kind);

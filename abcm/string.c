@@ -235,11 +235,15 @@ BYTE string_add(DATA_PTR string, WORD codepoint, WORD offset, DATA_PTR * new) {
         return false;  // bad string
     }
     if (parse.type & T_Capability) return false;  // can't inject data into a Capability
+    if (parse.prefix == string_0) {
+        parse.prefix = utf8;  // WARNING! empty string becomes utf8...
+    }
 
     /* allocate space for new string */
     DATA_PTR data;
     WORD size = 8;  // margin for full string header with length and BOM
     size += parse.size;
+    size += 4;  // space for new character (worst case)
     LOG_TRACE("string_add: allocation size =", size);
     if (size > 0xFFFF) {  // FIXME: this should be a configurable limit somewhere, but code below depends on it...
         LOG_WARN("string_add: string too large", size);

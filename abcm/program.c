@@ -34,6 +34,9 @@ BYTE s_if[] = { utf8, n_2, 'i', 'f' };
 BYTE s_do[] = { utf8, n_2, 'd', 'o' };
 BYTE s_in[] = { utf8, n_2, 'i', 'n' };
 BYTE s_with[] = { utf8, n_4, 'w', 'i', 't', 'h' };
+BYTE s_index[] = { utf8, n_5, 'i', 'n', 'd', 'e', 'x' };
+BYTE s_string[] = { utf8, n_6, 's', 't', 'r', 'i', 'n', 'g' };
+BYTE s_array[] = { utf8, n_5, 'a', 'r', 'r', 'a', 'y' };
 BYTE s_const[] = { utf8, n_5, 'c', 'o', 'n', 's', 't' };
 BYTE s_level[] = { utf8, n_5, 'l', 'e', 'v', 'e', 'l' };
 BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
@@ -88,6 +91,18 @@ BYTE k_actor_state[] = { utf8, n_11, 'a', 'c', 't', 'o', 'r', '_', 's', 't', 'a'
 BYTE k_dict_has[] = { utf8, n_8, 'd', 'i', 'c', 't', '_', 'h', 'a', 's' };
 BYTE k_dict_get[] = { utf8, n_8, 'd', 'i', 'c', 't', '_', 'g', 'e', 't' };
 BYTE k_dict_bind[] = { utf8, n_9, 'd', 'i', 'c', 't', '_', 'b', 'i', 'n', 'd' };
+// { "kind":"string_length", "string":<string> }
+// { "kind":"string_at", "index":<number>, "string":<string> }
+// { "kind":"string_insert", "index":<number>, "value":<number>, "string":<string> }
+BYTE k_string_length[] = { utf8, n_13, 's', 't', 'r', 'i', 'n', 'g', '_', 'l', 'e', 'n', 'g', 't', 'h' };
+BYTE k_string_at[] = { utf8, n_9, 's', 't', 'r', 'i', 'n', 'g', '_', 'a', 't' };
+BYTE k_string_insert[] = { utf8, n_13, 's', 't', 'r', 'i', 'n', 'g', '_', 'i', 'n', 's', 'e', 'r', 't' };
+// { "kind":"array_length", "array":<array> }
+// { "kind":"array_at", "index":<number>, "array":<array> }
+// { "kind":"array_insert", "index":<number>, "value":<expression>, "array":<array> }
+BYTE k_array_length[] = { utf8, n_12, 'a', 'r', 'r', 'a', 'y', '_', 'l', 'e', 'n', 'g', 't', 'h' };
+BYTE k_array_at[] = { utf8, n_8, 'a', 'r', 'r', 'a', 'y', '_', 'a', 't' };
+BYTE k_array_insert[] = { utf8, n_12, 'a', 'r', 'r', 'a', 'y', '_', 'i', 'n', 's', 'e', 'r', 't' };
 BYTE k_expr_literal[] = { utf8, n_12, 'e', 'x', 'p', 'r', '_', 'l', 'i', 't', 'e', 'r', 'a', 'l' };
 BYTE k_expr_operation[] = { utf8, n_14, 'e', 'x', 'p', 'r', '_', 'o', 'p', 'e', 'r', 'a', 't', 'i', 'o', 'n' };
 BYTE k_log_print[] = { utf8, n_9, 'l', 'o', 'g', '_', 'p', 'r', 'i', 'n', 't' };

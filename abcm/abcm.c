@@ -24,20 +24,22 @@ BYTE bootstrap[] = {
 //#include "hello_world.abc"
 //#include "basic_scope.abc"
 //#include "fail_example.abc"
-#include "two_sponsor.abc"
+//#include "two_sponsor.abc"
 //#include "stream_reader.abc"
 //#include "lambda_calculus.abc"
+#include "testcase.abc"
 };
 
-#define LOAD_2ND_PROGRAM 1 /* test loading of multiple top-level programs */
+#define LOAD_2ND_PROGRAM 0 /* test loading of multiple top-level programs */
 #if LOAD_2ND_PROGRAM
 BYTE boot2nd[] = {
 //#include "hello_world.abc"
 //#include "basic_scope.abc"
 //#include "fail_example.abc"
-//#include "two_sponsor.abc"
-#include "stream_reader.abc"
+#include "two_sponsor.abc"
+//#include "stream_reader.abc"
 //#include "lambda_calculus.abc"
+//#include "testcase.abc"
 };
 #endif
 
@@ -60,9 +62,9 @@ int run_abcm() {  // ok == 0, fail != 0
     assert(audit_check_leaks() == 0);  // the test suite should not leak memory.
 
     // establish (global) bootstrap sponsor
-    log_config.level = LOG_LEVEL_WARN;
+    //log_config.level = LOG_LEVEL_WARN;
     //log_config.level = LOG_LEVEL_DEBUG;
-    //log_config.level = LOG_LEVEL_TRACE;
+    log_config.level = LOG_LEVEL_TRACE;
     //log_config.level = LOG_LEVEL_TRACE+1;
     //log_config.level = LOG_LEVEL_TRACE+2;
 #if REF_COUNTED_BOOT_SPONSOR
