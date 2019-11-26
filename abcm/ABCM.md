@@ -56,6 +56,18 @@ Typed expressions include:
     { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
 ```
 
+Primitive operations include:
+```javascript
+// String operations
+    { "kind":"string_length", "string":<string> }
+    { "kind":"string_at", "index":<number>, "string":<string> }
+    { "kind":"string_insert", "index":<number>, "value":<number>, "string":<string> }
+// Array operations
+    { "kind":"array_length", "array":<array> }
+    { "kind":"array_at", "index":<number>, "array":<array> }
+    { "kind":"array_insert", "index":<number>, "value":<expression>, "array":<array> }
+```
+
 ## Resource Management
 
 ABCM programs execute within a strictly confined context, controlled by a _Sponsor_.

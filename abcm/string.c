@@ -22,9 +22,9 @@ static BYTE scratch[48];  // scratch buffer for formatting
 static char * hex = "0123456789abcdef";
 
 BYTE string_from(DATA_PTR value, DATA_PTR * result) {
-/*        1         2         3         4      .  5         6
+/*        1         2         3         4         5         6
 0123456789012345678901234567890123456789012345678901234567890123
-SN<xx xx xx xx xx xx xx xx xx ...>
+SN<xx xx xx xx xx xx xx xx xx ...>             !
 */
     parse_t parse;
     if (!value_parse(value, &parse)) return false;  // parse failed!

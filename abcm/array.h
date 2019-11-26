@@ -11,6 +11,10 @@
     { "kind":"list_length", "of":<list> }
     { "kind":"list_add", "value":<expression>, "at":<number>, "to":<list> }
     { "kind":"list_remove", "at":<number>, "from":<list> }
+
+    { "kind":"array_length", "array":<array> }
+    { "kind":"array_at", "index":<number>, "array":<array> }
+    { "kind":"array_insert", "index":<number>, "value":<expression>, "array":<array> }
 */
 
 BYTE array_count(DATA_PTR array, WORD * count);  // elements in Array

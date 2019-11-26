@@ -9,6 +9,7 @@
 #include "equiv.h"
 #include "program.h"
 #include "sponsor.h"
+#include "string.h"
 #include "array.h"
 #include "object.h"
 #include "print.h"
@@ -583,6 +584,97 @@ static int test_sponsor() {
     return 0;
 }
 
+static int test_string_ops() {
+    BYTE data_0[] = { octets, n_0 };
+    BYTE data_1[] = { octets, n_1, 'x' };
+    BYTE data_2[] = { utf8, n_2, '(', ')' };
+    BYTE data_3[] = { utf16, p_int_0, n_2, 0x06, 0x00, '\0', 'a', '\0', 'b', '\0', 'c' };
+    BYTE data_4[] = { utf16, n_10, 0xFE, 0xFF, '\0', 'k', '\0', 'i', '\0', 'n', '\0', 'd' };
+    BYTE data_5[] = { utf16, n_12, 0xFF, 0xFE, 'a', '\0', 'c', '\0', 't', '\0', 'o', '\0', 'r', '\0' };
+
+    WORD count;
+    WORD code;
+    DATA_PTR result;
+    DATA_PTR string;
+
+// { "kind":"string_length", "string":<string> }
+// BYTE string_count(DATA_PTR string, WORD * count);  // codepoints in String
+
+    IF_TRACE(value_print(s_, 1));
+    assert(string_count(s_, &count));
+    assert(count == 0);
+
+    IF_TRACE(value_print(data_0, 1));
+    assert(string_count(data_0, &count));
+    assert(count == 0);
+    assert(value_equiv(s_, data_0));
+
+    IF_TRACE(value_print(data_1, 1));
+    assert(string_count(data_1, &count));
+    assert(count == 1);
+
+    IF_TRACE(value_print(data_2, 1));
+    assert(string_count(data_2, &count));
+    assert(count == 2);
+
+    IF_TRACE(value_print(data_3, 1));
+    assert(string_count(data_3, &count));
+    assert(count == 3);
+
+    IF_TRACE(value_print(data_4, 1));
+    assert(string_count(data_4, &count));
+    assert(count == 4);
+
+    IF_TRACE(value_print(data_5, 1));
+    assert(string_count(data_5, &count));
+    assert(count == 5);
+
+// { "kind":"string_at", "index":<number>, "string":<string> }
+// BYTE string_get(DATA_PTR string, WORD offset, WORD * codepoint);
+
+    assert(string_get(data_3, 0, &code));
+    assert(code == 'a');
+    assert(string_get(data_3, 1, &code));
+    assert(code == 'b');
+    assert(string_get(data_3, 2, &code));
+    assert(code == 'c');
+
+    assert(string_get(data_4, 2, &code));
+    assert(code == 'n');
+    assert(string_get(data_5, 3, &code));
+    assert(code == 'o');
+
+// { "kind":"string_insert", "index":<number>, "value":<number>, "string":<string> }
+// BYTE string_add(DATA_PTR string, WORD codepoint, WORD offset, DATA_PTR * new);
+    assert(string_add(s_, 'x', 0, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(value_equiv(data_1, result));
+    assert(string_add(result, 'y', 1, &string));
+    RELEASE(&result);
+    IF_TRACE(value_print(string, 1));
+    assert(string_add(data_1, 'y', 1, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(value_equiv(result, string));
+    RELEASE(&result);
+    RELEASE(&string);
+
+    string = s_;
+    assert(string_add(string, 'c', 0, &result));
+    string = result;
+    assert(string_add(string, 'b', 0, &result));
+    RELEASE(&string);
+    string = result;
+    assert(string_add(string, 'a', 0, &result));
+    RELEASE(&string);
+    IF_TRACE(value_print(result, 1));
+    assert(value_equiv(data_3, result));
+    RELEASE(&result);
+
+// BYTE string_concat(DATA_PTR left, DATA_PTR right, DATA_PTR * new);
+
+    return 0;
+}
+
 static int test_array() {
     BYTE data_0[] = { array_0 };
     BYTE data_1[] = { array_n, n_1, n_0 };
@@ -636,30 +728,28 @@ static int test_array() {
     LOG_DEBUG("test_array: data_5.count =", count);
     assert(count == 5);
 
-/*
-ADD x AT 0 TO [a, b, c] --> [x, a, b, c]
-ADD x AT 1 TO [a, b, c] --> [a, x, b, c]
-ADD x AT 2 TO [a, b, c] --> [a, b, x, c]
-ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
-*/
     BYTE data_10[] = { array, n_3, n_1, n_2, n_3 };
     BYTE data_11[] = { array, n_4, n_0, n_1, n_2, n_3 };
     BYTE data_12[] = { array, n_4, n_1, n_0, n_2, n_3 };
     BYTE data_13[] = { array, n_4, n_1, n_2, n_0, n_3 };
     BYTE data_14[] = { array, n_4, n_1, n_2, n_3, n_0 };
 
+    // ADD x AT 0 TO [a, b, c] --> [x, a, b, c]
     assert(array_add(data_10, i_0, 0, &value));
     assert(value_equiv(value, data_11));
     assert(RELEASE(&value));
 
+    // ADD x AT 1 TO [a, b, c] --> [a, x, b, c]
     assert(array_add(data_10, i_0, 1, &value));
     assert(value_equiv(value, data_12));
     assert(RELEASE(&value));
 
+    // ADD x AT 2 TO [a, b, c] --> [a, b, x, c]
     assert(array_add(data_10, i_0, 2, &value));
     assert(value_equiv(value, data_13));
     assert(RELEASE(&value));
 
+    // ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
     assert(array_add(data_10, i_0, 3, &value));
     assert(value_equiv(value, data_14));
     assert(array_count(value, &count));
@@ -698,6 +788,10 @@ ADD x AT 3 TO [a, b, c] --> [a, b, c, x]
     LOG_DEBUG("test_array: array.count =", count);
     assert(count == 3);
     assert(RELEASE(&array));
+
+// { "kind":"array_length", "array":<array> }
+// { "kind":"array_at", "index":<number>, "array":<array> }
+// { "kind":"array_insert", "index":<number>, "value":<expression>, "array":<array> }
 
     return 0;
 }
@@ -842,6 +936,7 @@ int run_test_suite() {
         || test_object_property_count()
         || test_value_equiv()
         || test_sponsor()
+        || test_string_ops()
         || test_array()
         || test_object()
         ;

@@ -10,6 +10,10 @@
 /*
     { "kind":"expr_operation", "name":"length[1]", "args":[ <string> ] }
     { "kind":"expr_operation", "name":"charAt_FROM_START[2]", "args":[ <string>, <number> ] }
+
+    { "kind":"string_length", "string":<string> }
+    { "kind":"string_at", "index":<number>, "string":<string> }
+    { "kind":"string_insert", "index":<number>, "value":<number>, "string":<string> }
 */
 
 BYTE string_from(DATA_PTR value, DATA_PTR * result);  // convert arbitrary value to String
