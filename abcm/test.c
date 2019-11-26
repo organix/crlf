@@ -660,17 +660,82 @@ static int test_string_ops() {
 
     string = s_;
     assert(string_add(string, 'c', 0, &result));
+    assert(string_count(result, &count));
+    assert(count == 1);
     string = result;
     assert(string_add(string, 'b', 0, &result));
     RELEASE(&string);
+    assert(string_count(result, &count));
+    assert(count == 2);
     string = result;
     assert(string_add(string, 'a', 0, &result));
     RELEASE(&string);
     IF_TRACE(value_print(result, 1));
+    assert(string_count(result, &count));
+    assert(count == 3);
     assert(value_equiv(data_3, result));
     RELEASE(&result);
 
 // BYTE string_concat(DATA_PTR left, DATA_PTR right, DATA_PTR * new);
+    assert(string_concat(data_0, data_1, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(string_count(result, &count));
+    assert(count == 1);
+    assert(value_equiv(result, data_1));
+    RELEASE(&result);
+
+    assert(string_concat(data_1, data_0, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(string_count(result, &count));
+    assert(count == 1);
+    assert(value_equiv(result, data_1));
+    RELEASE(&result);
+
+    assert(string_concat(s_, data_1, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(string_count(result, &count));
+    assert(count == 1);
+    assert(value_equiv(result, data_1));
+    RELEASE(&result);
+
+    assert(string_concat(data_1, s_, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(string_count(result, &count));
+    assert(count == 1);
+    assert(value_equiv(result, data_1));
+    RELEASE(&result);
+
+    assert(string_concat(s_, data_2, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(string_count(result, &count));
+    assert(count == 2);
+    assert(value_equiv(result, data_2));
+    RELEASE(&result);
+
+    assert(string_concat(data_2, s_, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(string_count(result, &count));
+    assert(count == 2);
+    assert(value_equiv(result, data_2));
+    RELEASE(&result);
+
+    assert(string_concat(data_1, data_2, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(string_count(result, &count));
+    assert(count == 3);
+    RELEASE(&result);
+
+    assert(string_concat(data_2, data_1, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(string_count(result, &count));
+    assert(count == 3);
+    RELEASE(&result);
+
+    assert(string_concat(data_3, data_4, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(string_count(result, &count));
+    assert(count == 7);
+    RELEASE(&result);
 
     return 0;
 }
@@ -687,6 +752,7 @@ static int test_array() {
         true, false, null };
     WORD count;
     DATA_PTR value;
+    DATA_PTR result;
 
     IF_TRACE(value_print(data_0, 0));
     assert(array_count(data_0, &count));
@@ -761,37 +827,78 @@ static int test_array() {
 
     // start with nothing
     LOG_DEBUG("test_array: sponsor =", (WORD)sponsor);
-    DATA_PTR array;
-    assert(COPY(&array, a_));
+    assert(COPY(&result, a_));
     // append 1
-    assert(array_count(array, &count));
+    assert(array_count(result, &count));
     assert(array_get(data_10, 0, &value));
-    assert(array_add(array, value, count, &value));
-    assert(RELEASE(&array));
-    array = TRACK(value);
+    assert(array_add(result, value, count, &value));
+    assert(RELEASE(&result));
+    result = TRACK(value);
     // append 2
-    assert(array_count(array, &count));
+    assert(array_count(result, &count));
     assert(array_get(data_10, 1, &value));
-    assert(array_add(array, value, count, &value));
-    assert(RELEASE(&array));
-    array = TRACK(value);
+    assert(array_add(result, value, count, &value));
+    assert(RELEASE(&result));
+    result = TRACK(value);
     // append 3
-    assert(array_count(array, &count));
+    assert(array_count(result, &count));
     assert(array_get(data_10, 2, &value));
-    assert(array_add(array, value, count, &value));
-    assert(RELEASE(&array));
-    array = TRACK(value);
+    assert(array_add(result, value, count, &value));
+    assert(RELEASE(&result));
+    result = TRACK(value);
     // verify result
-    IF_TRACE(value_print(array, 1));
-    assert(value_equiv(array, data_10));
-    assert(array_count(array, &count));
-    LOG_DEBUG("test_array: array.count =", count);
+    IF_TRACE(value_print(result, 1));
+    assert(value_equiv(result, data_10));
+    assert(array_count(result, &count));
+    LOG_DEBUG("test_array: result.count =", count);
     assert(count == 3);
-    assert(RELEASE(&array));
+    assert(RELEASE(&result));
 
 // { "kind":"array_length", "array":<array> }
 // { "kind":"array_at", "index":<number>, "array":<array> }
 // { "kind":"array_insert", "index":<number>, "value":<expression>, "array":<array> }
+
+    BYTE data_20[] = { array, n_1, n_m42 };
+
+// BYTE array_concat(DATA_PTR left, DATA_PTR right, DATA_PTR * new);
+    assert(array_concat(a_, data_0, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(array_count(result, &count));
+    assert(count == 0);
+    assert(value_equiv(result, a_));
+    RELEASE(&result);
+
+    assert(array_concat(data_0, data_20, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(array_count(result, &count));
+    assert(count == 1);
+    assert(value_equiv(result, data_20));
+    RELEASE(&result);
+
+    assert(array_concat(data_20, data_0, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(array_count(result, &count));
+    assert(count == 1);
+    assert(value_equiv(result, data_20));
+    RELEASE(&result);
+
+    assert(array_concat(data_20, data_4, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(array_count(result, &count));
+    assert(count == 3);
+    RELEASE(&result);
+
+    assert(array_concat(data_4, data_20, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(array_count(result, &count));
+    assert(count == 3);
+    RELEASE(&result);
+
+    assert(array_concat(data_5, data_4, &result));
+    IF_TRACE(value_print(result, 1));
+    assert(array_count(result, &count));
+    assert(count == 7);
+    RELEASE(&result);
 
     return 0;
 }

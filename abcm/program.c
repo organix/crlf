@@ -71,6 +71,7 @@ BYTE s_error[] = { utf8, n_5, 'e', 'r', 'r', 'o', 'r' };
 // List (Array) Expressions
     { "kind":"list_add", "value":<expression>, "at":<number>, "to":<list> }
     { "kind":"list_remove", "at":<number>, "from":<list> }
+    { "kind":"expr_operation", "name":"list[*]", "args":[<expression>, ...] }
 // Dictionary (Object) Expressions
     { "kind":"actor_message" }
     { "kind":"dict_bind", "name":<string>, "value":<expression>, "with":<dictionary> }
@@ -94,6 +95,7 @@ BYTE k_dict_bind[] = { utf8, n_9, 'd', 'i', 'c', 't', '_', 'b', 'i', 'n', 'd' };
 // { "kind":"string_length", "string":<string> }
 // { "kind":"string_at", "index":<number>, "string":<string> }
 // { "kind":"string_insert", "index":<number>, "value":<number>, "string":<string> }
+// { "kind":"expr_operation", "name":"join[*]", "args":[<string>, ...] }
 BYTE k_string_length[] = { utf8, n_13, 's', 't', 'r', 'i', 'n', 'g', '_', 'l', 'e', 'n', 'g', 't', 'h' };
 BYTE k_string_at[] = { utf8, n_9, 's', 't', 'r', 'i', 'n', 'g', '_', 'a', 't' };
 BYTE k_string_insert[] = { utf8, n_13, 's', 't', 'r', 'i', 'n', 'g', '_', 'i', 'n', 's', 'e', 'r', 't' };

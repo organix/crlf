@@ -15,7 +15,7 @@
 #define LOG_ALL // enable all logging
 #include "log.h"
 
-char * _semver = "0.0.7";
+char * _semver = "0.0.8";
 
 /*
  * include actor-byte-code bootstrap program...
