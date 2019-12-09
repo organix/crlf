@@ -26,6 +26,35 @@ static struct {
  * generic allocator methods
  */
 
+#define GEN_BITS 2  // log2 rounding base for generic allocation
+#define GEN_MASK (((WORD)1 << GEN_BITS) - 1)
+#define GEN_ROUND(n) (((n) + GEN_MASK) & ~GEN_MASK)
+#define GEN_SIZE(s) ((s) & ~GEN_MASK)
+#define GEN_FLAGS(s) ((s) & GEN_MASK)
+
+inline WORD log2round(BYTE log2, WORD n) {
+    WORD mask = (1 << log2) - 1;
+    return (n + mask) & ~mask;
+}
+
+#if 0
+typedef struct gen_mem_struct {
+    //ref_mem_t * link;           // link for chaining allocation records
+    WORD        size;           // allocation size + flag bits
+    BYTE        data[];         // data follows header...
+} gen_mem_t;
+
+static BYTE generic_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
+    LOG_LEVEL(LOG_LEVEL_TRACE+1, "generic_pool_copy: value =", (WORD)value);
+    if (value == NULL) return false;
+    gen_mem_t * mem = ((gen_mem_t *)value) - 1;  // gen_mem_t structure preceeds allocation
+    WORD size = GEN_SIZE(mem->size);
+    if (!pool_reserve(pool, data, size)) return false;  // bad allocation!
+    memcpy(*data, value, size);
+    LOG_LEVEL(LOG_LEVEL_TRACE+2, "generic_pool_copy: data @", (WORD)(*data));
+    return true;
+}
+#else
 static BYTE generic_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
     LOG_LEVEL(LOG_LEVEL_TRACE+1, "generic_pool_copy: value =", (WORD)value);
     parse_t parse = {
@@ -40,6 +69,7 @@ static BYTE generic_pool_copy(pool_t * pool, DATA_PTR * data, DATA_PTR value) {
     LOG_LEVEL(LOG_LEVEL_TRACE+2, "generic_pool_copy: data @", (WORD)(*data));
     return true;
 }
+#endif
 
 /*
  * standard heap-memory allocator
@@ -121,8 +151,8 @@ typedef struct {
 
 typedef struct ref_mem_struct {
     ref_mem_t * link;           // link for chaining allocation records
-    WORD        size;           // allocation size
     WORD        count;          // reference count
+    WORD        size;           // allocation size
     BYTE        data[];         // data follows header...
 } ref_mem_t;
 
@@ -220,7 +250,13 @@ static pool_vt ref_pool_vtable = {
     .copy = ref_pool_copy,
     .release = ref_pool_release,
 };
-
+#if STATIC_REF_POOL_SIZE
+static ref_pool_t ref_pool_instance = {
+    .pool.vtable = &ref_pool_vtable,
+    .used = NULL,
+};
+pool_t * ref_pool = &ref_pool_instance.pool;
+#else
 pool_t * new_ref_pool(pool_t * parent/*, WORD size*/) {
     ref_pool_t * THIS;
     if (!RESERVE_FROM(parent, (DATA_PTR *)&THIS, sizeof(ref_pool_t))) {
@@ -231,6 +267,7 @@ pool_t * new_ref_pool(pool_t * parent/*, WORD size*/) {
     LOG_DEBUG("new_ref_pool: created", (WORD)THIS);
     return &THIS->pool;
 }
+#endif
 
 /*
  * simple linear allocator

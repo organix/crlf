@@ -11,6 +11,7 @@
 #define SCRIBBLE_ON_FREE 1 /* write null (0xFF) on memory before releasing it */
 #define KEEP_POOL_METRICS 1 /* track memory usage metrics across pools */
 
+#define STATIC_REF_POOL_SIZE (1 << 12)  /* if this is 0, static ref_pool is not used. */
 #define STATIC_TEMP_POOL_SIZE (1 << 16)  /* if this is 0, static temp_pool is not used. */
 
 #if AUDIT_ALLOCATION
@@ -31,6 +32,13 @@
 #define RELEASE(dpp) RELEASE_FROM(SPONSOR_POOL(sponsor),dpp)
 #define TRACK(vp) TRACK_IN(SPONSOR_POOL(sponsor),vp)
 
+#if STATIC_REF_POOL_SIZE
+// no auditing...
+#define RESERVE_REF(dpp,size) pool_reserve(ref_pool, (dpp), (size))
+#define RETAIN_REF(to_dpp,from_dp) pool_copy(ref_pool,to_dpp,from_dp)
+#define RELEASE_REF(dpp) pool_release(ref_pool, (dpp))
+#endif
+
 typedef struct pool_struct pool_t;
 
 typedef struct {
@@ -47,9 +55,14 @@ typedef struct pool_struct {
     pool_vt *   vtable;
 } pool_t;
 
-extern pool_t * heap_pool;  // globally-available explicit reserve/release pool
+extern pool_t * heap_pool;  // globally-available exact reserve/release pool
 
+#if STATIC_REF_POOL_SIZE
+extern pool_t * ref_pool;  // globally-available exact reference-counted pool
+#else
 pool_t * new_ref_pool(pool_t * parent/*, WORD size*/);  // create reference-counted memory pool
+#endif
+
 #if STATIC_TEMP_POOL_SIZE
 //extern pool_t * temp_pool;  // globally-available temporary working-memory pool
 pool_t * clear_temp_pool();  // reset static temp_pool to empty-state

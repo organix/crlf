@@ -21,17 +21,17 @@ char * _semver = "0.0.8";
  * include actor-byte-code bootstrap program...
  */
 BYTE bootstrap[] = {
-//#include "hello_world.abc"
+#include "hello_world.abc"
 //#include "basic_scope.abc"
 //#include "fail_example.abc"
 //#include "two_sponsor.abc"
 //#include "stream_reader.abc"
 //#include "peg_parser.abc"
-#include "lambda_calculus.abc"
+//#include "lambda_calculus.abc"
 //#include "testcase.abc"
 };
 
-#define LOAD_2ND_PROGRAM 1 /* test loading of multiple top-level programs */
+#define LOAD_2ND_PROGRAM 0 /* test loading of multiple top-level programs */
 #if LOAD_2ND_PROGRAM
 BYTE boot2nd[] = {
 //#include "hello_world.abc"
@@ -39,7 +39,7 @@ BYTE boot2nd[] = {
 //#include "fail_example.abc"
 //#include "two_sponsor.abc"
 //#include "stream_reader.abc"
-#include "peg_parser.abc"
+//#include "peg_parser.abc"
 //#include "lambda_calculus.abc"
 //#include "testcase.abc"
 };
@@ -49,7 +49,7 @@ int run_abcm() {  // ok == 0, fail != 0
     int result = 0;
     //log_config.level = LOG_LEVEL_WARN;
     //log_config.level = LOG_LEVEL_DEBUG;
-    //log_config.level = LOG_LEVEL_TRACE;
+    //log_config.level = LOG_LEVEL_TRACE+2;
 
     assert(_semver == _semver);  // FIXME: vacuous use of `_semver`, to satisfy compiler...
     LOG_INFO(_semver, (WORD)_semver);

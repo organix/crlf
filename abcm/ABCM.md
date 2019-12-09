@@ -14,7 +14,7 @@ A _Dictionary_ mapping names to values is the primary conceptual data structure.
 ## BART Program Elements
 
 ABCM programs are represented in a _CRLF_-style _JSON_ vocabulary called _BART_ (for **Blockly Actor Run-Time**).
-[BART](https://github.com/dalnefre/blockly/tree/explicit-message-dictionary) is an implementation of an Actor Assignment Machine using the [Blockly](https://developers.google.com/blockly/) web-based visual programming editor. BART programs are encoded as BOSE representations of JSON values. The top-level value is expected to be an Array of Sponsors.
+[BART](https://github.com/dalnefre/blockly/tree/BART) is an implementation of an Actor Assignment Machine using the [Blockly](https://developers.google.com/blockly/) web-based visual programming editor. BART programs are encoded as BOSE representations of JSON values. The top-level value is expected to be an Array of Sponsors.
 
 An Actor program is a sequence of _Actions_ executing within the bounds of a _Sponsor_:
 ```javascript
@@ -88,7 +88,7 @@ Since Actor-state is mutable, the set of references it holds may change over tim
 Memory for an Actor can be reclaimed when it is no longer reachable,
 either through other Actors or from a pending message.
 
-When a _Message_ is created, it persist beyond the end of the computation, unless the computation throws.
+When a _Message_ is created, it persists beyond the end of the computation, unless the computation throws.
 Asynchronous messages created (sent, but not yet received) are a primary _effect_ of an Actor's behavior.
 Memory for a Message can be reclaimed once the message has been delivered and processed by the target Actor.
 

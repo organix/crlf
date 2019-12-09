@@ -375,6 +375,14 @@ sponsor_t * new_sponsor(pool_t * pool, memo_t * memo, WORD actors, WORD events) 
     sponsor->pool = pool;
     LOG_TRACE("new_sponsor: memo =", (WORD)memo);
     sponsor->memo = memo;
+#if USE_REF_POOL_FOR_MEMO
+    if (memo) {
+        if (!RETAIN_REF((DATA_PTR *)&sponsor->memo, (DATA_PTR)memo)) {  // increase memo ref-count
+            LOG_WARN("load_program: failed to increase memo ref-count!", (WORD)memo);
+            return NULL;  // failed to increase memo ref-count!
+        }
+    }
+#else
 #if REF_COUNTED_BOOT_SPONSOR
     if (memo) {
         if (!COPY_INTO(pool, (DATA_PTR *)&sponsor->memo, (DATA_PTR)memo)) {  // increase memo ref-count
@@ -382,6 +390,7 @@ sponsor_t * new_sponsor(pool_t * pool, memo_t * memo, WORD actors, WORD events) 
             return NULL;  // failed to increase memo ref-count!
         }
     }
+#endif
 #endif
     sponsor->actors = actors;
     sponsor->events = events;
@@ -401,6 +410,26 @@ static BYTE sponsor_release_ring(sponsor_t * sponsor) {
     sponsor_t * current = SPONSOR_NEXT(sponsor);
     LOG_DEBUG("sponsor_release_ring: first sponsor =", (WORD)current);
     if (current) {
+#if USE_REF_POOL_FOR_MEMO
+        do {
+            sponsor_t * next = SPONSOR_NEXT(current);
+            memo_t * memo = SPONSOR_MEMO(current);
+            LOG_DEBUG("sponsor_release_ring: releasing memo =", (WORD)memo);
+            if (!RELEASE_REF((DATA_PTR *)&current->memo)) {
+                LOG_WARN("sponsor_release_ring: failed to reduce memo ref-count!", (WORD)memo);
+                return false;  // failed to release memo!
+            }
+            sponsor_t * victim = current;
+            LOG_DEBUG("sponsor_release_ring: releasing sponsor =", (WORD)victim);
+            if (!RELEASE((DATA_PTR *)&victim)) {
+                LOG_WARN("sponsor_release_ring: failed to release sponsor!", (WORD)current);
+                return false;  // reclamation failure!
+            }
+            current = next;
+        } while (current != SPONSOR_NEXT(sponsor));
+        sponsor->next = NULL;  // clear link to first sponsor
+        LOG_WARN("sponsor_release_ring: released ring for", (WORD)sponsor);
+#else
 #if REF_COUNTED_BOOT_SPONSOR
         do {
             sponsor_t * next = SPONSOR_NEXT(current);
@@ -444,6 +473,7 @@ static BYTE sponsor_release_ring(sponsor_t * sponsor) {
         } while (current != SPONSOR_NEXT(sponsor));
         sponsor->next = NULL;  // clear link to first sponsor
         LOG_WARN("sponsor_release_ring: released ring for", (WORD)sponsor);
+#endif
 #endif
     }
     return true;  // success!

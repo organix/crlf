@@ -11,7 +11,8 @@
 #CFLAGS=	-O2 -Wall
 #CFLAGS=	-g -Wall -DLOG_ALL
 #CFLAGS=	-Wall -DMAIN -DLOG_ALL
-CFLAGS=	-DMAIN -Wall
+CFLAGS=	-g -DMAIN -Wall
+#CFLAGS=	-DMAIN -Wall
 
 LIB=	libabc.a
 LOBJS=	sponsor.o event.o runtime.o string.o array.o object.o pool.o equiv.o print.o bose.o device.o log.o

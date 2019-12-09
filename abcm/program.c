@@ -159,10 +159,17 @@ static BYTE config_exec(config_t * config, DATA_PTR script) {
 BYTE load_program(DATA_PTR program) {
     LOG_INFO("load_program: program =", (WORD)program);
     pool_t * pool = SPONSOR_POOL(sponsor);
+#if USE_REF_POOL_FOR_MEMO
+    if (!RESERVE_REF((DATA_PTR *)&sponsor->memo, sizeof(memo_t))) {
+        LOG_WARN("load_program: failed allocation of memo structure!", (WORD)sizeof(memo_t));
+        return false;  // failed allocation of memo structure!
+    }
+#else
     if (!RESERVE((DATA_PTR *)&sponsor->memo, sizeof(memo_t))) {
         LOG_WARN("load_program: failed allocation of memo structure!", (WORD)sizeof(memo_t));
         return false;  // failed allocation of memo structure!
     }
+#endif
     memo_t * memo = SPONSOR_MEMO(sponsor);
     if (!memo_init(memo)) return false;  // memo init failed!
     LOG_WARN("load_program: using memo", (WORD)memo);
@@ -199,6 +206,8 @@ BYTE load_program(DATA_PTR program) {
             return false;  // script required!
         }
         LOG_DEBUG("load_program: script =", (WORD)script);
+        LOG_NONE("[EXTRA] load_program: script =", (WORD)script);
+        IF_NONE(value_print_limit(script, 1, 2));
 
         sponsor_t * boot_sponsor = sponsor;  // save current global sponsor
         // +1 to account for initial actor and event
@@ -222,11 +231,18 @@ BYTE load_program(DATA_PTR program) {
         }
         sponsor = boot_sponsor;  // restore previous global sponsor
     }
+#if USE_REF_POOL_FOR_MEMO
+    if (!RELEASE_REF((DATA_PTR *)&sponsor->memo)) {
+        LOG_WARN("load_program: failed to reduce memo ref-count!", (WORD)&sponsor->memo);
+        return false;  // failed to reduce memo ref-count!
+    }
+#else
 #if REF_COUNTED_BOOT_SPONSOR
     if (!RELEASE((DATA_PTR *)&sponsor->memo)) {
         LOG_WARN("load_program: failed to reduce memo ref-count!", (WORD)&sponsor->memo);
         return false;  // failed to reduce memo ref-count!
     }
+#endif
 #endif
     LOG_DEBUG("load_program: dispatch ring start =", (WORD)SPONSOR_NEXT(sponsor));
     return true;  // success!
