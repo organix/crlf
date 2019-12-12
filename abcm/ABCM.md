@@ -5,11 +5,27 @@ Programs are stored and executed directly from Binary Octet-Stream Encoding repr
 
 ## Actor Assignment-Machine Model
 
-An Actor's behavior can be described using a sequential model of variable assignments. This is essentially the model of contemporary processor cores. However, in order to avoid the pitfalls of shared mutable state, we only allow assignment to actor-local (private) variables. All visible effects are captured in the asynchronous messages between actors.
+An Actor's behavior can be described using a sequential model of variable assignments.
+This is essentially the model of contemporary processor cores.
+However, in order to avoid the pitfalls of shared mutable state,
+we only allow assignment to actor-local (private) variables.
+All visible effects are captured in the asynchronous messages between actors.
 
-A _Sponsor_ plays the role of a processor core, mediating access to computational resources and executing the instructions in an Actor's behavior script (the _program_). Each message delivery event is handled as if it was an atomic transaction. No effects are visible outside the Actor until message handling is completed. Message handling may be aborted by an exception, in which case the message is effectively ignored.
+A _Configuration_ is a collection of _Actors_ and (pending) _Events_.
+It represents the stable internal "state" of an Actor system between message deliveries.
 
-A _Dictionary_ mapping names to values is the primary conceptual data structure. Each Actor maintains a persistent Dictionary of local variables, representing it's private state. Each message is a read-only _Dictionary_ from which values may be retrieved by the Actor's behavior script. Information derived from the message may be assigned to the Actor's local persistent state.
+A _Sponsor_ plays the role of a processor core,
+mediating access to computational resources
+and executing the instructions in an Actor's behavior script (the _program_).
+Each message delivery event is handled as if it was an atomic transaction.
+No effects are visible outside the Actor until message handling is completed.
+Message handling may be aborted by an exception,
+in which case the message is effectively ignored.
+
+A _Dictionary_ mapping names to values is the primary conceptual data structure.
+Each Actor maintains a persistent Dictionary of local variables, representing it's private state.
+Each message is a read-only _Dictionary_ from which values may be retrieved by the Actor's behavior script.
+Information derived from the message may be assigned to the Actor's local persistent state.
 
 ## BART Program Elements
 
@@ -81,6 +97,13 @@ _A means for requesting more resources is needed, but not yet defined._
 
 During the execution of an ABCM program, additional working storage is often required.
 Various policies may apply to storage requests, based on their purpose and intent.
+Memory management strategies include:
+  * _Static_: Built in to executable image. No `reserve` or `release`.
+  * _Precise_: Explicitly paired `reserve` and `release` for each allocation.
+  * _Reference-Counted_: Like _Precise_ but `retain` creates alias for sharing.
+  * _Linear_: Only `reserve`. All allocation reclaimed at end of transaction.
+  * _Garbage-Collected_: Only `reserve`. Periodically reclaim orphans not connected to root object(s).
+  * _Managed_: Subordinate allocations within another object with custom policies.
 
 When an _Actor_ is created, it is likely to persist beyond the end of a particular computation.
 Actors may hold references to other Actors, potentially forming circular reference graphs.
@@ -105,6 +128,18 @@ Updates to the Actor's persistent state may copy information from temporary work
 Ownership of resources, especially memory, must be carefully managed.
 All computations must be provided a mechanism to access the resources they need.
 
+#### Pool
+A pool of persistent managed storage.
+
+Fields:
+  * _Capacity_: Number of `BYTE`s available
+
+Methods:
+  * _Reserve_: Allocate a number of usable `BYTE`s
+  * _Copy_: Make a copy of a Value, possibly from a different pool
+  * _Retain_: Make an alias for a shared Value
+  * _Release_: Mark an allocation for reclamation
+
 #### Sponsor
 A root object, providing access to resource-management mechanisms for computations.
 
@@ -115,17 +150,6 @@ Fields:
 
 Methods:
   * _(none)_
-
-#### Pool
-A pool of persistent managed storage.
-
-Fields:
-  * _Capacity_: Number of `BYTE`s available
-
-Methods:
-  * _Reserve_: Allocate a number of usable `BYTE`s
-  * _Copy_: Make a copy of a Value, possibly from a different pool
-  * _Release_: Mark an allocation for reclamation
 
 #### Configuration
 A collection of _Actors_ and (pending) _Events_.
