@@ -34,8 +34,8 @@ Small integer values (from `-64` through `126`) are also encoded in a single oct
 
 encoding     | hex | value
 -------------|-----|----------------
-`2#01nnnnnn` |`40`..`7F`| -Int [-64..-1]
-`2#1nnnnnnn` |`80`..`FE`| +Int [0..126]
+`2#01nnnnnn` |`40`..`7F`| `-64`..`-1`
+`2#1nnnnnnn` |`80`..`FE`| `0`..`126`
 
 The encoding of `0` falls naturally within this range.
 Negative integers are represented in 2's-complement format (all-bits-set = `-1`).
@@ -55,9 +55,9 @@ encoding     | hex | value          | extension
 `2#0000101m` |`0A`..`0B`| UTF-8          | size::Number chars::Octet\*
 `2#0000110m` |`0C`..`0D`| UTF-16         | size::Number (hi::Octet lo::Octet)\*
 `2#00001110` |`0E` | encoded        | size::Number name::String data::Octet\*
-`2#0001sppp` |`10`..`1F`| Integer+pad    | size::Number int::Octet\*
-`2#0010sppp` |`20`..`2F`| Decimal+pad    | size::Number exp::Number int::Octet\*
-`2#0011sppp` |`30`..`3F`| Based+pad      | size::Number base::Number exp::Number int::Octet\*
+`2#0001sppp` |`10`..`1F`| Integer &pad   | size::Number int::Octet\*
+`2#0010sppp` |`20`..`2F`| Decimal &pad   | size::Number exp::Number int::Octet\*
+`2#0011sppp` |`30`..`3F`| Based &pad     | size::Number base::Number exp::Number int::Octet\*
 
 Extended values (except memo refs) contain a _size_ indicating how many octets the value occupies after the size,
 or how many to skip if the value is ignored.
@@ -69,16 +69,16 @@ The _s_ field is the sign (`0` for positive, `1` for negative).
 The _ppp_ field is the number of padding bits added to the MSB (`0` through `7`) to fill the final octet.
 Padding bits match the sign.
 
-encoding     | hex | value          | extension
--------------|-----|----------------|------------
-`2#00010ppp` |`10`..`17`| +Int &pad       | size::Number int::Octet\*
-`2#00011ppp` |`18`..`1F`| -Int &pad       | size::Number int::Octet\*
-`2#0010sppp` |`20`..`27`| +Decimal &pad   | size::Number exp::Number int::Octet\*
-`2#0010sppp` |`28`..`2F`| -Decimal &pad   | size::Number exp::Number int::Octet\*
-`2#0011sppp` |`30`..`37`| +Based &pad     | size::Number base::Number exp::Number int::Octet\*
-`2#0011sppp` |`38`..`3F`| -Based &pad     | size::Number base::Number exp::Number int::Octet\*
-`2#01nnnnnn` |`40`..`7F`| -Int [-64..-1]  | -
-`2#1nnnnnnn` |`80`..`FE`| +Int [0..126]   | -
+encoding     | hex | value           | extension
+-------------|-----|-----------------|------------
+`2#00010ppp` |`10`..`17`| +Integer &pad    | size::Number int::Octet\*
+`2#00011ppp` |`18`..`1F`| -Integer &pad    | size::Number int::Octet\*
+`2#0010sppp` |`20`..`27`| +Decimal &pad    | size::Number exp::Number int::Octet\*
+`2#0010sppp` |`28`..`2F`| -Decimal &pad    | size::Number exp::Number int::Octet\*
+`2#0011sppp` |`30`..`37`| +Based &pad      | size::Number base::Number exp::Number int::Octet\*
+`2#0011sppp` |`38`..`3F`| -Based &pad      | size::Number base::Number exp::Number int::Octet\*
+`2#01nnnnnn` |`40`..`7F`| -small [-64..-1] | -
+`2#1nnnnnnn` |`80`..`FE`| +small [0..126]  | -
 
 The octets of the _int_ portion are stored LSB first, with the MSB padded as described above.
 Negative _int_ values are represented in 2's-complement format (all-bits-set = `-1`).
@@ -170,12 +170,12 @@ Hi \ Lo   | `2#_000` | `2#_001` | `2#_010` | `2#_011` | `2#_100` | `2#_101` | `2
 ----------|----------|----------|----------|----------|----------|----------|----------|----------
 `2#00000_`| `false`  | `true`   | `[]`     | `{}`     |`[`...`]` |`{`...`}` |`[` _n_ `]`|`{` _n_ `}`
 `2#00001_`| octets   | * memo#  | UTF-8    | UTF-8*   | UTF-16   | UTF-16*  | encoded  | `""`
-`2#00010_`| +Int &0  | +Int &1  | +Int &2  | +Int &3  | +Int &4  | +Int &5  | +Int &6  | +Int &7
-`2#00011_`| -Int &0  | -Int &1  | -Int &2  | -Int &3  | -Int &4  | -Int &5  | -Int &6  | -Int &7
-`2#00100_`| +Dec &0  | +Dec &1  | +Dec &2  | +Dec &3  | +Dec &4  | +Dec &5  | +Dec &6  | +Dec &7
-`2#00101_`| -Dec &0  | -Dec &1  | -Dec &2  | -Dec &3  | -Dec &4  | -Dec &5  | -Dec &6  | -Dec &7
-`2#00110_`| +Base &0 | +Base &1 | +Base &2 | +Base &3 | +Base &4 | +Base &5 | +Base &6 | +Base &7
-`2#00111_`| -Base &0 | -Base &1 | -Base &2 | -Base &3 | -Base &4 | -Base &5 | -Base &6 | -Base &7
+`2#00010_`| +int &0  | +int &1  | +int &2  | +int &3  | +int &4  | +int &5  | +int &6  | +int &7
+`2#00011_`| -int &0  | -int &1  | -int &2  | -int &3  | -int &4  | -int &5  | -int &6  | -int &7
+`2#00100_`| +dec &0  | +dec &1  | +dec &2  | +dec &3  | +dec &4  | +dec &5  | +dec &6  | +dec &7
+`2#00101_`| -dec &0  | -dec &1  | -dec &2  | -dec &3  | -dec &4  | -dec &5  | -dec &6  | -dec &7
+`2#00110_`| +base &0 | +base &1 | +base &2 | +base &3 | +base &4 | +base &5 | +base &6 | +base &7
+`2#00111_`| -base &0 | -base &1 | -base &2 | -base &3 | -base &4 | -base &5 | -base &6 | -base &7
 `2#01000_`| `-64`    | `-63`    | `-62`    | `-61`    | `-60`    | `-59`    | `-58`    | `-57`
 `2#01001_`| `-56`    | `-55`    | `-54`    | `-53`    | `-52`    | `-51`    | `-50`    | `-49`
 `2#01010_`| `-48`    | `-47`    | `-46`    | `-45`    | `-44`    | `-43`    | `-42`    | `-41`
