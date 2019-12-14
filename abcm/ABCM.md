@@ -270,6 +270,26 @@ The octets of the _int_ or _bits_ portion are stored LSB first, with the MSB pad
 
 A 64-bit "double-precision" [IEEE 754 floating point](https://en.wikipedia.org/wiki/IEEE_754-1985) value can be encoded without changing any of the bits in the 8-byte standard LSB-first representation. The first octet is `2#0010s001` where _s_ is a copy of the sign bit. The second octet is `2#10001001` indicating there are 9 bytes following. The third octet is `2#10001011` indicating 11 bits of exponent. The fourth through eleventh octets are the 8-byte standard representation, LSB first: `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffffff` `2#ffffeeee` `2#seeeeeee` (52-bit fraction _f_, 11-bit exponent _e_, 1-bit sign _s_).
 
+#### Fractional-Base Values (alternative)
+
+The JSON text format represents numbers in base-10, rather than the base-2 that computers generally use.
+Conversion between bases can lose information, as fractional values may not have exact translations.
+In order for BOSE to avoid this loss of information, we need a way to represent base-10 fractions exactly.
+The BOSE format allocates five (5) bits to describe fractional values (`2#001bsppp`).
+The _s_ (sign) and _p_ (padding) fields are interpreted as they are for Integers.
+The _b_ field indicates the fractional base (`0` for 10, `1` for explicit).
+
+encoding     | hex | value          | extension
+-------------|-----|----------------|------------
+`2#00010ppp` |`10`..`17`| +Integer &pad  | size::Number int::Octet\*
+`2#00011ppp` |`18`..`1F`| -Integer &pad  | size::Number int::Octet\*
+`2#00100ppp` |`20`..`27`| +Decimal &pad  | size::Number exp::Number bits::Octet\*
+`2#00101ppp` |`28`..`2F`| -Decimal &pad  | size::Number exp::Number bits::Octet\*
+`2#00110ppp` |`30`..`37`| +Based &pad    | size::Number base::Number exp::Number bits::Octet\*
+`2#00111ppp` |`38`..`3F`| -Based &pad    | size::Number base::Number exp::Number bits::Octet\*
+
+This makes the full number format prefix (`2#00ebsppp`), where the _e_ field indicates the presence of an exponent.
+
 ### String
 
 An extended String begins with `2#00001eem` where _ee_ indicates encoding, and _m_ indicates memoization.
