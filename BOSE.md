@@ -87,6 +87,15 @@ Based values include a _base_ field that specifies the base, as well as the _exp
 The fully general formula for a Number is (_int_ × _base_ ^ _exp_).
 Note that exact Rational numbers can be represented using _base_ as the denominator with an _exp_ of -1.
 
+#### Binary Data (recommendation)
+
+There are two ways to encode raw binary data.
+Either as an arbitrarily large Integer, or as a String of octets.
+A bit-string of any length can be encoded as an Integer with `0` or `1` padding to fill out the final octet.
+A byte-blob of any length can be encoded as a String of raw octets,
+which are just Unicode code-points restricted to the range `0` through `255`.
+Neither encoding requires any sort of quote/escape processing.
+
 ### String
 
 An extended String begins with `2#00001eem` where _ee_ indicates encoding, and _m_ indicates memoization.
