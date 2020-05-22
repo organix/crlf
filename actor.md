@@ -275,7 +275,7 @@ An equivalent VO statement would be:
 
 There are many possible models for describing an actor's behavior. One simple model is an [imperative](https://en.wikipedia.org/wiki/Imperative_programming) stack-oriented machine with a dictionary (similar to [FORTH](https://en.wikipedia.org/wiki/Forth_(programming_language))).
 
-Program source is provided as a stream of _words_ (whitespace separated in text format). Each word is looked up in the current _dictionary_ and the corresponding _block_ is executed. Literal values are pushed on the data _stack_, which is used to provide parameters and return values for executing blocks. Some blocks also consume words from the source stream.
+Program source is provided as a stream of _words_ (whitespace separated in text format). Each word is looked up in the current _dictionary_. If the value is a _block_ it is executed, otherwise the value is pushed on the data _stack_. Literal values are pushed on the data _stack_, which is used to provide parameters and return values for executing blocks. Some blocks also consume words from the source stream.
 
 An actor's behavior is described with a _block_. The message received by the actor is the contents of the data stack. The `SEND` primitive sends the current stack contents, clearing the stack. Values may be saved in the dictionary by binding them to a word. All dictionary changes are local to the executing behavior.
 
@@ -318,7 +318,7 @@ _value_ _address_    | `!!`            | &mdash;                 | Atomic store 
 
 ```
 [ ] = sink_beh 
-sink_beh CREATE = sink
+@ sink_beh CREATE = sink
 
 [ # cust
   UART0_RXDATA ??  # read UART receive fifo status/data
@@ -355,7 +355,7 @@ sink_beh CREATE = sink
     @ serial_echo_beh BECOME
   ]
 ] = serial_busy_beh
-serial_echo_beh CREATE serial_echo
+@ serial_echo_beh CREATE serial_echo
 
 [ # output
   = output
