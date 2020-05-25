@@ -355,7 +355,7 @@ _value_ _address_    | `!!`            | &mdash;                 | Atomic store 
     @ serial_echo_beh BECOME
   ]
 ] = serial_busy_beh
-@ serial_echo_beh CREATE serial_echo
+@ serial_echo_beh CREATE = serial_echo
 
 [ # output
   = output
