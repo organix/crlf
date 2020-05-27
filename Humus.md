@@ -310,8 +310,9 @@ Attempts to match a _pair_ value by matching the _head_ against `head` and the _
 ```
 Evaluates `expr` (in the enclosing environment) to produce a _value_, which is matched as a `Constant`.
 
-## Compact Representation
+## Syntax Summary
 
+### Statements
 ```javascript
 { "kind":"create_stmt", "ident":<string>, "expr":<expression> }
 { "kind":"send_stmt", "msg":<expression>, "to":<expression> }
@@ -322,6 +323,7 @@ Evaluates `expr` (in the enclosing environment) to produce a _value_, which is m
 { "kind":"expr_stmt", "expr":<expression> }
 { "kind":"throw_stmt", "expr":<expression> }
 ```
+### Expressions
 ```javascript
 { "kind":"const_expr", "value":<value> }
 { "kind":"ident_expr", "ident":<string> }
@@ -338,6 +340,7 @@ Evaluates `expr` (in the enclosing environment) to produce a _value_, which is m
 { "kind":"self_expr" }
 { "kind":"new_expr", "expr":<expression> }
 ```
+### Patterns
 ```javascript
 { "kind":"const_ptrn", "value":<value> }
 { "kind":"ident_ptrn", "ident":<string> }
