@@ -317,7 +317,7 @@ Evaluates `expr` (in the enclosing environment) to produce a _value_, which is m
 { "kind":"create_stmt", "ident":<string>, "expr":<expression> }
 { "kind":"send_stmt", "msg":<expression>, "to":<expression> }
 { "kind":"become_stmt", "expr":<expression> }
-{ "kind":"let_stmt", "left":<pattern>, "right":<pattern> }
+{ "kind": "let_stmt", "eqtn": { "kind": "eqtn", "left": <pattern>, "right": <pattern> }}
 { "kind":"stmt_pair", "head":<statement>, "tail":<statement> }
 { "kind":"empty_stmt" }
 { "kind":"expr_stmt", "expr":<expression> }
@@ -333,7 +333,7 @@ Evaluates `expr` (in the enclosing environment) to produce a _value_, which is m
 { "kind":"case_expr", "expr":<expression>, "next":<choice/end> }
 { "kind":"case_choice", "ptrn":<pattern>, "expr":<expression>, "next":<choice/end> }
 { "kind":"case_end" }
-{ "kind":"if_expr", "left":<pattern>, "right":<pattern>, "expr":<expression>, "next":<expression> }
+{ "kind":"if_expr", "eqtn":<equation>, "expr":<expression>, "next":<expression> }
 { "kind":"let_expr", "eqtn":<equation>, "expr":<expression> }
 { "kind":"block_expr", "vars":[...<string>], "stmt":<statement> }
 { "kind":"now_expr" }
