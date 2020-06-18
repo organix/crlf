@@ -317,7 +317,7 @@ Evaluates `expr` (in the enclosing environment) to produce a _value_, which is m
 { "kind":"create_stmt", "ident":<string>, "expr":<expression> }
 { "kind":"send_stmt", "msg":<expression>, "to":<expression> }
 { "kind":"become_stmt", "expr":<expression> }
-{ "kind": "let_stmt", "eqtn": { "kind": "eqtn", "left": <pattern>, "right": <pattern> }}
+{ "kind":"let_stmt", "eqtn":{ "kind":"eqtn", "left":<pattern>, "right":<pattern> }}
 { "kind":"stmt_pair", "head":<statement>, "tail":<statement> }
 { "kind":"empty_stmt" }
 { "kind":"expr_stmt", "expr":<expression> }
