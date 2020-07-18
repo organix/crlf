@@ -47,6 +47,17 @@ Evalute `msg` and `to` expressions. Send the result of `msg` to the actor addres
 ```
 Evaluate `expr` to produce a _block_ describing the replacement behavior for the current actor.
 
+### DEF / AS
+
+```javascript
+{
+    "kind": "def_stmt",
+    "ptrn": <pattern>,
+    "expr": <expression>
+}
+```
+Evaluate `expr` to produce a _value_, which is matched with `ptrn`, binding identifiers in the current environment.
+
 ### LET
 
 ```javascript
@@ -228,7 +239,7 @@ Match/unify the `left` and `right` patterns, possibly extending the environment 
 ```
 Return a _block_ value closed in the current environment. `vars` is a list of identifiers which will be locally bound during execution of `stmt`. These variables are essentially created on entry to the block, to be bound by concurrent pattern matching actions. Data dependencies are resolved by deferring readers until a value has been written.
 
-### Now
+### NOW
 
 ```javascript
 {
@@ -317,6 +328,7 @@ Evaluates `expr` (in the enclosing environment) to produce a _value_, which is m
 { "kind":"create_stmt", "ident":<string>, "expr":<expression> }
 { "kind":"send_stmt", "msg":<expression>, "to":<expression> }
 { "kind":"become_stmt", "expr":<expression> }
+{ "kind":"def_stmt", "ptrn":<pattern>, "expr":<expression> }
 { "kind":"let_stmt", "eqtn":{ "kind":"eqtn", "left":<pattern>, "right":<pattern> }}
 { "kind":"stmt_pair", "head":<statement>, "tail":<statement> }
 { "kind":"empty_stmt" }
