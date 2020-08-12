@@ -51,7 +51,7 @@ encoding     | hex | value          | extension
 `2#00000110` |`06` | `[` _count_ `]`      | size::Number count::Number ::Value\*n
 `2#00000111` |`07` | `{` _count_ `}`      | size::Number count::Number (name::String ::Value)\*n
 `2#00001000` |`08` | Octet\*        | size::Number bytes::Octet\*
-`2#00001001` |`09` | * Memo#        | index::Octet
+`2#00001001` |`09` | @ Memo#        | index::Octet
 `2#0000101m` |`0A`..`0B`| UTF-8          | size::Number chars::Octet\*
 `2#0000110m` |`0C`..`0D`| UTF-16         | size::Number (hi::Octet lo::Octet)\*
 `2#00001110` |`0E` | encoded        | size::Number name::String data::Octet\*
@@ -103,7 +103,7 @@ An extended String begins with `2#00001eem` where _ee_ indicates encoding, and _
 encoding     | hex | value          | extension
 -------------|-----|----------------|------------
 `2#00001000` |`08` | Octet\*        | size::Number bytes::Octet\*
-`2#00001001` |`09` | * Memo#        | index::Octet
+`2#00001001` |`09` | @ Memo#        | index::Octet
 `2#0000101m` |`0A`..`0B`| UTF-8          | size::Number chars::Octet\*
 `2#0000110m` |`0C`..`0D`| UTF-16         | size::Number (hi::Octet lo::Octet)\*
 `2#00001110` |`0E` | encoded        | size::Number name::String data::Octet\*
@@ -178,7 +178,7 @@ The following table summarizes the meaning of the first octet in a Value:
 Hi \ Lo   | `2#_000` | `2#_001` | `2#_010` | `2#_011` | `2#_100` | `2#_101` | `2#_110` | `2#_111`
 ----------|----------|----------|----------|----------|----------|----------|----------|----------
 `2#00000_`| `false`  | `true`   | `[]`     | `{}`     |`[`...`]` |`{`...`}` |`[` _n_ `]`|`{` _n_ `}`
-`2#00001_`| octets   | * memo#  | UTF-8    | UTF-8*   | UTF-16   | UTF-16*  | encoded  | `""`
+`2#00001_`| octets   | @ memo#  | UTF-8    | UTF-8*   | UTF-16   | UTF-16*  | encoded  | `""`
 `2#00010_`| +int &0  | +int &1  | +int &2  | +int &3  | +int &4  | +int &5  | +int &6  | +int &7
 `2#00011_`| -int &0  | -int &1  | -int &2  | -int &3  | -int &4  | -int &5  | -int &6  | -int &7
 `2#00100_`| +dec &0  | +dec &1  | +dec &2  | +dec &3  | +dec &4  | +dec &5  | +dec &6  | +dec &7
