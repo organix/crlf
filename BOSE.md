@@ -150,7 +150,7 @@ encoding     | hex | value          | extension
 `2#00000110` |`06` | `[` _count_ `]`      | size::Number count::Number ::Value\*n
 
 The end of the array is reached when then specified number of octets have been consumed,
-which should corresponding to decoding the matching count of elements (if specified).
+which should correspond to decoding the matching count of elements (if specified).
 A decoder may reject a mismatch.
 
 ### Object
@@ -168,7 +168,7 @@ Properties are encoded as a String (property name) followed by an encoded Value.
 Note that the property name strings may be memoized,
 reducing the octet-size of the object.
 The end of the object is reached when then specified number of octets have been consumed,
-which should corresponding to decoding the matching count of properties (if specified).
+which should correspond to decoding the matching count of properties (if specified).
 A decoder may reject a mismatch.
 
 ## Encoding Matrix
