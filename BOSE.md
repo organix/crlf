@@ -73,19 +73,21 @@ encoding     | hex | value           | extension
 -------------|-----|-----------------|------------
 `2#00010ppp` |`10`..`17`| +Integer &pad    | size::Number int::Octet\*
 `2#00011ppp` |`18`..`1F`| -Integer &pad    | size::Number int::Octet\*
-`2#0010sppp` |`20`..`27`| +Decimal &pad    | size::Number exp::Number int::Octet\*
-`2#0010sppp` |`28`..`2F`| -Decimal &pad    | size::Number exp::Number int::Octet\*
-`2#0011sppp` |`30`..`37`| +Based &pad      | size::Number base::Number exp::Number int::Octet\*
-`2#0011sppp` |`38`..`3F`| -Based &pad      | size::Number base::Number exp::Number int::Octet\*
+`2#00100ppp` |`20`..`27`| +Decimal &pad    | size::Number exp::Number int::Octet\*
+`2#00101ppp` |`28`..`2F`| -Decimal &pad    | size::Number exp::Number int::Octet\*
+`2#00110ppp` |`30`..`37`| +Based &pad      | size::Number base::Number exp::Number int::Octet\*
+`2#00111ppp` |`38`..`3F`| -Based &pad      | size::Number base::Number exp::Number int::Octet\*
 `2#01nnnnnn` |`40`..`7F`| -small [-64..-1] | -
 `2#1nnnnnnn` |`80`..`FE`| +small [0..126]  | -
 
 The octets of the _int_ portion are stored LSB first, with the MSB padded as described above.
 Negative _int_ values are represented in 2's-complement format (all-bits-set = `-1`).
-Decimal values include an _exp_ field that scales the value by powers of 10.
+Decimal values include an _exp_ field that scales the value by powers of `10`.
 Based values include a _base_ field that specifies the base, as well as the _exp_ field.
 The fully general formula for a Number is (_int_ × _base_ ^ _exp_).
-Note that exact Rational numbers can be represented using _base_ as the denominator with an _exp_ of -1.
+The default _base_ is `10`.
+The default _exp_ is `0`.
+Note that exact Rational numbers can be represented using _base_ as the denominator with an _exp_ of `-1`.
 
 #### Binary Data (recommendation)
 
