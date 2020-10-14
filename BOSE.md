@@ -8,6 +8,61 @@ Values may be round-tripped without semantic loss.
 Arbitrarily large values are fully supported.
 Decimal values can be represented exactly, without loss due to base-2 translation.
 
+## Example
+
+Consider the following JSON Object:
+```
+{
+    "space" : {
+        "origin" : [ -40, -20 ],
+        "extent" : [ 600, 460 ]
+    },
+    "shapes" : [
+        {
+            "origin" : [ 5, 3 ],
+            "extent" : [ 21, 13 ]
+        },
+        {
+            "origin" : [ 8, 5 ],
+            "extent" : [ 13, 8 ]
+        }
+    ]
+}
+```
+One possible BOSE representation would be:
+```
+0000:  07 d0 82 0a 85 73 70 61  63 65 05 a0 0b 86 6f 72  |.....space....or|
+0010:  69 67 69 6e 06 83 82 58  6c 0b 86 65 78 74 65 6e  |igin...Xl..exten|
+0020:  74 06 89 82 10 02 58 02  10 02 cc 01 0a 86 73 68  |t.....X.......sh|
+0030:  61 70 65 73 04 9c 05 8c  09 00 04 82 85 83 09 01  |apes............|
+0040:  04 82 95 8d 05 8c 09 00  04 82 88 85 09 01 04 82  |................|
+0050:  8d 88                                             |..              |
+```
+A corresponding structure in "C" could be:
+```
+BYTE buf_2[] = {
+    object_n, n_80, n_2,
+        utf8, n_5, 's', 'p', 'a', 'c', 'e',
+        object, n_32,
+            utf8_mem, n_6, 'o', 'r', 'i', 'g', 'i', 'n',
+            array_n, n_3, n_2,
+                n_m40,
+                n_m20,
+            utf8_mem, n_6, 'e', 'x', 't', 'e', 'n', 't',
+            array_n, n_9, n_2,
+                p_int_0, 2, 600 & 0xFF, 600 >> 8,
+                p_int_0, 2, 460 & 0xFF, 460 >> 8,
+        utf8, n_6, 's', 'h', 'a', 'p', 'e', 's',
+        array, n_28,
+            object, n_12,
+                mem_ref, 0, array, n_2, n_5, n_3,
+                mem_ref, 1, array, n_2, n_21, n_13,
+            object, n_12,
+                mem_ref, 0, array, n_2, n_8, n_5,
+                mem_ref, 1, array, n_2, n_13, n_8,
+};
+```
+
 ## Single-Octet Encodings
 
 There are six types of abstract data values representable in JSON:
