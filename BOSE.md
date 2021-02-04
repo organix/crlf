@@ -40,7 +40,8 @@ One possible BOSE representation would be:
 ```
 A corresponding structure in "C" could be:
 ```
-BYTE buf_2[] = {
+#include "bose.h"
+octet_t buf[] = {
     object_n, n_80, n_2,
         utf8, n_5, 's', 'p', 'a', 'c', 'e',
         object, n_32,
