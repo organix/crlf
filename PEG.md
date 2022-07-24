@@ -131,7 +131,8 @@ Illustrations of PEG grammars represented in CRLF format applied to real-world e
 
 ### JSON
 
-[RFC 8259](http://ftp.ripe.net/rfc/authors/rfc8259.txt) and [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf) describe _The JavaScript Object Notation (JSON) Data Interchange Format_. Within these standards, the grammar for JSON is expressed in ABNF:
+
+[RFC 8259](https://datatracker.ietf.org/doc/html/rfc8259) and [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf) describe _The JavaScript Object Notation (JSON) Data Interchange Format_. Within these standards, the grammar for JSON is expressed in ABNF:
 
 ```ABNF
 JSON-text = ws value ws
