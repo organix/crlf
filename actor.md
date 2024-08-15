@@ -363,7 +363,7 @@ _value_ _address_    | `!!`            | &mdash;                 | Atomic store 
     SWAP = cust
     SELF SWAP output SEND
     SELF cust SEND
-    output empty-Q serial_empty_beh BECOME
+    output empty-Q serial_buffer_beh BECOME
   ]
 ] = serial_empty_beh
 [ # output queue
