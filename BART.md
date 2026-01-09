@@ -1,6 +1,6 @@
 # BART (Blockly Actor Run-Time)
 
-[BART](https://github.com/dalnefre/blockly/tree/explicit-message-dictionary) is an implementation of an Actor Assignment Machine using the [Blockly](https://developers.google.com/blockly/) web-based visual programming editor. BART programs can be represented in JSON/CRLF as follows:
+[BART](https://dalnefre.github.io/blockly/demos/dalnefre/) is an implementation of an Actor Assignment Machine using the [Blockly](https://developers.google.com/blockly/) web-based visual programming editor. BART programs can be represented in JSON/CRLF as follows:
 
 ```javascript
 {
@@ -22,7 +22,7 @@ A _sponsor_ plays the role of a processor core, mediating access to computationa
 
 A _dictionary_ mapping names to values is the primary conceptual data structure. Each actor maintains a persistent dictionary of local variables, representing it's private state. Each message is a read-only _dictionary_ from which values may be retrieved by the actor's behavior script. Information derived from the message may be assigned to the actor's local persistent state.
 
-### BART Progam Elements
+### BART Program Elements
 
  The following is a compact summary of BART program elements:
 
